@@ -1,0 +1,96 @@
+/*.startCallAction {
+	float: right;
+}
+
+.startCallAction p {
+	margin: 0px !important;
+}
+
+.startCallAction img {
+	margin: 0px !important;
+  vertical-align: 0px !important;	
+}*/
+
+.startCallButton {
+	position: relative;
+  top: -20px;
+}
+
+/******** Video Call stuff below ************/
+
+.uiIconVideoCall:before {
+    content: "\e602";
+}
+
+@keyframes blink {  
+    0% { color: red; }
+    100% { color: black; }
+}
+@-webkit-keyframes blink {
+    0% { color: red; }
+    100% { color: black; }
+}
+.meetReady>i:before {
+    -webkit-animation: blink 1.5s linear infinite;
+    -moz-animation: blink 1.5s linear infinite;
+    -ms-animation: blink 1.5s linear infinite;
+    -o-animation: blink 1.5s linear infinite;
+    animation: blink 1.5s linear infinite;
+} 
+
+.meetJoined>i:before {
+    color: blue !important;
+}
+
+.spaceMeet {
+	margin-top: -40px;
+}
+
+/******** Pnotify icons ********/
+.picon-32.picon-task-complete {
+	background-image: url("icons/oxygen/32/status/task-complete.png")
+}
+
+.picon-32.picon-throbber {
+	background-image: url("icons/oxygen/32/animations/throbber.gif")
+}
+
+.picon-32.picon-dialog-error {
+	background-image: url("icons/oxygen/32/status/dialog-error.png")
+}
+
+.picon-32.picon-dialog-information {
+	background-image: url("icons/oxygen/32/status/dialog-information.png")
+}
+
+.picon-32.picon-dialog-warning {
+	background-image: url("icons/oxygen/32/status/dialog-warning.png")
+}
+
+.picon-32.picon-process-stop {
+	background-image: url("icons/oxygen/32/actions/process-stop.png")
+}
+
+.picon.picon-task-complete {
+	background-image: url("icons/oxygen/16/status/task-complete.png")
+}
+
+.picon.picon-throbber {
+	background-image: url("icons/oxygen/16/animations/throbber.gif")
+}
+
+.picon.picon-dialog-error {
+	background-image: url("icons/oxygen/16/status/dialog-error.png")
+}
+
+.picon.picon-dialog-information {
+	background-image: url("icons/oxygen/16/status/dialog-information.png")
+}
+
+.picon.picon-dialog-warning {
+	background-image: url("icons/oxygen/16/status/dialog-warning.png")
+}
+
+.picon.picon-process-stop {
+	background-image: url("icons/oxygen/16/actions/process-stop.png")
+}

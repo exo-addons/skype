@@ -1,0 +1,16 @@
+<script type="text/javascript">
+	if (!videoCallsEnv) {
+		videoCallsEnv = {};
+	}
+	videoCallsEnv.skype = {
+		name : "${name}",
+		title : "${title}",
+		callTitle : "${callTitle}",
+		clientId : "${clientId}",
+		redirectUri : "${redirectUri}",
+		origins : ["https://webdir.online.lync.com/autodiscover/autodiscoverservice.svc/root"],
+		version : "${version}",
+		apiKey : ${apiKey},
+		apiKeyCC : ${apiKeyCC}
+	};
+</script>
