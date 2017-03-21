@@ -53,6 +53,7 @@ import java.util.regex.Pattern;
  * @version $Id: SkypeService.java 00000 Feb 22, 2017 pnedonosko $
  * 
  */
+@Deprecated
 public class SkypeService implements Startable {
 
   public static final String    SKYPE_SCHEMA = "skype";

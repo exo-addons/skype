@@ -1,8 +1,0 @@
-<div id="videocall-status"
-  data-username="${user}"
-  data-userfullname="${userFullName}"
-  data-userskypeim="${userSkypeIM}" 
-  data-spacename="${spaceName}"
-  data-spaceroomname="${spaceRoomName}"
-  style="display: none;">
-</div>
