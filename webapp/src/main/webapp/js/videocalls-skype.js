@@ -2,7 +2,8 @@
  * Skype provider for Video Calls app. This script should add a provider to Video Calls module and handle calls for
  * portal user/groups.
  */
-(function($, videoCalls, skypeWeb, skypeURI) {
+(function($, videoCalls, skypeURI) {
+	"use strict";
 
 	function isSkypeUser(user) {
 		return user.imAccounts.skype || user.imAccounts["ms-sfb"];
@@ -116,19 +117,25 @@
 			if (settings) {
 				return settings.name;
 			}
-		}
+		};
 
 		this.getTitle = function() {
 			if (settings) {
 				return settings.title;
 			}
-		}
+		};
 
 		this.getCallTitle = function() {
 			if (settings) {
 				return settings.callTitle;
 			}
-		}
+		};
+
+		this.getClientId = function() {
+			if (settings) {
+				return settings.clientId;
+			}
+		};
 
 		this.configure = function(skypeEnv) {
 			settings = skypeEnv;
@@ -169,7 +176,7 @@
 						}, function() {
 							console.log("Skype signed in as", app.personsAndGroupsManager.mePerson.displayName());
 							appInstance = app;
-							initializer.resolve(app);
+							initializer.resolve(api, app);
 						}, function(err) {
 							console.log("Cannot sign in Skype", err);
 							initializer.reject(err);
@@ -188,7 +195,7 @@
 			} else {
 				initializer.reject("Skype settings not found");
 			}
-			return initializer.resolve();
+			return initializer.promise();
 		};
 
 		this.uiApplication = function() {
@@ -219,7 +226,7 @@
 						}, function() {
 							console.log("SkypeCC signed in as", app.personsAndGroupsManager.mePerson.displayName());
 							uiAppInstance = app;
-							initializer.resolve(app);
+							initializer.resolve(api, app);
 						}, function(err) {
 							console.log("Cannot sign in SkypeCC", err);
 							initializer.reject(err);
@@ -238,7 +245,7 @@
 			} else {
 				initializer.reject("Skype settings not found");
 			}
-			return initializer.resolve();
+			return initializer.promise();
 		};
 
 		this.callButton = function(context) {
@@ -246,30 +253,41 @@
 			if (context && context.currentUser) {
 				context.currentUserSkype = context.currentUser.imAccounts.skype;
 				context.currentUserSFB = context.currentUser.imAccounts["ms-sfb"];
-				var participants = participants(context);
+				var callParts = participants(context);
 				var isGroupCall;
 				var linkId, title; // TODO i18n for title
 				var rndText = Math.floor((Math.random() * 1000000) + 1);
 				if (context.space) {
 					linkId = "SkypeCall-" + context.space.shortName + "-" + rndText;
-					title = context.space.title + " space";
+					title = context.space.title + " meeting";
 					isGroupCall = true;
 				} else if (context.chat && context.chat.room) {
 					linkId = "SkypeCall-" + context.space.shortName + "-" + rndText;
-					title = context.chat.room.title + " room"; // TODO define Chat/Room API
+					title = context.chat.room.title + " meeting"; // TODO define Chat/Room API
 					isGroupCall = true;
 				} else {
-					linkId = "SkypeCall-" + participants.join("-") + "-" + rndText;
+					linkId = "SkypeCall-" + callParts.join("-") + "-" + rndText;
 					titie = "Call with " + context.user.title;
 					isGroupCall = false;
 				}
-				if (participants.length > 0) {
+				if (callParts.length > 0) {
 					if (context.currentUserSFB) {
 						// TODO use Skype WebSDK for Business users
 						// var useBusiness = context.currentUserSFB; // && (isIOS || isAndroid)
-						var userIMs = participants.join(";");
-						// TODO
-
+						var userIMs = callParts.join(";");
+						$button = $("<a id='" + linkId + "' title='" + title
+									+ "' href='javascript:void(0);'><i class='skypeCallIcon'></i>" + this.getCallTitle() + "</a>");
+						$button.click(function() {
+							// TODO check if such window isn't already open by this app
+							var destUrl = videoCalls.getBaseUrl() + "/portal/intranet/skype";
+							var callWindow = window.open(destUrl + "?call=" + userIMs);
+							if (callWindow) {
+								$(callWindow).ready(function() {
+									context.participants = callParts;
+									callWindow.postMessage(context, destUrl);
+								});
+							}
+						});
 					} else if (context.currentUserSkype) {
 						// use Skype URI for regular Skype user
 						// $button = $("<div id='"
@@ -281,7 +299,7 @@
 						// + "<img src='http://www.skypeassets.com/i/scom/images/skype-buttons/callbutton_24px.png' alt='Skype call'
 						// role='Button' style='border: 0px; margin: 2px;'>"
 						// + "</a></div>");
-						var userIMs = participants.join(";");
+						var userIMs = callParts.join(";");
 						var link = "skype:" + userIMs + "?call&amp;video=true";
 						$button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
 									+ "'><i class='skypeCallIcon'></i>" + this.getCallTitle() + "</a>");
@@ -309,4 +327,4 @@
 	});
 
 	return provider;
-});
+})($, videoCalls, skypeURI);

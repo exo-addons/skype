@@ -1,9 +1,8 @@
-"use strict";
-
 /**
  * Skype calls integration for eXo Platform.
  */
 (function($) {
+	"use strict";
 
 	// ******** Constants ********
 
@@ -544,16 +543,24 @@
 				var currentIsBusiness = currentUser.imAccounts["ms-sfb"];
 				if (currentIsBusiness) {
 					var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
-					if ($breadcumbEntry.size() > 0 && !$breadcumbEntry.data("skypebutton")) {
-						$breadcumbEntry.data("skypebutton", true);
+					// TODO callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
+					if ($breadcumbEntry.size() > 0 && !$breadcumbEntry.data("callbuttoninit")) {
+						console.log(">>> initSpaceWeb " + compId + " " + currentUser.name);
+						var initializer = $.Deferred();
+						$breadcumbEntry.data("callbuttoninit", true);
 						if (spaceUpdater) {
 							spaceUpdater.clearInterval();
 						}
-						if (providers.length > 0) {
+						var $container = $breadcumbEntry.find(".callButtonContainer");
+						// TODO check precisely that we have an one button for each provider 
+						if (providers.length > 0 && $container.find(".startCallButton").size() != providers.length) {
 							var get = getSpaceInfo(currentSpace.name);
+							// TODO do we really need call REST, may be it could be injected in env?
 							get.done(function(space) {
-								var $container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
-								$breadcumbEntry.append($container);
+								if ($container.size() == 0) {
+									$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
+									$breadcumbEntry.append($container);
+								}
 								var actionClasses = "actionIcon startCallButton spaceCall";
 								var context = {
 									currentUser : currentUser,
@@ -561,47 +568,58 @@
 									isIOS : isIOS,
 									isAndroid : isAndroid
 								};
-								var $button, $dropdown;
+								var $dropdown = $container.find(".dropdown-menu");
+								var $button;
 								for (var i = 0; i < providers.length; i++) {
 									var p = providers[i];
 									var $button = p.callButton(context);
 									if ($button) {
-										if ($dropdown) {
+										if ($dropdown.size() > 0) {
 											// add others in dropdown
 											$button.addClass(actionClasses);
 											$dropdown.append($button);	
 										} else {
 											// add first & default button
-											$button.addClass("btn btn-primary " + actionClasses);
+											$button.addClass("btn " + actionClasses); // btn-primary
 											$container.append($button); 
 											$dropdown = $("<ul class='dropdown-menu'></ul>");
 										}
 									}
 								}
-								if ($dropdown) {
-									$container.append($("<a class='btn btn-primary dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
+								if ($dropdown.children().size() > 0) {
+									// btn-primary 
+									$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
 									$container.append($dropdown);
 								}
 								if ($button) {
 									$container.show();
 								}
+								initializer.resolve();
+								console.log("<<< initSpaceWeb DONE " + compId + " " + currentUser.name);
 							});
 							get.fail(function(e, status) {
-								$breadcumbEntry.data("skypebutton", false);
+								initializer.reject();
 								if (status == 404) {
-									log("ERROR " + (e.message ? e.message + " " : "Not found ") + currentSpace.name + ": " + JSON.stringify(e));
+									log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.name + ": " + JSON.stringify(e));
 								} else {
-									log("ERROR reading space users: " + JSON.stringify(e));
+									log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": reading space users: " + JSON.stringify(e));
 								}
 							});
-						}							
+						}	else {
+							initializer.reject();
+							console.log("<<< initSpaceWeb CANCEL (no providers) " + compId + " " + currentUser.name);
+						}
+						initializer.always(function() {
+							$breadcumbEntry.data("callbuttoninit", false);
+						});
+					} else {
+						console.log("<<< initSpaceWeb SKIP " + compId + " " + currentUser.name);
 					}
 				}
 			}
 		};
 		
 		this.update = function(compId) {
-			log("update " + compId);
 			if (!compId) {
 				// by default we work with whole portal page
 				compId = "UIPortalApplication";
@@ -618,8 +636,7 @@
 		this.init = function(user, spaceName, roomName) {
 				currentUser = user;
 				prepareUser(currentUser);
-				currentUser = null;
-				log("Skype IM not found for " + user.name + ".");
+				log("User initialized in Video Calls: " + user.name + ".");
 			if (spaceName) {
 				currentSpace = {
 					name : spaceName,
@@ -632,6 +649,10 @@
 		
 		this.getUser = function() {
 			return currentUser;
+		};
+		
+		this.getBaseUrl = function() {
+			return pageBaseUrl();
 		};
 		
 		/**
@@ -653,6 +674,7 @@
 				}
 				if (provider.callButton && provider.hasOwnProperty("callButton")) {
 					providers.push(provider);
+					this.update();
 				// } else if (provider.call && provider.hasOwnProperty("call")) {
 				// provider.useDefaultCallInvoker = true;
 				// providers.push(provider);

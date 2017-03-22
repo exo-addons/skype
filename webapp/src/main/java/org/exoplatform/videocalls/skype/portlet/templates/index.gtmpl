@@ -1,5 +1,5 @@
 <script type="text/javascript">
-	if (!videoCallsEnv) {
+	if (typeof videoCallsEnv === "undefined" || !videoCallsEnv) {
 		videoCallsEnv = {};
 	}
 	videoCallsEnv.skype = {
@@ -10,7 +10,8 @@
 		redirectUri : "${redirectUri}",
 		origins : ["https://webdir.online.lync.com/autodiscover/autodiscoverservice.svc/root"],
 		version : "${version}",
-		apiKey : ${apiKey},
-		apiKeyCC : ${apiKeyCC}
+		apiKey : "${apiKey}",
+		apiKeyCC : "${apiKeyCC}"
 	};
 </script>
+<div id="skype-call-conversation"></div>

@@ -9,7 +9,6 @@ import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
 
 import juzu.Path;
@@ -40,7 +39,7 @@ public class SkypeCallApplication {
 		PortalRequestContext requestContext = Util.getPortalRequestContext();
 
 		HttpServletRequest request = requestContext.getRequest();
-		URI redirectURI = new URI(request.getScheme(), null, request.getRemoteHost(), request.getRemotePort(),
+		URI redirectURI = new URI(request.getScheme(), null, request.getServerName(), request.getServerPort(),
 				"/portal/intranet/skype", null, null);
 
 		// HttpSession httpSession = request.getSession();

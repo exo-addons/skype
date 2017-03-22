@@ -2,17 +2,13 @@
 @Application
 @Portlet(name = "SkypeCallPortlet")
 
-@Bindings({ @Binding(value = org.exoplatform.videocalls.SkypeService.class),
+@Bindings({ @Binding(value = org.exoplatform.videocalls.VideoCallsService.class),
 		@Binding(value = org.exoplatform.services.organization.OrganizationService.class),
 		@Binding(value = org.exoplatform.social.core.space.spi.SpaceService.class) })
 
 @Stylesheets({ @Stylesheet(id = "skype.css", value = "skin/skype.css", location = AssetLocation.SERVER) })
 
-@Scripts({
-		@Script(id = "skype-uri", value = "http://www.skypeassets.com/i/scom/js/skype-uri.js", location = AssetLocation.URL),
-		@Script(id = "skype-bootstrap", value = "https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js", location = AssetLocation.URL),
-		@Script(value = "js/skypecallapp.js", depends = { "skype-bootstrap",
-				"skype.css" }, location = AssetLocation.SERVER) })
+@Scripts({ @Script(value = "js/skypecallapp.js", location = AssetLocation.SERVER) })
 
 @Assets("*")
 

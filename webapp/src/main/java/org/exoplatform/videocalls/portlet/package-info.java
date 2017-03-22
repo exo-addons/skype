@@ -13,7 +13,8 @@
 		@Stylesheet(id = "jquery.pnotify.default.css", value = "skin/jquery.pnotify.default.css", location = AssetLocation.SERVER),
 		@Stylesheet(id = "jquery.pnotify.default.icons.css", value = "skin/jquery.pnotify.default.icons.css", location = AssetLocation.SERVER), })
 
-@Scripts({ @Script(value = "js/videocallsapp.js", location = AssetLocation.SERVER) })
+@Scripts({ @Script(value = "js/videocallsapp.js", depends = { "jquery-ui.css", "jquery-ui.structure.css",
+		"jquery-ui.theme.css", "videocalls.css" }, location = AssetLocation.SERVER) })
 
 @Assets("*")
 

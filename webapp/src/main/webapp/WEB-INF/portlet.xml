@@ -5,7 +5,7 @@
              xsi:schemaLocation="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd
    http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
    <portlet>
-     <portlet-name>VideoCallsApplication</portlet-name>
+     <portlet-name>VideoCallsPortlet</portlet-name>
      <display-name xml:lang="EN">Video Calls Application</display-name>
      <portlet-class>org.exoplatform.videocalls.portlet.VideoCallsPortlet</portlet-class>
      <init-param>
@@ -27,7 +27,7 @@
     </portlet-info>
    </portlet>
    <portlet>
-     <portlet-name>SkypeCallApplication</portlet-name>
+     <portlet-name>SkypeCallPortlet</portlet-name>
      <display-name xml:lang="EN">Skype Call Application</display-name>
      <portlet-class>org.exoplatform.videocalls.skype.portlet.SkypeCallPortlet</portlet-class>
      <init-param>

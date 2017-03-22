@@ -24,15 +24,20 @@
     <access-permissions>*:/platform/users</access-permissions>
     <edit-permission>manager:/platform/administrators</edit-permission>
     <show-max-window>true</show-max-window>
-    <portlet-application>
-      <portlet>
-        <application-ref>skype</application-ref>
-        <portlet-ref>SkypeCallPortlet</portlet-ref>
-      </portlet>
+    <container id="skype-call-container" template="system:/groovy/portal/webui/container/UIAddOnContainer.gtmpl">
+      <name>skype-call-container</name>
       <access-permissions>*:/platform/users</access-permissions>
-      <show-info-bar>false</show-info-bar>
-      <show-application-state>false</show-application-state>
-      <show-application-mode>false</show-application-mode>
-    </portlet-application>
+      <factory-id>addonContainer</factory-id>
+      <portlet-application>
+        <portlet>
+          <application-ref>skype</application-ref>
+          <portlet-ref>SkypeCallPortlet</portlet-ref>
+        </portlet>
+        <access-permissions>*:/platform/users</access-permissions>
+        <show-info-bar>false</show-info-bar>
+        <show-application-state>false</show-application-state>
+        <show-application-mode>false</show-application-mode>
+      </portlet-application>  
+    </container>
   </page>
 </page-set>

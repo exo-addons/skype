@@ -1,6 +1,6 @@
 <script type="text/javascript">
 // TODO do JS module loading and init videoCall object directly, w/o a global var 
-	if (!videoCallsEnv) {
+	if (typeof videoCallsEnv === "undefined" || !videoCallsEnv) {
 		videoCallsEnv = {};
 	}
 	videoCallsEnv.user = ${user};

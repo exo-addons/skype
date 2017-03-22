@@ -3,7 +3,8 @@
  * Video Calls module.
  */
 require([ "SHARED/jquery", "SHARED/videoCalls" ], function($, videoCalls) {
-
+	"use strict";
+	
 	var getIEVersion = function()
 	// Returns the version of Windows Internet Explorer or a -1
 	// (indicating the use of another browser).
