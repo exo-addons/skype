@@ -93,7 +93,7 @@ public class VideoCallsApplication {
 
 	protected String spaceRoomName(Space space) {
 		StringBuilder sname = new StringBuilder();
-		sname.append("eXoSkype");
+		sname.append("eXoVideoCalls");
 		String spaceName = space.getShortName();
 		for (String s : spaceName.split("_")) {
 			if (s.length() > 0) {

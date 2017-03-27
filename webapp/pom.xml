@@ -31,15 +31,30 @@
   <name>eXo Skype :: Extension Webapp</name>
   <description>eXo Skype web application of portal extension</description>
   <dependencies>
+    <!-- Skype services -->
     <dependency>
       <groupId>org.exoplatform.addons</groupId>
       <artifactId>exo-skype-services</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Video Calls -->
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-videocalls-services</artifactId>
+      <type>jar</type>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-videocalls-webapp</artifactId>
+      <type>war</type>
       <scope>provided</scope>
     </dependency>
     <!-- Application dependencies-->
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>javax.inject</groupId>

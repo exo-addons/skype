@@ -22,55 +22,38 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>exo-skype-parent</artifactId>
+    <artifactId>exo-videocalls-parent</artifactId>
     <groupId>org.exoplatform.addons</groupId>
     <version>1.0.x-SNAPSHOT</version>
   </parent>
-  <artifactId>exo-skype-services</artifactId>
-  <packaging>jar</packaging>
-  <name>eXo Skype :: Extension Services</name>
-  <description>eXo Skype services of portal extension</description>
+  <artifactId>exo-videocalls-webapp</artifactId>
+  <packaging>war</packaging>
+  <name>eXo Video Calls :: Extension Webapp</name>
+  <description>eXo Video Calls web application of portal extension</description>
   <dependencies>
-    <!-- Video Calls core -->
     <dependency>
       <groupId>org.exoplatform.addons</groupId>
       <artifactId>exo-videocalls-services</artifactId>
-      <type>jar</type>
       <scope>provided</scope>
     </dependency>
-    <!-- Others third party -->
+    <!-- Application dependencies-->
     <dependency>
-      <groupId>javax.jcr</groupId>
-      <artifactId>jcr</artifactId>
-      <type>jar</type>
-      <scope>provided</scope>
+      <groupId>javax.servlet</groupId>
+      <artifactId>javax.servlet-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.ws.rs</groupId>
-      <artifactId>jsr311-api</artifactId>
-      <type>jar</type>
+      <groupId>javax.inject</groupId>
+      <artifactId>javax.inject</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.json</groupId>
-      <artifactId>json</artifactId>
-      <type>jar</type>
+      <groupId>javax.portlet</groupId>
+      <artifactId>portlet-api</artifactId>
       <scope>provided</scope>
     </dependency>
-    <!-- Portal & ECMS & Social -->
     <dependency>
       <groupId>org.exoplatform.commons</groupId>
-      <artifactId>commons-webui-ext</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.ecms</groupId>
-      <artifactId>ecms-core-webui-explorer</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.ecms</groupId>
-      <artifactId>ecms-core-webui</artifactId>
+      <artifactId>commons-juzu</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -79,22 +62,49 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.exoplatform.kernel</groupId>
+      <artifactId>exo.kernel.commons</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.kernel</groupId>
+      <artifactId>exo.kernel.container</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.exoplatform.social</groupId>
       <artifactId>social-component-core</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.juzu</groupId>
+      <artifactId>juzu-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- dependency>
+      <groupId>org.juzu</groupId>
+      <artifactId>juzu-core</artifactId>
+      <classifier>sources</classifier>
+      <scope>provided</scope>
+    </dependency -->
+    <dependency>
+      <groupId>org.juzu</groupId>
+      <artifactId>juzu-plugins-less</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.juzu</groupId>
+      <artifactId>juzu-plugins-portlet</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- dependency>
+      <groupId>org.juzu</groupId>
+      <artifactId>juzu-plugins-servlet</artifactId>
+      <scope>provided</scope>
+    </dependency -->
   </dependencies>
   <build>
     <resources>
-      <resource>
-        <directory>src/main/java</directory>
-        <includes>
-          <include>**/*.xml</include>
-          <include>**/*.properties</include>
-          <include>**/*.xsl</include>
-          <include>**/*.dtd</include>
-        </includes>
-      </resource>
       <resource>
         <directory>src/main/resources</directory>
         <includes>
@@ -116,5 +126,6 @@
         </includes>
       </resource>
     </resources>
+    <finalName>videocalls</finalName>
   </build>
 </project>

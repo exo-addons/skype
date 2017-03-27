@@ -28,7 +28,7 @@ package org.exoplatform.videocalls;
  * @version $Id: SkypeException.java 00000 Feb 22, 2017 pnedonosko $
  * 
  */
-public class SkypeException extends Exception {
+public class VideoCallsException extends Exception {
 
   /**
    * 
@@ -38,13 +38,13 @@ public class SkypeException extends Exception {
   /**
    * 
    */
-  public SkypeException() {
+  public VideoCallsException() {
   }
 
   /**
    * @param message
    */
-  public SkypeException(String message) {
+  public VideoCallsException(String message) {
     super(message);
   }
 
@@ -52,7 +52,7 @@ public class SkypeException extends Exception {
    * @param message
    * @param cause
    */
-  public SkypeException(String message, Throwable cause) {
+  public VideoCallsException(String message, Throwable cause) {
     super(message, cause);
   }
 

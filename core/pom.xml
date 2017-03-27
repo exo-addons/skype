@@ -2,17 +2,17 @@
 <!--
 
     Copyright (C) 2017 eXo Platform SAS.
-
+    
     This is free software; you can redistribute it and/or modify it
     under the terms of the GNU Lesser General Public License as
     published by the Free Software Foundation; either version 2.1 of
     the License, or (at your option) any later version.
-
+    
     This software is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
     Lesser General Public License for more details.
-
+    
     You should have received a copy of the GNU Lesser General Public
     License along with this software; if not, write to the Free
     Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
@@ -22,27 +22,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>addons-parent-pom</artifactId>
+    <artifactId>exo-skype-parent</artifactId>
     <groupId>org.exoplatform.addons</groupId>
-    <version>8-SNAPSHOT</version>
+    <version>1.0.x-SNAPSHOT</version>
   </parent>
-  <artifactId>exo-skype-parent</artifactId>
-  <version>1.0.x-SNAPSHOT</version>
+  <artifactId>exo-videocalls-parent</artifactId>
   <packaging>pom</packaging>
-  <name>eXo Skype :: Parent</name>
-  <description>eXo Skype extension</description>
+  <name>eXo Video Calls :: Parent</name>
+  <description>eXo Video Calls project parent</description>
   <modules>
     <module>services</module>
     <module>webapp</module>
     <module>packaging</module>
-    <module>core</module>
   </modules>
-  <scm>
-    <connection>scm:git:git://github.com/exo-addons/skype.git</connection>
-    <developerConnection>scm:git:git@github.com:exo-addons/skype.git</developerConnection>
-    <tag>HEAD</tag>
-    <url>https://github.com/exo-addons/skype</url>
-  </scm>
   <properties>
     <!-- Defaut compiler settings -->
     <maven.compiler.optimize>true</maven.compiler.optimize>
@@ -55,7 +47,6 @@
     <org.exoplatform.depmgt.version>13-SNAPSHOT</org.exoplatform.depmgt.version>
     <org.exoplatform.platform.version>5.0.x-SNAPSHOT</org.exoplatform.platform.version>
     <!-- Third-parties -->
-    <org.jsoup.version>1.9.2</org.jsoup.version>
     <!-- for tests -->
     <junit.version>4.12</junit.version>
     <org.mockito.version>2.2.11</org.mockito.version>
@@ -79,14 +70,6 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <!-- Import versions from Juzu -->
-      <!-- dependency>
-        <groupId>org.juzu</groupId>
-        <artifactId>juzu-parent</artifactId>
-        <version>${org.juzu.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency -->
       <!-- Video Calls extension -->
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
@@ -97,19 +80,6 @@
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-videocalls-webapp</artifactId>
-        <version>${project.version}</version>
-        <type>war</type>
-      </dependency>
-      <!-- Skype extension -->
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-skype-services</artifactId>
-        <version>${project.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-skype-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
       </dependency>

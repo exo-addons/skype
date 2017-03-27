@@ -5,12 +5,12 @@
              xsi:schemaLocation="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd
    http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
    <portlet>
-     <portlet-name>SkypeCallPortlet</portlet-name>
-     <display-name xml:lang="EN">Skype Call Application</display-name>
-     <portlet-class>org.exoplatform.videocalls.skype.portlet.SkypeCallPortlet</portlet-class>
+     <portlet-name>VideoCallsPortlet</portlet-name>
+     <display-name xml:lang="EN">Video Calls Application</display-name>
+     <portlet-class>org.exoplatform.videocalls.portlet.VideoCallsPortlet</portlet-class>
      <init-param>
       <name>juzu.app_name</name>
-      <value>org.exoplatform.videocalls.skype.portlet</value>
+      <value>org.exoplatform.videocalls.portlet</value>
     </init-param>
     <init-param>
       <name>juzu.run_mode</name>
@@ -19,11 +19,11 @@
     <supports>
       <mime-type>text/html</mime-type>
     </supports>
-    <resource-bundle>locale.skype.Skype</resource-bundle>
+    <resource-bundle>locale.videocalls.VideoCalls</resource-bundle>
     <portlet-info>
-      <title>Skype Call Application</title>
-      <short-title>Skype</short-title>
-      <keywords>skype</keywords>
+      <title>Video Calls Application</title>
+      <short-title>Video Calls</short-title>
+      <keywords>video calls</keywords>
     </portlet-info>
    </portlet>
 </portlet-app>

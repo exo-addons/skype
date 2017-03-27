@@ -32,54 +32,44 @@
     <css-priority>1</css-priority>
   </portlet-skin -->
 
-  <!-- Javascript for Skype Calls support in Platform -->
+  <!-- Javascript for Video Calls support in Platform -->
   <module>
-    <name>skypeURI</name>
+    <name>videoCallsJqueryPnotify</name>
     <load-group>videoCallsGRP</load-group>
     <script>
-      <adapter>
-        (function() {
-        <include>/js/skype-uri.js</include>
-        var skype = window.Skype;
-        window.Skype = undefined;
-        return skype;
-        })();
-      </adapter>
+      <path>/js/jquery.pnotify.min.js</path>
     </script>
+    <depends>
+      <module>jquery</module>
+      <as>jQuery</as>
+    </depends>
   </module>
   <module>
-    <name>skypeWeb</name>
-    <url>https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js</url>
-    <!-- We cannot hide Skype global variable in this script, thus no sense to keep it local -->
-    <!-- load-group>videoCallsGRP</load-group>
-    <script>
-      <adapter>
-        (function() {
-        <include>/js/SkypeBootstrap.min.js</include>
-        var skype = window.Skype;
-        window.Skype = undefined;
-        return skype;
-        })();
-      </adapter>
-    </script -->
-  </module>
-  <module>
-    <name>videoCalls_skype</name>
+    <name>videoCallsJqueryUI</name>
+    <as>jqueryUI</as>
     <load-group>videoCallsGRP</load-group>
     <script>
-      <path>/js/videocalls-skype.js</path>
+      <path>/js/jquery-ui.min.js</path>
+    </script>
+    <depends>
+      <module>jquery</module>
+      <as>jQuery</as>
+    </depends>
+  </module>
+  <module>
+    <name>videoCalls</name>
+    <load-group>videoCallsGRP</load-group>
+    <script>
+      <path>/js/videocalls.js</path>
     </script>
     <depends>
       <module>jquery</module>
     </depends>
     <depends>
-      <module>videoCalls</module>
+      <module>videoCallsJqueryPnotify</module>
     </depends>
     <depends>
-      <module>skypeURI</module>
-    </depends>
-    <depends>
-      <module>skypeWeb</module>
+      <module>videoCallsJqueryUI</module>
     </depends>
   </module>
 </gatein-resources>

@@ -24,15 +24,18 @@
   xsi:schemaLocation="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd http://www.exoplatform.org/xml/ns/kernel_1_2.xsd"
   xmlns="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd">
 
-  <!-- component>
+  <component>
+    <type>org.exoplatform.videocalls.VideoCallsService</type>
+  </component>
+  <component>
     <type>org.exoplatform.videocalls.rest.RESTVideoCallsService</type>
-  </component -->
+  </component>
   
   <external-component-plugins>
     <target-component>org.exoplatform.commons.addons.AddOnService</target-component>
     <component-plugin>
       <!-- 
-        Add VideoCalls and SkypeCall portlets to portal pages with a toolbar
+        Add VideoCalls portlet to portal pages with a toolbar
       -->
       <name>addPlugin</name>
       <set-method>addPlugin</set-method>
@@ -48,39 +51,6 @@
           <value>middle-topNavigation-container</value>
         </value-param>
         <object-param>
-          <name>SkypeCallPortlet</name>
-          <description>Skype Status portlet</description>
-          <object type="org.exoplatform.portal.config.serialize.PortletApplication">
-            <field name="state">
-              <object type="org.exoplatform.portal.config.model.TransientApplicationState">
-                <field name="contentId">
-                  <string>skype/SkypeCallPortlet</string>
-                </field>
-              </object>
-            </field>
-          </object>
-        </object-param>
-      </init-params>
-    </component-plugin>
-    <component-plugin>
-      <!-- 
-        Add VideoCalls and SkypeCall portlets to /portal/intranet/skype page (it is w/o a toolbar, 
-        thus the above add-ons will not be added. 
-      -->
-      <name>addPlugin</name>
-      <set-method>addPlugin</set-method>
-      <type>org.exoplatform.commons.addons.AddOnPluginImpl</type>
-      <description>add application Config</description>
-      <init-params>
-        <value-param>
-          <name>priority</name>
-          <value>10</value>
-        </value-param>
-        <value-param>
-          <name>containerName</name>
-          <value>skype-call-container</value>
-        </value-param>
-        <object-param>
           <name>VideoCallsPortlet</name>
           <description>Video Calls portlet</description>
           <object type="org.exoplatform.portal.config.serialize.PortletApplication">
@@ -88,19 +58,6 @@
               <object type="org.exoplatform.portal.config.model.TransientApplicationState">
                 <field name="contentId">
                   <string>videocalls/VideoCallsPortlet</string>
-                </field>
-              </object>
-            </field>
-          </object>
-        </object-param>
-        <object-param>
-          <name>SkypeCallPortlet</name>
-          <description>Skype Call page</description>
-          <object type="org.exoplatform.portal.config.serialize.PortletApplication">
-            <field name="state">
-              <object type="org.exoplatform.portal.config.model.TransientApplicationState">
-                <field name="contentId">
-                  <string>skype/SkypeCallPortlet</string>
                 </field>
               </object>
             </field>
@@ -126,10 +83,10 @@
             <field name="patterns">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
                 <value>
-                  <string>/scripts/.*/skype.*</string>
+                  <string>/scripts/.*/videocalls.*</string>
                 </value>
                 <value>
-                  <string>/skins/.*/skype.*</string>
+                  <string>/skins/.*/videocalls.*</string>
                 </value>
               </collection>
             </field>
@@ -144,7 +101,7 @@
             <field name="patterns">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
                 <value>
-                  <string>/intranet/skype.*</string>
+                  <string>/intranet/videocalls.*</string>
                 </value>
               </collection>
             </field>
@@ -164,18 +121,15 @@
         <values-param>
           <name>init.resources</name>
           <description>Store the following resources into the db for the first launch</description>
-          <value>locale.skype.Skype</value>
+          <value>locale.videocalls.VideoCalls</value>
         </values-param>
         <values-param>
           <name>portal.resource.names</name>
           <description>The properties files of the portal , those file will be merged into one ResoruceBundle
             properties</description>
-          <value>locale.skype.Skype</value>
+          <value>locale.videocalls.VideoCalls</value>
         </values-param>
       </init-params>
     </component-plugin>
   </external-component-plugins>
-  
-  <import>war:/conf/skype/portal-configuration.xml</import>
-
 </configuration>
