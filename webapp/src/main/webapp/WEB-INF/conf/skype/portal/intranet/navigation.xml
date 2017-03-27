@@ -25,9 +25,15 @@
     <node>
       <uri>skype</uri>
       <name>skype</name>
-      <label xml:lang="en">Skype Calls Add-in</label>
+      <label xml:lang="en">Skype Call</label>
       <visibility>HIDDEN</visibility>
       <page-reference>portal::intranet::skype</page-reference>
+      <!-- node>
+        <uri>skype/home</uri>
+        <name>skypeHome</name>
+        <label xml:lang="en">Skype Home</label>
+        <page-reference>portal::intranet::skypeHome</page-reference>
+      </node -->
     </node>
   </page-nodes>
 </node-navigation>

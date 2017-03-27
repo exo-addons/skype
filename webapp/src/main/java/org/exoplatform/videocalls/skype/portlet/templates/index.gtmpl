@@ -14,4 +14,3 @@
 		apiKeyCC : "${apiKeyCC}"
 	};
 </script>
-<div id="skype-call-conversation"></div>

@@ -60,7 +60,8 @@ public class SkypeCallApplication {
 		// ResourceBundle bundle = applicationContext.resolveBundle(locale);
 
 		// TODO take parameters from config/settings
-		// client_id - Application ID in Azure AD
+		// client_id - Application ID in Azure AD cdb8a8d9-7f58-4461-af22-f8f038457811
+		// client_id - Object ID in Azure AD 1972edc0-9f9d-40ca-b114-3fe23bcbd733
 		// TODO callTitle i18n
 		Builder builder = index.with().set("name", "skype").set("title", "Skype").set("callTitle", "Call")
 				.set("clientId", "cdb8a8d9-7f58-4461-af22-f8f038457811").set("redirectUri", redirectURI.toString())

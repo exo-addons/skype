@@ -6,7 +6,19 @@
 	"use strict";
 
 	function isSkypeUser(user) {
-		return user.imAccounts.skype || user.imAccounts["ms-sfb"];
+		return user && (user.imAccounts.skype || user.imAccounts["ms-sfb"]);
+	}
+	
+	/** For debug logging. */
+	var objId = Math.floor((Math.random() * 1000) + 1);
+	var logPrefix = "[skype_" + objId + "] ";
+	function log(msg, e) {
+		if ( typeof console != "undefined" && typeof console.log != "undefined") {
+			console.log(logPrefix + msg);
+			if (e && typeof e.stack != "undefined") {
+				console.log(e.stack);
+			}
+		}
 	}
 
 	function SkypeProvider() {
@@ -15,66 +27,21 @@
 
 		var appInstance, uiAppInstance;
 
-		/** TODO Deprecated */
-		var initSDK = function() {
-			// Skype Configuration: apiKey for SDK, apiKeyCC for SDK+UI
-			// config = {
-			// version : settings.version,
-			// apiKey : settings.apiKey,
-			// apiKeyCC : settings.apiKeyCC
-			// };
-			currentKey = settings.apiKey;
-
-			var user = videoCalls.getUser();
-			var sessionId = user.name + "_session" + Math.floor((Math.random() * 1000000) + 1);
-			Skype.initialize({
-				version : settings.version,
-				apiKey : settings.apiKey,
-				correlationIds : {
-					sessionId : sessionId
-				// Necessary for troubleshooting requests, should be unique per session
-				}
-			}, function(api) {
-				var app = new api.application();
-				// SignIn SfB Online: the SDK will get its own access token
-				app.signInManager.signIn({
-					client_id : settings.clientId,
-					cors : true,
-					redirect_uri : settings.redirectUri,
-					origins : settings.origins,
-					version : settings.version
-				// Necessary for troubleshooting requests; identifies your application in our telemetry
-				}, function() {
-					console.log("Skype signed in as", app.personsAndGroupsManager.mePerson.displayName());
-				}, function(err) {
-					console.log("Cannot sign in Skype", err);
-				});
-
-				// whenever client.state changes, display its value
-				app.signInManager.state.changed(function(state) {
-					// TODO
-					console.log("State change:" + JSON.stringify(state));
-				});
-			}, function(err) {
-				console.log("Cannot load the SDK.", err);
-			});
-		};
-
-		var getGroupParticipants = function(group, useBusiness) {
+		var getGroupParticipants = function(group, context) {
 			var participants = [];
 			for ( var uname in group.members) {
 				if (group.members.hasOwnProperty(uname)) {
 					var u = group.members[uname];
 					var uskype = u.imAccounts.skype;
 					var ubusiness = u.imAccounts["ms-sfb"];
-					if (useBusiness) {
-						if (ubusiness) {
+					if (context.currentUserSFB) {
+						if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
 							participants.push(encodeURIComponent(ubusiness.id));
 						} else if (uskype) {
 							participants.push(uskype.id);
 						}
 					} else if (uskype) {
-						// current is regular Skype, it cannot call business users
+						// this is a regular Skype, it cannot call business users
 						participants.push(uskype.id);
 					} // else, skip this user
 				}
@@ -86,28 +53,30 @@
 			var participants;
 			if (context.space) {
 				// it's Space's group call
-				participants = getGroupParticipants(context.space, context.currentUserSFB);
+				participants = getGroupParticipants(context.space, context);
 			} else if (context.chat) {
 				// it's Chat room call
-				participants = getGroupParticipants(context.chat.room, context.currentUserSFB);
+				participants = getGroupParticipants(context.chat.room, context);
 			} else {
 				// otherwise assume it's one-on-one call
 				participants = [];
 				var uskype = context.user.imAccounts.skype;
 				var ubusiness = context.user.imAccounts["ms-sfb"];
 				if (context.currentUserSFB) {
-					if (ubusiness) {
-						participants.push(encodeURIComponent(context.currentUserSFB.id));
+					if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
+						//participants.push(encodeURIComponent(context.currentUserSFB.id));
 						participants.push(encodeURIComponent(ubusiness.id));
 					} else if (uskype) {
-						participants.push(context.currentUserSFB.id);
+						//participants.push(context.currentUserSFB.id);
 						// Business user can call regular users
 						participants.push(uskype.id);
 					}
 				} else if (uskype) {
-					// current is regular Skype, it cannot call business users
-					// participants.push(context.currentUserSkype.id); // don't need this for Skype URI
-					participants.push(uskype.id);
+					if (context.currentUserSkype && uskype.id != context.currentUserSkype.id) {
+						// current is regular Skype, it cannot call business users
+						// participants.push(context.currentUserSkype.id); // don't need add a self
+						participants.push(uskype.id);
+					}
 				}
 			}
 			return participants;
@@ -157,38 +126,38 @@
 					var user = videoCalls.getUser();
 					var sessionId = user.name + "_session" + Math.floor((Math.random() * 1000000) + 1);
 					Skype.initialize({
-						version : settings.version,
-						apiKey : settings.apiKey,
-						correlationIds : {
-							sessionId : sessionId
+						"version" : settings.version,
+						"apiKey" : settings.apiKey,
+						"correlationIds" : {
+							"sessionId" : sessionId
 						// Necessary for troubleshooting requests, should be unique per session
 						}
 					}, function(api) {
 						var app = new api.application();
 						// SignIn SfB Online: the SDK will get its own access token
 						app.signInManager.signIn({
-							client_id : settings.clientId,
-							cors : true,
-							redirect_uri : settings.redirectUri,
-							origins : settings.origins,
-							version : settings.version
+							"client_id" : settings.clientId,
+							"cors": true,
+							"redirect_uri" : settings.redirectUri,
+							"origins" : settings.origins,
+							"version" : settings.version
 						// Necessary for troubleshooting requests; identifies your application in our telemetry
-						}, function() {
-							console.log("Skype signed in as", app.personsAndGroupsManager.mePerson.displayName());
+						}).then(function() {
+							log("Skype signed in as", app.personsAndGroupsManager.mePerson.displayName());
 							appInstance = app;
 							initializer.resolve(api, app);
 						}, function(err) {
-							console.log("Cannot sign in Skype", err);
+							log("Cannot sign in Skype", err);
 							initializer.reject(err);
 						});
 
 						// whenever client.state changes, display its value
 						app.signInManager.state.changed(function(state) {
 							// TODO
-							console.log("State change:" + JSON.stringify(state));
+							log("State change:" + JSON.stringify(state));
 						});
 					}, function(err) {
-						console.log("Cannot load Skype SDK.", err);
+						log("Cannot load Skype SDK.", err);
 						initializer.reject(err);
 					});
 				}
@@ -198,7 +167,7 @@
 			return initializer.promise();
 		};
 
-		this.uiApplication = function() {
+		this.uiApplication = function(redirectUri) {
 			var initializer = $.Deferred();
 			if (settings) {
 				if (uiAppInstance) {
@@ -207,38 +176,38 @@
 					var user = videoCalls.getUser();
 					var sessionId = user.name + "_uisession" + Math.floor((Math.random() * 1000000) + 1);
 					Skype.initialize({
-						version : settings.version,
-						apiKey : settings.apiKeyCC,
-						correlationIds : {
-							sessionId : sessionId
+						"version" : settings.version,
+						"apiKey" : settings.apiKeyCC,
+						"correlationIds" : {
+							"sessionId" : sessionId
 						// Necessary for troubleshooting requests, should be unique per session
 						}
 					}, function(api) {
 						var app = api.UIApplicationInstance;
 						// SignIn SfB Online: the SDK will get its own access token
 						app.signInManager.signIn({
-							client_id : settings.clientId,
-							cors : true,
-							redirect_uri : settings.redirectUri,
-							origins : settings.origins,
-							version : settings.version
+							"client_id" : settings.clientId,
+							"cors": true,
+							"redirect_uri" : redirectUri ? redirectUri : settings.redirectUri,
+							"origins" : settings.origins,
+							"version" : settings.version
 						// Necessary for troubleshooting requests; identifies your application in our telemetry
-						}, function() {
-							console.log("SkypeCC signed in as", app.personsAndGroupsManager.mePerson.displayName());
+						}).then(function() {
+							log("SkypeCC signed in as " + app.personsAndGroupsManager.mePerson.displayName());
 							uiAppInstance = app;
 							initializer.resolve(api, app);
 						}, function(err) {
-							console.log("Cannot sign in SkypeCC", err);
+							log("Cannot sign in SkypeCC", err);
 							initializer.reject(err);
 						});
 
 						// whenever client.state changes, display its value
 						app.signInManager.state.changed(function(state) {
 							// TODO
-							console.log("StateCC change:" + JSON.stringify(state));
+							log("StateCC change:" + JSON.stringify(state));
 						});
 					}, function(err) {
-						console.log("Cannot load SkypeCC SDK.", err);
+						log("Cannot load SkypeCC SDK.", err);
 						initializer.reject(err);
 					});
 				}
@@ -281,12 +250,12 @@
 							// TODO check if such window isn't already open by this app
 							var destUrl = videoCalls.getBaseUrl() + "/portal/intranet/skype";
 							var callWindow = window.open(destUrl + "?call=" + userIMs);
-							if (callWindow) {
-								$(callWindow).ready(function() {
-									context.participants = callParts;
-									callWindow.postMessage(context, destUrl);
-								});
-							}
+//							if (callWindow) {
+//								$(callWindow).ready(function() {
+//									context.participants = callParts;
+//									callWindow.postMessage(context, destUrl);
+//								});
+//							}
 						});
 					} else if (context.currentUserSkype) {
 						// use Skype URI for regular Skype user

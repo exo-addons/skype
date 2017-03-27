@@ -3,12 +3,7 @@
  */
 (function($) {
 	"use strict";
-
-	// ******** Constants ********
-
-	// ******** Context ********
-	var currentUser, currentSpace;
-
+	
 	// ******** Utils ********
 	var getIEVersion = function()
 	// Returns the version of Windows Internet Explorer or a -1
@@ -41,9 +36,11 @@
 	}
 
 	/** For debug logging. */
+	var objId = Math.floor((Math.random() * 1000) + 1);
+	var logPrefix = "[videocall_" + objId + "] ";
 	function log(msg, e) {
 		if ( typeof console != "undefined" && typeof console.log != "undefined") {
-			console.log(msg);
+			console.log(logPrefix + msg);
 			if (e && typeof e.stack != "undefined") {
 				console.log(e.stack);
 			}
@@ -278,6 +275,9 @@
 	 */
 	function VideoCalls() {
 
+		// ******** Context ********
+		var currentUser, currentSpace;
+		
 		var spaceUpdater;
 		// TODO move to Skype provider script
 		var config, skype;
@@ -338,8 +338,7 @@
 								participants: [userIM], // currentUser.skypeIM
 								imageSize: 24,
 								imageColor: "skype",
-								useDetection: "false",
-								topic : "Call with " + user.firstName + " " + user.lastName
+								useDetection: "false"
 							});
 							if (res) {
 								var currentIsBusiness = currentUser.imAccounts["ms-sfb"];
@@ -545,7 +544,7 @@
 					var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
 					// TODO callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
 					if ($breadcumbEntry.size() > 0 && !$breadcumbEntry.data("callbuttoninit")) {
-						console.log(">>> initSpaceWeb " + compId + " " + currentUser.name);
+						log(">>> initSpaceWeb " + compId + " " + currentUser.name);
 						var initializer = $.Deferred();
 						$breadcumbEntry.data("callbuttoninit", true);
 						if (spaceUpdater) {
@@ -553,67 +552,72 @@
 						}
 						var $container = $breadcumbEntry.find(".callButtonContainer");
 						// TODO check precisely that we have an one button for each provider 
-						if (providers.length > 0 && $container.find(".startCallButton").size() != providers.length) {
-							var get = getSpaceInfo(currentSpace.name);
-							// TODO do we really need call REST, may be it could be injected in env?
-							get.done(function(space) {
-								if ($container.size() == 0) {
-									$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
-									$breadcumbEntry.append($container);
-								}
-								var actionClasses = "actionIcon startCallButton spaceCall";
-								var context = {
-									currentUser : currentUser,
-									space : space,
-									isIOS : isIOS,
-									isAndroid : isAndroid
-								};
-								var $dropdown = $container.find(".dropdown-menu");
-								var $button;
-								for (var i = 0; i < providers.length; i++) {
-									var p = providers[i];
-									var $button = p.callButton(context);
-									if ($button) {
-										if ($dropdown.size() > 0) {
-											// add others in dropdown
-											$button.addClass(actionClasses);
-											$dropdown.append($button);	
-										} else {
-											// add first & default button
-											$button.addClass("btn " + actionClasses); // btn-primary
-											$container.append($button); 
-											$dropdown = $("<ul class='dropdown-menu'></ul>");
+						if (providers.length > 0) {
+							if ($container.find(".startCallButton").size() != providers.length) {
+								var get = getSpaceInfo(currentSpace.name);
+								// TODO do we really need call REST, may be it could be injected in env?
+								get.done(function(space) {
+									if ($container.size() == 0) {
+										$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
+										$breadcumbEntry.append($container);
+									}
+									var actionClasses = "actionIcon startCallButton spaceCall";
+									var context = {
+										currentUser : currentUser,
+										space : space,
+										isIOS : isIOS,
+										isAndroid : isAndroid
+									};
+									var $dropdown = $container.find(".dropdown-menu");
+									var $button;
+									for (var i = 0; i < providers.length; i++) {
+										var p = providers[i];
+										var $button = p.callButton(context);
+										if ($button) {
+											if ($dropdown.size() > 0) {
+												// add others in dropdown
+												$button.addClass(actionClasses);
+												$dropdown.append($button);	
+											} else {
+												// add first & default button
+												$button.addClass("btn " + actionClasses); // btn-primary
+												$container.append($button); 
+												$dropdown = $("<ul class='dropdown-menu'></ul>");
+											}
 										}
 									}
-								}
-								if ($dropdown.children().size() > 0) {
-									// btn-primary 
-									$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
-									$container.append($dropdown);
-								}
-								if ($button) {
-									$container.show();
-								}
-								initializer.resolve();
-								console.log("<<< initSpaceWeb DONE " + compId + " " + currentUser.name);
-							});
-							get.fail(function(e, status) {
+									if ($dropdown.children().size() > 0) {
+										// btn-primary 
+										$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
+										$container.append($dropdown);
+									}
+									if ($button) {
+										$container.show();
+									}
+									initializer.resolve();
+									log("<<< initSpaceWeb DONE " + compId + " " + currentUser.name);
+								});
+								get.fail(function(e, status) {
+									initializer.reject();
+									if (status == 404) {
+										log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.name + ": " + JSON.stringify(e));
+									} else {
+										log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": reading space users: " + JSON.stringify(e));
+									}
+								});
+							}	else {
 								initializer.reject();
-								if (status == 404) {
-									log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.name + ": " + JSON.stringify(e));
-								} else {
-									log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": reading space users: " + JSON.stringify(e));
-								}
-							});
-						}	else {
+								log("<<< initSpaceWeb SKIPPED (already initialized) " + compId + " " + currentUser.name);
+							}
+						} else {
 							initializer.reject();
-							console.log("<<< initSpaceWeb CANCEL (no providers) " + compId + " " + currentUser.name);
+							log("<<< initSpaceWeb CANCEL (no providers) " + compId + " " + currentUser.name);
 						}
 						initializer.always(function() {
 							$breadcumbEntry.data("callbuttoninit", false);
 						});
 					} else {
-						console.log("<<< initSpaceWeb SKIP " + compId + " " + currentUser.name);
+						log("<<< initSpaceWeb SKIP " + compId + " " + currentUser.name);
 					}
 				}
 			}
