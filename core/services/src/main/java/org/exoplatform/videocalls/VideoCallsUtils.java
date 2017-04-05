@@ -31,15 +31,21 @@ import org.exoplatform.ws.frameworks.json.impl.JsonException;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 import org.exoplatform.ws.frameworks.json.value.JsonValue;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: VideoCallsUtils.java 00000 Mar 30, 2017 pnedonosko $
- * 
  */
 public class VideoCallsUtils {
 
+  /**
+   * Space room name.
+   *
+   * @param space the space
+   * @return the string
+   */
   public static String spaceRoomName(Space space) {
     StringBuilder sname = new StringBuilder();
     sname.append("eXoVideoCalls");
@@ -56,6 +62,11 @@ public class VideoCallsUtils {
     return sname.toString();
   }
 
+  /**
+   * Gets the space by context.
+   *
+   * @return the space by context
+   */
   public static Space getSpaceByContext() {
     //
     PortalRequestContext pcontext = Util.getPortalRequestContext();
@@ -74,6 +85,11 @@ public class VideoCallsUtils {
     }
   }
 
+  /**
+   * Gets the current context.
+   *
+   * @return the current context
+   */
   public static ContextInfo getCurrentContext() {
     String spacePrettyName, spaceRoomName;
     Space currSpace = VideoCallsUtils.getSpaceByContext();
@@ -87,6 +103,13 @@ public class VideoCallsUtils {
     return new ContextInfo(spacePrettyName, spaceRoomName);
   }
   
+  /**
+   * As JSON.
+   *
+   * @param obj the obj
+   * @return the string
+   * @throws JsonException the json exception
+   */
   public static String asJSON(Object obj) throws JsonException {
     JsonValue value = new JsonGeneratorImpl().createJsonObject(obj);
     return value.toString();

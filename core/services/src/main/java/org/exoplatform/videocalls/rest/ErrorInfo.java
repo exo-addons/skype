@@ -18,6 +18,7 @@
  */
 package org.exoplatform.videocalls.rest;
 
+// TODO: Auto-generated Javadoc
 /**
  * Basic error entity.<br>
  * 
@@ -29,36 +30,69 @@ package org.exoplatform.videocalls.rest;
  */
 public class ErrorInfo {
 
+  /** The Constant CODE_CLIENT_ERROR. */
   public static final String CODE_CLIENT_ERROR    = "CLIENT_ERROR";
 
+  /** The Constant CODE_NOT_FOUND_ERROR. */
   public static final String CODE_NOT_FOUND_ERROR = "NOT_FOUND_ERROR";
 
+  /** The Constant CODE_ACCESS_ERROR. */
   public static final String CODE_ACCESS_ERROR    = "ACCESS_ERROR";
 
+  /** The Constant CODE_SERVER_ERROR. */
   public static final String CODE_SERVER_ERROR    = "SERVER_ERROR";
 
+  /**
+   * Client error.
+   *
+   * @param message the message
+   * @return the error info
+   */
   public static ErrorInfo clientError(String message) {
     return new ErrorInfo(CODE_CLIENT_ERROR, message);
   };
 
+  /**
+   * Not found error.
+   *
+   * @param message the message
+   * @return the error info
+   */
   public static ErrorInfo notFoundError(String message) {
     return new ErrorInfo(CODE_NOT_FOUND_ERROR, message);
   };
 
+  /**
+   * Access error.
+   *
+   * @param message the message
+   * @return the error info
+   */
   public static ErrorInfo accessError(String message) {
     return new ErrorInfo(CODE_ACCESS_ERROR, message);
   };
 
+  /**
+   * Server error.
+   *
+   * @param message the message
+   * @return the error info
+   */
   public static ErrorInfo serverError(String message) {
     return new ErrorInfo(CODE_SERVER_ERROR, message);
   };
 
+  /** The code. */
   protected final String code;
 
+  /** The message. */
   protected final String message;
 
   /**
-   * 
+   * Instantiates a new error info.
+   *
+   * @param code the code
+   * @param message the message
    */
   public ErrorInfo(String code, String message) {
     this.code = code;
@@ -66,13 +100,17 @@ public class ErrorInfo {
   }
 
   /**
-   * 
+   * Instantiates a new error info.
+   *
+   * @param message the message
    */
   public ErrorInfo(String message) {
     this(null, message);
   }
 
   /**
+   * Gets the code.
+   *
    * @return the code
    */
   public String getCode() {
@@ -80,6 +118,8 @@ public class ErrorInfo {
   }
 
   /**
+   * Gets the message.
+   *
    * @return the message
    */
   public String getMessage() {

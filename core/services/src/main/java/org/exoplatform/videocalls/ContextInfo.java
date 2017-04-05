@@ -18,6 +18,7 @@
  */
 package org.exoplatform.videocalls;
 
+// TODO: Auto-generated Javadoc
 /**
  * A lightweight info about current Platform context: space, chat room etc.
  * 
@@ -29,20 +30,38 @@ package org.exoplatform.videocalls;
  */
 public class ContextInfo {
 
+  /** The space name. */
   private final String spaceName;
 
+  /** The room name. */
   private final String roomName;
 
+  /**
+   * Instantiates a new context info.
+   *
+   * @param spaceName the space name
+   * @param roomName the room name
+   */
   public ContextInfo(String spaceName, String roomName) {
     super();
     this.spaceName = spaceName;
     this.roomName = roomName;
   }
 
+  /**
+   * Gets the space name.
+   *
+   * @return the space name
+   */
   public String getSpaceName() {
     return spaceName;
   }
 
+  /**
+   * Gets the room name.
+   *
+   * @return the room name
+   */
   public String getRoomName() {
     return roomName;
   }

@@ -42,19 +42,24 @@ import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 import org.exoplatform.ws.frameworks.json.value.JsonValue;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: VideoCallsPortlet.java 00000 Mar 29, 2017 pnedonosko $
- * 
  */
 public class VideoCallsPortlet extends GenericPortlet {
 
+  /** The Constant LOG. */
   private static final Log  LOG = ExoLogger.getLogger(VideoCallsPortlet.class);
 
+  /** The videocalls. */
   private VideoCallsService videocalls;
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() throws PortletException {
     super.init();
@@ -65,6 +70,9 @@ public class VideoCallsPortlet extends GenericPortlet {
     this.videocalls = container.getComponentInstanceOfType(VideoCallsService.class);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void doView(final RenderRequest request, final RenderResponse response) throws PortletException,
                                                                                     IOException {

@@ -1,3 +1,6 @@
+/*
+ * 
+ */
 package org.exoplatform.videocalls.jzportlet;
 
 import javax.inject.Inject;
@@ -28,25 +31,43 @@ import juzu.request.UserContext;
 import juzu.template.Template;
 import juzu.template.Template.Builder;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class VideoCallsApplication.
+ */
 @SessionScoped
 @Deprecated
 public class VideoCallsApplication {
 
+	/** The Constant LOG. */
 	private static final Log LOG = ExoLogger.getLogger(VideoCallsApplication.class);
 
+	/** The index. */
 	@Inject
 	@Path("index.gtmpl")
 	Template index;
 
+	/** The organization service. */
 	@Inject
 	OrganizationService organizationService;
 
+	/** The space service. */
 	@Inject
 	SpaceService spaceService;
 
+	/** The videocalls. */
 	@Inject
 	VideoCallsService videocalls;
 
+	/**
+	 * Index.
+	 *
+	 * @param applicationContext the application context
+	 * @param securityContext the security context
+	 * @param userContext the user context
+	 * @return the response. content
+	 * @throws Exception the exception
+	 */
 	@View
 	public Response.Content index(ApplicationContext applicationContext, SecurityContext securityContext,
 			UserContext userContext) throws Exception {
@@ -92,6 +113,12 @@ public class VideoCallsApplication {
 		return builder.ok();
 	}
 
+	/**
+	 * Space room name.
+	 *
+	 * @param space the space
+	 * @return the string
+	 */
 	protected String spaceRoomName(Space space) {
 		StringBuilder sname = new StringBuilder();
 		sname.append("eXoVideoCalls");
@@ -108,6 +135,11 @@ public class VideoCallsApplication {
 		return sname.toString();
 	}
 
+	/**
+	 * Gets the space by context.
+	 *
+	 * @return the space by context
+	 */
 	private Space getSpaceByContext() {
 		//
 		PortalRequestContext pcontext = Util.getPortalRequestContext();

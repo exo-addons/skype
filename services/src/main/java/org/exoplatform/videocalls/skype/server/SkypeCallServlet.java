@@ -24,6 +24,7 @@ import org.exoplatform.videocalls.skype.SkypeSettings;
 import org.gatein.common.logging.Logger;
 import org.gatein.common.logging.LoggerFactory;
 
+// TODO: Auto-generated Javadoc
 /**
  * The Class SkypeCallServlet.
  */
@@ -38,12 +39,16 @@ public class SkypeCallServlet extends AbstractHttpServlet {
   /** The Constant CALL_PAGE. */
   private final static String   CALL_PAGE         = "/WEB-INF/pages/call.html";
 
+  /** The Constant UNAUTHORIZED_PAGE. */
   private final static String   UNAUTHORIZED_PAGE = "/WEB-INF/pages/unauthorized.html";
 
+  /** The Constant SERVER_ERROR_PAGE. */
   private final static String   SERVER_ERROR_PAGE = "/WEB-INF/pages/servererror.html";
 
+  /** The video calls. */
   private VideoCallsService     videoCalls;
 
+  /** The provider. */
   private SkypeBusinessProvider provider;
 
   /**
@@ -53,6 +58,9 @@ public class SkypeCallServlet extends AbstractHttpServlet {
     //
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() throws ServletException {
     // TODO Auto-generated method stub
@@ -69,6 +77,9 @@ public class SkypeCallServlet extends AbstractHttpServlet {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException,
                                                                          IOException {
@@ -129,6 +140,9 @@ public class SkypeCallServlet extends AbstractHttpServlet {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException,
                                                                           IOException {

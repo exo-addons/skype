@@ -38,23 +38,25 @@ import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
 import org.exoplatform.videocalls.rest.ErrorInfo;
 
+// TODO: Auto-generated Javadoc
 /**
- * 
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: RESTVideoCallsService.java 00000 Feb 22, 2017 pnedonosko $
- * 
  */
 @Deprecated
 @Path("/skype/call")
 @Produces(MediaType.APPLICATION_JSON)
 public class RESTSkypeCallService implements ResourceContainer {
 
+	/** The Constant ME. */
 	public static final String ME = "me";
 
+	/** The Constant LOG. */
 	protected static final Log LOG = ExoLogger.getLogger(RESTSkypeCallService.class);
 
+	/** The video calls. */
 	protected final VideoCallsService videoCalls;
 
 	/**

@@ -46,12 +46,12 @@ import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.picocontainer.Startable;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeService.java 00000 Feb 22, 2017 pnedonosko $
- * 
  */
 public class VideoCallsService implements Startable {
 
@@ -60,10 +60,13 @@ public class VideoCallsService implements Startable {
    */
   public class SpaceInfo extends GroupInfo {
 
+    /** The short name. */
     protected final String                shortName;
 
+    /** The pretty name. */
     protected final String                prettyName;
 
+    /** The members. */
     protected final Map<String, UserInfo> members = new LinkedHashMap<>();
 
     /**
@@ -85,11 +88,18 @@ public class VideoCallsService implements Startable {
       return Collections.unmodifiableMap(members);
     }
 
+    /**
+     * Adds the member.
+     *
+     * @param user the user
+     */
     protected void addMember(UserInfo user) {
       members.put(user.getName(), user);
     }
 
     /**
+     * Gets the short name.
+     *
      * @return the shortName
      */
     public String getShortName() {
@@ -97,6 +107,8 @@ public class VideoCallsService implements Startable {
     }
 
     /**
+     * Gets the pretty name.
+     *
      * @return the prettyName
      */
     public String getPrettyName() {
@@ -104,6 +116,7 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /** The Constant LOG. */
   protected static final Log                      LOG       = ExoLogger.getLogger(VideoCallsService.class);
 
   /** The jcr service. */
@@ -213,6 +226,11 @@ public class VideoCallsService implements Startable {
     return space;
   }
 
+  /**
+   * Adds the plugin.
+   *
+   * @param plugin the plugin
+   */
   public void addPlugin(ComponentPlugin plugin) {
     Class<VideoCallsProvider> pclass = VideoCallsProvider.class;
     if (pclass.isAssignableFrom(plugin.getClass())) {
@@ -223,6 +241,11 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Adds the provider.
+   *
+   * @param provider the provider
+   */
   public void addProvider(VideoCallsProvider provider) {
     VideoCallsProvider existing = providers.putIfAbsent(provider.getType(), provider);
     if (existing != null) {
@@ -231,6 +254,12 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Gets the provider.
+   *
+   * @param type the type
+   * @return the provider
+   */
   public VideoCallsProvider getProvider(String type) {
     return providers.get(type);
   }
@@ -254,10 +283,23 @@ public class VideoCallsService implements Startable {
     // nothing
   }
 
+  /**
+   * Checks if is space member.
+   *
+   * @param userName the user name
+   * @param spacePrettyName the space pretty name
+   * @return true, if is space member
+   */
   protected boolean isSpaceMember(String userName, String spacePrettyName) {
     return getSpaceMembers(spacePrettyName).contains(userName);
   }
 
+  /**
+   * Gets the space members.
+   *
+   * @param spacePrettyName the space pretty name
+   * @return the space members
+   */
   protected Set<String> getSpaceMembers(String spacePrettyName) {
     Space space = spaceService.getSpaceByPrettyName(spacePrettyName);
     Set<String> spaceMembers = new HashSet<String>();

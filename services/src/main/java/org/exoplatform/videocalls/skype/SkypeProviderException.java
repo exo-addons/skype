@@ -20,53 +20,59 @@ package org.exoplatform.videocalls.skype;
 
 import org.exoplatform.videocalls.VideoCallsProviderException;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeProviderException.java 00000 Mar 30, 2017 pnedonosko $
- * 
  */
 public class SkypeProviderException extends VideoCallsProviderException {
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long serialVersionUID = -8858894827214011551L;
 
   /**
-   * 
+   * Instantiates a new skype provider exception.
    */
   public SkypeProviderException() {
   }
 
   /**
-   * @param message
+   * Instantiates a new skype provider exception.
+   *
+   * @param message the message
    */
   public SkypeProviderException(String message) {
     super(message);
   }
 
   /**
-   * @param cause
+   * Instantiates a new skype provider exception.
+   *
+   * @param cause the cause
    */
   public SkypeProviderException(Throwable cause) {
     super(cause);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new skype provider exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public SkypeProviderException(String message, Throwable cause) {
     super(message, cause);
   }
 
   /**
-   * @param message
-   * @param cause
-   * @param enableSuppression
-   * @param writableStackTrace
+   * Instantiates a new skype provider exception.
+   *
+   * @param message the message
+   * @param cause the cause
+   * @param enableSuppression the enable suppression
+   * @param writableStackTrace the writable stack trace
    */
   public SkypeProviderException(String message,
                                 Throwable cause,

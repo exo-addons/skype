@@ -18,31 +18,40 @@
  */
 package org.exoplatform.videocalls.skype;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeSettings.java 00000 Mar 30, 2017 pnedonosko $
- * 
  */
 public class SkypeSettings {
   
+  /** The name. */
   protected final String name;
   
+  /** The title. */
   protected final String title;
   
+  /** The call title. */
   protected final String callTitle;
   
+  /** The client id. */
   protected final String clientId;
   
+  /** The redirect uri. */
   protected final String redirectUri;
   
+  /** The version. */
   protected final String version;
 
+  /** The api key. */
   protected final String apiKey;
   
+  /** The api key CC. */
   protected final String apiKeyCC;
   
+  /** The origins. */
   protected final String[] origins;
 
   /**
@@ -91,38 +100,83 @@ public class SkypeSettings {
     this.origins = origins;
   }
 
+  /**
+   * Gets the name.
+   *
+   * @return the name
+   */
   public String getName() {
     return name;
   }
 
+  /**
+   * Gets the title.
+   *
+   * @return the title
+   */
   public String getTitle() {
     return title;
   }
 
+  /**
+   * Gets the call title.
+   *
+   * @return the call title
+   */
   public String getCallTitle() {
     return callTitle;
   }
 
+  /**
+   * Gets the client id.
+   *
+   * @return the client id
+   */
   public String getClientId() {
     return clientId;
   }
 
+  /**
+   * Gets the redirect uri.
+   *
+   * @return the redirect uri
+   */
   public String getRedirectUri() {
     return redirectUri;
   }
 
+  /**
+   * Gets the version.
+   *
+   * @return the version
+   */
   public String getVersion() {
     return version;
   }
 
+  /**
+   * Gets the api key.
+   *
+   * @return the api key
+   */
   public String getApiKey() {
     return apiKey;
   }
 
+  /**
+   * Gets the api key CC.
+   *
+   * @return the api key CC
+   */
   public String getApiKeyCC() {
     return apiKeyCC;
   }
 
+  /**
+   * Gets the origins.
+   *
+   * @return the origins
+   */
   public String[] getOrigins() {
     return origins;
   }

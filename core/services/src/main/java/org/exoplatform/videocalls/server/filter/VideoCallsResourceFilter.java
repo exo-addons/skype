@@ -36,6 +36,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 
+// TODO: Auto-generated Javadoc
 /**
  * Filter updates request to Skype resources with proper HTTP headers (for caching etc.).<br>
  * 
@@ -59,10 +60,19 @@ public class VideoCallsResourceFilter extends AbstractFilter implements Filter {
   /** The Constant NO_VERSION. */
   private static final String            NO_VERSION    = "".intern();
 
+  /** The version. */
   private static AtomicReference<String> version       = new AtomicReference<String>();
 
+  /**
+   * The Class FixedCacheResponse.
+   */
   class FixedCacheResponse extends HttpServletResponseWrapper {
 
+    /**
+     * Instantiates a new fixed cache response.
+     *
+     * @param response the response
+     */
     protected FixedCacheResponse(HttpServletResponse response) {
       super(response);
     }
@@ -131,6 +141,11 @@ public class VideoCallsResourceFilter extends AbstractFilter implements Filter {
     // nothing
   }
 
+  /**
+   * Version.
+   *
+   * @return the string
+   */
   protected String version() {
     String ver = version.get();
     if (ver == null) {

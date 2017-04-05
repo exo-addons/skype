@@ -28,30 +28,42 @@ import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.PropertiesParam;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: VideoCallsProvider.java 00000 Mar 30, 2017 pnedonosko $
- * 
  */
 public abstract class VideoCallsProvider extends BaseComponentPlugin {
 
+  /** The Constant CONFIG_PROVIDER_TYPE. */
   public static final String          CONFIG_PROVIDER_TYPE          = "type";
 
+  /** The Constant CONFIG_PROVIDER_NAME. */
   public static final String          CONFIG_PROVIDER_NAME          = "name";
 
+  /** The Constant CONFIG_PROVIDER_CONFIGURATION. */
   public static final String          CONFIG_PROVIDER_CONFIGURATION = "provider-configuration";
 
+  /** The Constant EMAIL_REGEX. */
   protected static final String       EMAIL_REGEX                   =
                                                   "^(?=[A-Z0-9][A-Z0-9@._%+-]{5,253}+$)[A-Z0-9._%+-]{1,64}+@(?:(?=[A-Z0-9-]{1,63}+\\.)[A-Z0-9]++(?:-[A-Z0-9]++)*+\\.){1,8}+[A-Z]{2,63}+$";
 
+  /** The email test. */
   protected final Pattern             emailTest                     =
                                                 Pattern.compile(EMAIL_REGEX,
                                                                 Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
+  /** The config. */
   protected final Map<String, String> config;
 
+  /**
+   * Instantiates a new video calls provider.
+   *
+   * @param params the params
+   * @throws ConfigurationException the configuration exception
+   */
   public VideoCallsProvider(InitParams params) throws ConfigurationException {
     // Configuration
     PropertiesParam param = params.getPropertiesParam(CONFIG_PROVIDER_CONFIGURATION);

@@ -26,36 +26,50 @@ import org.exoplatform.container.xml.ValuesParam;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.exoplatform.videocalls.VideoCallsProviderException;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeProvider.java 00000 Mar 30, 2017 pnedonosko $
- * 
  */
 public class SkypeBusinessProvider extends SkypeProvider {
 
+  /** The Constant CONFIG_AUTODISCOVER_ORIGINS. */
   public static final String CONFIG_AUTODISCOVER_ORIGINS      = "autodiscover-origins";
 
+  /** The Constant CONFIG_WEB_OAUTH2_URL. */
   public static final String CONFIG_WEB_OAUTH2_URL            = "web-oauth2-loginUri";
 
+  /** The Constant CONFIG_WEB_OAUTH2_CLIENTID. */
   public static final String CONFIG_WEB_OAUTH2_CLIENTID       = "web-oauth2-clientId";
 
+  /** The Constant CONFIG_WEB_APIKEY. */
   public static final String CONFIG_WEB_APIKEY                = "web-apiKey";
 
+  /** The Constant CONFIG_WEB_APIKEYCC. */
   public static final String CONFIG_WEB_APIKEYCC              = "web-apiKeyCC";
 
+  /** The Constant SFB_SCHEMA. */
   public static final String SFB_SCHEMA                       = "ms-sfb";
 
   // TODO until we added IM pluggable in user profile (Social) we use 'skype' here
+  /** The Constant SFB_TYPE. */
   // TODO use SFB_SCHEMA
   public static final String SFB_TYPE                         = "skype";
 
+  /** The Constant SFB_AUTODISCOVER_ORIGINS_DEFAULT. */
   public static final String SFB_AUTODISCOVER_ORIGINS_DEFAULT =
                                                               "https://webdir.online.lync.com/autodiscover/autodiscoverservice.svc/root";
 
+  /**
+   * The Class WebSettingsBuilder.
+   */
   public class WebSettingsBuilder extends SettingsBuilder {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public SkypeSettings build() {
       return new SkypeSettings(getType(),
@@ -103,20 +117,24 @@ public class SkypeBusinessProvider extends SkypeProvider {
     }
   }
 
+  /** The login url. */
   protected final String   loginUrl;
 
+  /** The client id. */
   protected final String   clientId;
 
+  /** The api key. */
   protected final String   apiKey;
 
+  /** The api key CC. */
   protected final String   apiKeyCC;
 
+  /** The origins. */
   protected final String[] origins;
 
   /**
    * Instantiates a new Skype for Business provider.
    *
-   * @param skypeService the skype service
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
@@ -159,22 +177,45 @@ public class SkypeBusinessProvider extends SkypeProvider {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public WebSettingsBuilder getSettings() {
     return new WebSettingsBuilder();
   }
 
+  /**
+   * Gets the login url.
+   *
+   * @return the login url
+   */
   public String getLoginUrl() {
     return loginUrl;
   }
 
+  /**
+   * Gets the client id.
+   *
+   * @return the client id
+   */
   public String getClientId() {
     return clientId;
   }
 
+  /**
+   * Gets the api key.
+   *
+   * @return the api key
+   */
   public String getApiKey() {
     return apiKey;
   }
 
+  /**
+   * Gets the api key CC.
+   *
+   * @return the api key CC
+   */
   public String getApiKeyCC() {
     return apiKeyCC;
   }

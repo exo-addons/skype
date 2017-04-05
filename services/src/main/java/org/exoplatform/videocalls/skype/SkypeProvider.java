@@ -24,29 +24,44 @@ import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.exoplatform.videocalls.VideoCallsProvider;
 import org.exoplatform.videocalls.VideoCallsProviderException;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeProvider.java 00000 Mar 30, 2017 pnedonosko $
- * 
  */
 public class SkypeProvider extends VideoCallsProvider {
 
+  /** The Constant SKYPE_SCHEMA. */
   public static final String SKYPE_SCHEMA                = "skype";
 
+  /** The Constant SKYPE_TYPE. */
   public static final String SKYPE_TYPE                  = SKYPE_SCHEMA;
 
+  /** The Constant SKYPE_TITLE. */
   public static final String SKYPE_TITLE                 = "Skype";
   
+  /** The Constant VERSION. */
   public static final String VERSION                 = "eXoWebSkype/1.0.0";
 
+  /** The Constant CONFIG_AUTODISCOVER_ORIGINS. */
   public static final String CONFIG_AUTODISCOVER_ORIGINS = "autodiscover-origins";
 
+  /**
+   * The Class SettingsBuilder.
+   */
   public class SettingsBuilder {
 
+    /** The redirect URI. */
     protected String redirectURI;
 
+    /**
+     * Redirect URI base.
+     *
+     * @param redirectURIBase the redirect URI base
+     * @return the settings builder
+     */
     public SettingsBuilder redirectURIBase(String redirectURIBase) {
       StringBuilder uri = new StringBuilder(redirectURIBase);
       if (uri.charAt(uri.length() - 1) != '/') {
@@ -56,6 +71,11 @@ public class SkypeProvider extends VideoCallsProvider {
       return this;
     }
 
+    /**
+     * Builds the.
+     *
+     * @return the skype settings
+     */
     public SkypeSettings build() {
       return new SkypeSettings(getType(),
                                getTitle(),
@@ -93,6 +113,11 @@ public class SkypeProvider extends VideoCallsProvider {
       super(type, id);
     }
 
+    /**
+     * Gets the schema.
+     *
+     * @return the schema
+     */
     public String getSchema() {
       return SKYPE_SCHEMA;
     }
@@ -110,7 +135,6 @@ public class SkypeProvider extends VideoCallsProvider {
   /**
    * Instantiates a new skype provider.
    *
-   * @param skypeService the skype service
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
@@ -119,6 +143,11 @@ public class SkypeProvider extends VideoCallsProvider {
     //this.skypeService = skypeService;
   }
 
+  /**
+   * Gets the settings.
+   *
+   * @return the settings
+   */
   public SettingsBuilder getSettings() {
     return new SettingsBuilder();
   }
@@ -135,16 +164,25 @@ public class SkypeProvider extends VideoCallsProvider {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String getVersion() {
     return VERSION;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String getType() {
     return SKYPE_SCHEMA;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String getTitle() {
     return SKYPE_TITLE;

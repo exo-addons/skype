@@ -21,6 +21,7 @@ package org.exoplatform.videocalls;
 
 import java.util.Map;
 
+// TODO: Auto-generated Javadoc
 /**
  * Group abstraction for conversations in eXo video calls.<br>
  * 
@@ -32,8 +33,10 @@ import java.util.Map;
  */
 public abstract class GroupInfo {
 
+  /** The title. */
   protected final String title;
 
+  /** The id. */
   protected final String id;
 
   /**
@@ -48,6 +51,8 @@ public abstract class GroupInfo {
   }
 
   /**
+   * Gets the id.
+   *
    * @return the id
    */
   public String getId() {
@@ -55,6 +60,8 @@ public abstract class GroupInfo {
   }
 
   /**
+   * Gets the title.
+   *
    * @return the title
    */
   public String getTitle() {

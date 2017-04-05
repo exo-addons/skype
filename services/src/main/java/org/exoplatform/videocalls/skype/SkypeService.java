@@ -48,19 +48,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeService.java 00000 Feb 22, 2017 pnedonosko $
- * 
  */
 public class SkypeService implements Startable {
 
+  /** The Constant SKYPE_SCHEMA. */
   public static final String    SKYPE_SCHEMA = "skype";
 
+  /** The Constant SFB_SCHEMA. */
   public static final String    SFB_SCHEMA   = "ms-sfb";
 
+  /** The Constant EMAIL_REGEX. */
   protected static final String EMAIL_REGEX  =
                                             "^(?=[A-Z0-9][A-Z0-9@._%+-]{5,253}+$)[A-Z0-9._%+-]{1,64}+@(?:(?=[A-Z0-9-]{1,63}+\\.)[A-Z0-9]++(?:-[A-Z0-9]++)*+\\.){1,8}+[A-Z]{2,63}+$";
 
@@ -96,7 +99,6 @@ public class SkypeService implements Startable {
     /**
      * Instantiates a new skype business IM info.
      *
-     * @param type the type
      * @param id the id
      */
     protected SkypeBusinessIMInfo(String id) {
@@ -118,10 +120,13 @@ public class SkypeService implements Startable {
    */
   public class SpaceInfo extends GroupInfo {
 
+    /** The short name. */
     protected final String shortName;
 
+    /** The pretty name. */
     protected final String prettyName;
     
+    /** The members. */
     protected final Map<String, UserInfo> members = new LinkedHashMap<>();
 
     /**
@@ -143,11 +148,18 @@ public class SkypeService implements Startable {
       return Collections.unmodifiableMap(members);
     }
 
+    /**
+     * Adds the member.
+     *
+     * @param user the user
+     */
     protected void addMember(UserInfo user) {
       members.put(user.getName(), user);
     }
     
     /**
+     * Gets the short name.
+     *
      * @return the shortName
      */
     public String getShortName() {
@@ -155,6 +167,8 @@ public class SkypeService implements Startable {
     }
 
     /**
+     * Gets the pretty name.
+     *
      * @return the prettyName
      */
     public String getPrettyName() {
@@ -162,6 +176,7 @@ public class SkypeService implements Startable {
     }
   }
 
+  /** The Constant LOG. */
   protected static final Log             LOG       = ExoLogger.getLogger(SkypeService.class);
 
   /** The jcr service. */
@@ -185,8 +200,10 @@ public class SkypeService implements Startable {
   /** The listener service. */
   protected final ListenerService        listenerService;
 
+  /** The email test. */
   protected final Pattern                emailTest = Pattern.compile(EMAIL_REGEX, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
+  /** The space service. */
   protected SpaceService                 spaceService;
 
   /**
@@ -290,10 +307,23 @@ public class SkypeService implements Startable {
     // nothing
   }
 
+  /**
+   * Checks if is space member.
+   *
+   * @param userName the user name
+   * @param spacePrettyName the space pretty name
+   * @return true, if is space member
+   */
   protected boolean isSpaceMember(String userName, String spacePrettyName) {
     return getSpaceMembers(spacePrettyName).contains(userName);
   }
 
+  /**
+   * Gets the space members.
+   *
+   * @param spacePrettyName the space pretty name
+   * @return the space members
+   */
   protected Set<String> getSpaceMembers(String spacePrettyName) {
     Space space = spaceService.getSpaceByPrettyName(spacePrettyName);
     Set<String> spaceMembers = new HashSet<String>();

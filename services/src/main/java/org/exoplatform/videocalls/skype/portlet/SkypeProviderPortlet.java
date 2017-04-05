@@ -42,23 +42,30 @@ import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 import org.exoplatform.ws.frameworks.json.value.JsonValue;
 
+// TODO: Auto-generated Javadoc
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeProviderPortlet.java 00000 Mar 29, 2017 pnedonosko $
- * 
  */
 public class SkypeProviderPortlet extends GenericPortlet {
 
+  /** The Constant LOG. */
   private static final Log      LOG = ExoLogger.getLogger(SkypeProviderPortlet.class);
 
+  /** The space service. */
   private SpaceService          spaceService;
 
+  /** The video calls. */
   private VideoCallsService     videoCalls;
 
+  /** The provider. */
   private SkypeBusinessProvider provider;
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() throws PortletException {
     super.init();
@@ -77,6 +84,9 @@ public class SkypeProviderPortlet extends GenericPortlet {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void doView(final RenderRequest request, final RenderResponse response) throws PortletException,
                                                                                     IOException {

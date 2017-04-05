@@ -1,3 +1,6 @@
+/*
+ * 
+ */
 package org.exoplatform.videocalls.skype.jzportlet;
 
 import java.net.URI;
@@ -21,18 +24,34 @@ import juzu.request.UserContext;
 import juzu.template.Template;
 import juzu.template.Template.Builder;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class SkypeCallApplication.
+ */
 @SessionScoped
 public class SkypeCallApplication {
 
+	/** The Constant LOG. */
 	private static final Log LOG = ExoLogger.getLogger(SkypeCallApplication.class);
 
+	/** The index. */
 	@Inject
 	@Path("index.gtmpl")
 	Template index;
 
+	/** The videocalls. */
 	@Inject
 	VideoCallsService videocalls; // TODO use dedicated service for Skype stuff
 
+	/**
+	 * Index.
+	 *
+	 * @param applicationContext the application context
+	 * @param securityContext the security context
+	 * @param userContext the user context
+	 * @return the response. content
+	 * @throws Exception the exception
+	 */
 	@View
 	public Response.Content index(ApplicationContext applicationContext, SecurityContext securityContext,
 			UserContext userContext) throws Exception {

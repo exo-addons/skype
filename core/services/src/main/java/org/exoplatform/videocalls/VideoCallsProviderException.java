@@ -18,6 +18,7 @@
  */
 package org.exoplatform.videocalls;
 
+// TODO: Auto-generated Javadoc
 /**
  * VideoCalls provider exception.
  * 
@@ -29,45 +30,51 @@ package org.exoplatform.videocalls;
  */
 public class VideoCallsProviderException extends Exception {
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long serialVersionUID = 1721124032491196348L;
 
   /**
-   * 
+   * Instantiates a new video calls provider exception.
    */
   public VideoCallsProviderException() {
     //
   }
 
   /**
-   * @param message
+   * Instantiates a new video calls provider exception.
+   *
+   * @param message the message
    */
   public VideoCallsProviderException(String message) {
     super(message);
   }
 
   /**
-   * @param cause
+   * Instantiates a new video calls provider exception.
+   *
+   * @param cause the cause
    */
   public VideoCallsProviderException(Throwable cause) {
     super(cause);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new video calls provider exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public VideoCallsProviderException(String message, Throwable cause) {
     super(message, cause);
   }
 
   /**
-   * @param message
-   * @param cause
-   * @param enableSuppression
-   * @param writableStackTrace
+   * Instantiates a new video calls provider exception.
+   *
+   * @param message the message
+   * @param cause the cause
+   * @param enableSuppression the enable suppression
+   * @param writableStackTrace the writable stack trace
    */
   public VideoCallsProviderException(String message,
                                      Throwable cause,

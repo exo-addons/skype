@@ -19,6 +19,7 @@
  */
 package org.exoplatform.videocalls;
 
+// TODO: Auto-generated Javadoc
 /**
  * Skype exception.
  * 
@@ -30,27 +31,29 @@ package org.exoplatform.videocalls;
  */
 public class VideoCallsException extends Exception {
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long serialVersionUID = 1015556121897820692L;
 
   /**
-   * 
+   * Instantiates a new video calls exception.
    */
   public VideoCallsException() {
   }
 
   /**
-   * @param message
+   * Instantiates a new video calls exception.
+   *
+   * @param message the message
    */
   public VideoCallsException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new video calls exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public VideoCallsException(String message, Throwable cause) {
     super(message, cause);
