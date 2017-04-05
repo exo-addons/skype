@@ -16,7 +16,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.videocalls.rest;
+package org.exoplatform.videocalls.skype.rest;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.GET;
@@ -36,6 +36,7 @@ import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.videocalls.GroupInfo;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
+import org.exoplatform.videocalls.rest.ErrorInfo;
 
 /**
  * 

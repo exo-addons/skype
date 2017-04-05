@@ -5,10 +5,22 @@
 	"use strict";
 	
 	// ******** Utils ********
-	var getIEVersion = function()
+
+	/** For debug logging. */
+	var objId = Math.floor((Math.random() * 1000) + 1);
+	var logPrefix = "[videocall_" + objId + "] ";
+	var log = function(msg, e) {
+		if ( typeof console != "undefined" && typeof console.log != "undefined") {
+			console.log(logPrefix + msg);
+			if (e && typeof e.stack != "undefined") {
+				console.log(e.stack);
+			}
+		}
+	};
+
 	// Returns the version of Windows Internet Explorer or a -1
 	// (indicating the use of another browser).
-	{
+	var getIEVersion = function() {
 		var rv = -1;
 		// Return value assumes failure.
 		if (navigator.appName == "Microsoft Internet Explorer") {
@@ -20,7 +32,7 @@
 		return rv;
 	};
 	
-	function pageBaseUrl(theLocation) {
+	var pageBaseUrl = function(theLocation) {
 		if (!theLocation) {
 			theLocation = window.location;
 		}
@@ -33,25 +45,13 @@
 		}
 
 		return theLocation.protocol + "//" + theHostName;
-	}
+	};
 
-	/** For debug logging. */
-	var objId = Math.floor((Math.random() * 1000) + 1);
-	var logPrefix = "[videocall_" + objId + "] ";
-	function log(msg, e) {
-		if ( typeof console != "undefined" && typeof console.log != "undefined") {
-			console.log(logPrefix + msg);
-			if (e && typeof e.stack != "undefined") {
-				console.log(e.stack);
-			}
-		}
-	}
-
-	function getPortalUser() {
+	var getPortalUser = function() {
 		return eXo.env.portal.userName;
-	}
+	};
 
-	function decodeString(str) {
+	var decodeString = function(str) {
 		if (str) {
 			try {
 				str = str.replace(/\+/g, " ");
@@ -64,7 +64,7 @@
 		return null;
 	}
 
-	function encodeString(str) {
+	var encodeString = function(str) {
 		if (str) {
 			try {
 				str = encodeURIComponent(str);
@@ -74,20 +74,20 @@
 			}
 		}
 		return null;
-	}
+	};
 
 	// ******** UI utils **********
 
 	/**
 	 * Open pop-up.
 	 */
-	function popupWindow(url) {
+	var popupWindow = function(url) {
 		var w = 650;
 		var h = 400;
 		var left = (screen.width / 2) - (w / 2);
 		var top = (screen.height / 2) - (h / 2);
 		return window.open(url, 'contacts', 'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left);
-	}
+	};
 	
 	// UI messages
 	// Used to show immediate notifications in top right corner.
@@ -101,7 +101,7 @@
 	/**
 	 * Show notice to user. Options support "icon" class, "hide", "closer" and "nonblock" features.
 	 */
-	function showNotice(type, title, text, options) {
+	var showNotice = function(type, title, text, options) {
 		var noticeOptions = {
 			title : title,
 			text : text,
@@ -122,48 +122,48 @@
 			}
 		};
 		return $.pnotify(noticeOptions);
-	}
+	};
 
 	/**
 	 * Show error notice to user. Error will stick until an user close it.
 	 */
-	function showError(title, text, onInit) {
+	var showError = function(title, text, onInit) {
 		return showNotice("error", title, text, {
 			icon : "picon-dialog-error",
 			hide : false,
 			delay : 0,
 			onInit : onInit
 		});
-	}
+	};
 
 	/**
 	 * Show info notice to user. Info will be shown for 8sec and hidden then.
 	 */
-	function showInfo(title, text, onInit) {
+	var showInfo = function(title, text, onInit) {
 		return showNotice("info", title, text, {
 			hide : true,
 			delay : 8000,
 			icon : "picon-dialog-information",
 			onInit : onInit
 		});
-	}
+	};
 
 	/**
 	 * Show warning notice to user. Info will be shown for 8sec and hidden then.
 	 */
-	function showWarn(title, text, onInit) {
+	var showWarn = function(title, text, onInit) {
 		return showNotice("exclamation", title, text, {
 			hide : false,
 			delay : 30000,
 			icon : "picon-dialog-warning",
 			onInit : onInit
 		});
-	}
+	};
 
 	// ******** REST services ********
 	var prefixUrl = pageBaseUrl(location);
 
-	function initRequest(request) {
+	var initRequest = function(request) {
 		var process = $.Deferred();
 
 		// stuff in textStatus is less interesting: it can be "timeout",
@@ -223,9 +223,9 @@
 			request : request
 		};
 		return process.promise(processTarget);
-	}
+	};
 
-	function getUserInfo(userName) {
+	var getUserInfo = function(userName) {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
@@ -233,9 +233,9 @@
 		});
 
 		return initRequest(request);
-	}
+	};
 	
-	function getSpaceInfo(spaceName) {
+	var getSpaceInfo = function(spaceName) {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
@@ -243,19 +243,9 @@
 		});
 
 		return initRequest(request);
-	}
+	};
 
-	function getGroupMeet(room, space) {
-		var request = $.ajax({
-			async : false,
-			type : "GET",
-			url : prefixUrl + "/portal/rest/videocalls/call/group/" + room + ( space ? "?space=" + space : "")
-		});
-
-		return initRequest(request);
-	}
-
-	function serviceGet(url, data) {
+	var serviceGet = function(url, data) {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
@@ -264,11 +254,11 @@
 			data : data ? data : {}
 		});
 		return initRequest(request);
-	}
+	};
 	
-	function prepareUser(user, isSkypeBusiness) {
+	var prepareUser = function(user, isSkypeBusiness) {
 		user.title = user.firstName + " " + user.lastName;
-	}
+	};
 	
 	/**
 	 * VideoCalls core class.
@@ -448,6 +438,11 @@
 			});
 		};
 
+		/**
+		 * TODO
+		 * 
+		 * @Deprecated
+		 */
 		var initSpace = function(compId) {
 			if (currentUser && currentSpace) {
 				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
@@ -465,13 +460,13 @@
 						if (spaceUpdater) {
 							spaceUpdater.clearInterval();
 						}
-						var get = getSpaceInfo(currentSpace.name);
+						var get = getSpaceInfo(currentSpace.spaceName);
 						get.done(function(space) {
 							// had classes uiIconWeemoVideoCalls
 							// uiIconWeemoLightGray
-							var linkId = "SkypeButton-" + currentSpace.name + Math.floor((Math.random() * 1000000) + 1);
+							var linkId = "SkypeButton-" + currentSpace.spaceName + Math.floor((Math.random() * 1000000) + 1);
 							var $button = $("<div id='" + linkId + "' style='display: none;' class='startCallButton'><a class='actionIcon startCallAction spaceCall' title='Call of " 
-									+ currentSpace.name + "' style='margin-left:5px;'>" // target='_blank'
+									+ currentSpace.spaceName + "' style='margin-left:5px;'>" // target='_blank'
 									+ "<img src='http://www.skypeassets.com/i/scom/images/skype-buttons/callbutton_24px.png' alt='Skype call' role='Button' style='border: 0px; margin: 2px;'>" 
 									+ "</a></div>");
 							// <i class='uiIconVideoCallSkype'></i>Call
@@ -510,7 +505,7 @@
 								$link.click(function(e) {
 									// call click handler
 									// e.preventDefault();
-									var callName = "Call of " + currentSpace.name;
+									var callName = "Call of " + currentSpace.spaceName;
 									var call = calls[currentSpace.roomName];
 									// TODO
 								});
@@ -520,7 +515,7 @@
 						get.fail(function(e, status) {
 							$breadcumbEntry.data("skypebutton", false);
 							if (status == 404) {
-								log("ERROR " + (e.message ? e.message + " " : "Not found ") + currentSpace.name + ": " + JSON.stringify(e));
+								log("ERROR " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
 							} else {
 								log("ERROR reading space users: " + JSON.stringify(e));
 							}
@@ -530,7 +525,12 @@
 			}
 		};
 		
-		var initSpaceWeb = function(compId) {
+		/**
+		 * TODO
+		 * 
+		 * @Deprecated
+		 */
+		var initSpaceWeb_Skype = function(compId) {
 			if (currentUser && currentSpace) {
 				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
 				if ($navigationPortlet.size() == 0) {
@@ -539,7 +539,7 @@
 				}
 				
 				var currentIsSkype = currentUser.imAccounts.skype;
-				var currentIsBusiness = currentUser.imAccounts["ms-sfb"];
+				var currentIsBusiness = currentUser.imAccounts["mssfb"];
 				if (currentIsBusiness) {
 					var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
 					// TODO callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
@@ -551,10 +551,10 @@
 							spaceUpdater.clearInterval();
 						}
 						var $container = $breadcumbEntry.find(".callButtonContainer");
-						// TODO check precisely that we have an one button for each provider 
+						// TODO check precisely that we have an one button for each provider
 						if (providers.length > 0) {
 							if ($container.find(".startCallButton").size() != providers.length) {
-								var get = getSpaceInfo(currentSpace.name);
+								var get = getSpaceInfo(currentSpace.spaceName);
 								// TODO do we really need call REST, may be it could be injected in env?
 								get.done(function(space) {
 									if ($container.size() == 0) {
@@ -587,7 +587,7 @@
 										}
 									}
 									if ($dropdown.children().size() > 0) {
-										// btn-primary 
+										// btn-primary
 										$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
 										$container.append($dropdown);
 									}
@@ -600,7 +600,7 @@
 								get.fail(function(e, status) {
 									initializer.reject();
 									if (status == 404) {
-										log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.name + ": " + JSON.stringify(e));
+										log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
 									} else {
 										log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": reading space users: " + JSON.stringify(e));
 									}
@@ -623,6 +623,95 @@
 			}
 		};
 		
+		var initSpaceWeb = function(compId) {
+			if (currentUser && currentSpace) {
+				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
+				if ($navigationPortlet.size() == 0) {
+					setTimeout($.proxy(initSpace, this), 250, compId);
+					return;
+				}
+				
+				var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
+				// TODO callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
+				if ($breadcumbEntry.size() > 0 && !$breadcumbEntry.data("callbuttoninit")) {
+					log(">>> initSpaceWeb " + compId + " " + currentUser.name);
+					var initializer = $.Deferred();
+					$breadcumbEntry.data("callbuttoninit", true);
+					if (spaceUpdater) {
+						spaceUpdater.clearInterval();
+					}
+					// TODO check precisely that we have an one button for each provider
+					if (providers.length > 0) {
+						var $container = $breadcumbEntry.find(".callButtonContainer");
+						if ($container.find(".startCallButton").size() != providers.length) {
+							var get = getSpaceInfo(currentSpace.spaceName);
+							// TODO do we really need call REST, may be it could be injected in env?
+							get.done(function(space) {
+								if ($container.size() == 0) {
+									$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
+									$breadcumbEntry.append($container);
+								}
+								var actionClasses = "actionIcon startCallButton spaceCall";
+								var context = {
+									currentUser : currentUser,
+									space : space,
+									isIOS : isIOS,
+									isAndroid : isAndroid
+								};
+								var $dropdown = $container.find(".dropdown-menu");
+								var $button;
+								for (var i = 0; i < providers.length; i++) {
+									var p = providers[i];
+									var $button = p.callButton(context);
+									if ($button) {
+										if ($dropdown.size() > 0) {
+											// add others in dropdown
+											$button.addClass(actionClasses);
+											$dropdown.append($button);	
+										} else {
+											// add first & default button
+											$button.addClass("btn " + actionClasses); // btn-primary
+											$container.append($button); 
+											$dropdown = $("<ul class='dropdown-menu'></ul>");
+										}
+									}
+								}
+								if ($dropdown.children().size() > 0) {
+									// btn-primary
+									$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
+									$container.append($dropdown);
+								}
+								if ($button) {
+									$container.show();
+								}
+								initializer.resolve();
+								log("<<< initSpaceWeb DONE " + compId + " " + currentUser.name);
+							});
+							get.fail(function(e, status) {
+								initializer.reject();
+								if (status == 404) {
+									log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
+								} else {
+									log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": reading space users: " + JSON.stringify(e));
+								}
+							});
+						}	else {
+							initializer.reject();
+							log("<<< initSpaceWeb SKIPPED (already initialized) " + compId + " " + currentUser.name);
+						}
+					} else {
+						initializer.reject();
+						log("<<< initSpaceWeb CANCEL (no providers) " + compId + " " + currentUser.name);
+					}
+					initializer.always(function() {
+						$breadcumbEntry.data("callbuttoninit", false);
+					});
+				} else {
+					log("<<< initSpaceWeb SKIP " + compId + " " + currentUser.name);
+				}
+			}
+		};
+		
 		this.update = function(compId) {
 			if (!compId) {
 				// by default we work with whole portal page
@@ -637,17 +726,17 @@
 		/**
 		 * Initialize context
 		 */
-		this.init = function(user, spaceName, roomName) {
+		this.init = function(user, context) {
+			if (user) {
 				currentUser = user;
 				prepareUser(currentUser);
 				log("User initialized in Video Calls: " + user.name + ".");
-			if (spaceName) {
-				currentSpace = {
-					name : spaceName,
-					roomName : roomName ? roomName : spaceName 
+				if (context.spaceName) {
+					// TODO what about chat rooms?
+					currentSpace = context;
+				} else {
+					currentSpace = null;
 				}
-			} else {
-				currentSpace = null;
 			}
 		};
 		
@@ -670,6 +759,8 @@
 			//
 			// A provider may support following of API methods:
 			// * update(stateObj) - when Video Calls will need update the state and UI, it will call the method
+			//
+			// WARN Provider may be added before the app initialization with user context and settings.
 			
 			// TODO avoid duplicates, use map like?
 			if (provider.getName && provider.hasOwnProperty("getName") && provider.getTitle && provider.hasOwnProperty("getTitle")) {
@@ -678,10 +769,7 @@
 				}
 				if (provider.callButton && provider.hasOwnProperty("callButton")) {
 					providers.push(provider);
-					this.update();
-				// } else if (provider.call && provider.hasOwnProperty("call")) {
-				// provider.useDefaultCallInvoker = true;
-				// providers.push(provider);
+					// this.update(); // XXX don't update explicitly, let the caller care about this
 				} else {
 					log("Not compartible provider object: " + provider.getName());
 				}
@@ -689,9 +777,34 @@
 				log("Not a provider object: " + provider);
 			}
 		};
+		
+		/**
+		 * Return registered provider by its name.
+		 */
+		this.getProvider = function(name) {
+			// TODO use more fast way with object-map?
+			for (var i = 0; i < providers.length; i++) {
+				var p = providers[i];
+				if (p.name === name) {
+					return p;
+				}
+			}
+		};
 	}
+	
+	// /////
 
 	var videoCalls = new VideoCalls();
+	
+	// Register videoCalls in global eXo namespace (for non AMD uses)
+	if (typeof eXo === "undefined" || !eXo) {
+		eXo = {};
+	}
+	if (typeof eXo.videoCalls === "undefined" || !eXo.videoCalls) {
+		eXo.videoCalls = videoCalls;
+	} else {
+		log("eXo.videoCalls already defined");
+	}
 	
 	$(function() {
 		// Init notification styles
@@ -706,4 +819,4 @@
 	});
 
 	return videoCalls;
-})($);
+})($); // , videoCallsJqueryUI, videoCallsJqueryPnotify

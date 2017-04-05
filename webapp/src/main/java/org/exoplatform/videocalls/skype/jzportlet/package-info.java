@@ -12,7 +12,7 @@
 
 @Assets("*")
 
-package org.exoplatform.videocalls.skype.portlet;
+package org.exoplatform.videocalls.skype.jzportlet;
 
 import juzu.Application;
 import juzu.asset.AssetLocation;

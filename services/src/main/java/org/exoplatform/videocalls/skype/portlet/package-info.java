@@ -17,7 +17,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 /**
- * VideoCalls portlet for integration into eXo Platform Intranet pages. 
- * 
+ * Skype Provider portlet for Video Calls.
+ *
  */
-package org.exoplatform.videocalls.portlet;
+package org.exoplatform.videocalls.skype.portlet;

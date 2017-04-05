@@ -1,6 +1,8 @@
 /**
  * Skype Call application (Juzu portlet for handling a call) in eXo Platform. This script initializes an UI of a page
  * that will handle a particular Skype call (invoked from videoCalls/videoCalls_skype script).
+ * 
+ * TODO @Deprecared // Not used
  */
 require([ "SHARED/jquery", "SHARED/videoCalls", "SHARED/videoCalls_skype" ], function($, videoCalls, skype) {
 	"use strict";

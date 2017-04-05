@@ -9,6 +9,15 @@
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
        <includes>
+         <include>org.exoplatform.addons:exo-videocalls-webapp:war</include>
+       </includes>
+       <outputFileNameMapping>videocalls.war</outputFileNameMapping>
+       <scope>provided</scope>
+       <fileMode>0644</fileMode>
+     </dependencySet>
+     <dependencySet>
+       <outputDirectory>webapps</outputDirectory>
+       <includes>
          <include>org.exoplatform.addons:exo-skype-webapp:war</include>
        </includes>
        <outputFileNameMapping>skype.war</outputFileNameMapping>
@@ -16,10 +25,11 @@
        <fileMode>0644</fileMode>
      </dependencySet>
      <dependencySet>
-       <!-- Dependencies for deployment to Platform 4 instance -->
+       <!-- Dependencies for deployment to Platform instance -->
        <outputDirectory>lib</outputDirectory>
        <useTransitiveDependencies>true</useTransitiveDependencies>
        <includes>
+         <include>org.exoplatform.addons:exo-videocalls-*:jar</include>
          <include>org.exoplatform.addons:exo-skype-*:jar</include>
        </includes>
        <scope>provided</scope>

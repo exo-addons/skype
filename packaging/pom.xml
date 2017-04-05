@@ -33,6 +33,18 @@
   <dependencies>
     <dependency>
       <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-videocalls-services</artifactId>
+      <type>jar</type>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-videocalls-webapp</artifactId>
+      <type>war</type>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
       <artifactId>exo-skype-services</artifactId>
       <type>jar</type>
       <scope>provided</scope>

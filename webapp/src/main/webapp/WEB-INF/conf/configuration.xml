@@ -28,6 +28,75 @@
     <type>org.exoplatform.videocalls.rest.RESTVideoCallsService</type>
   </component -->
   
+  <!-- Skype provider plugin -->
+  <!-- external-component-plugins>
+    <target-component>org.exoplatform.videocalls.VideoCallsService</target-component>
+    <component-plugin>
+      <name>add.clouddriveprovider</name>
+      <set-method>addPlugin</set-method>
+      <type>org.exoplatform.videocalls.skype.SkypeProvider</type>
+      <init-params>
+        <properties-param>
+          <name>provider-configuration</name>
+          <property name="type" value="skype" />
+          <property name="name" value="Skype" />
+          <property name="disable" value="${videocalls.skype.disable:false}" />
+        </properties-param>
+      </init-params>
+    </component-plugin>
+  </external-component-plugins -->
+  
+  <!-- Skype provider plugin -->
+  <external-component-plugins>
+    <target-component>org.exoplatform.videocalls.VideoCallsService</target-component>
+    <component-plugin>
+      <name>add.clouddriveprovider</name>
+      <set-method>addPlugin</set-method>
+      <type>org.exoplatform.videocalls.skype.SkypeBusinessProvider</type>
+      <init-params>
+        <values-param>
+          <name>autodiscover-origins</name>
+          <description>Allowed URIs for Microsoft Skype Autodiscover roots</description>
+          <value>https://webdir.online.lync.com/autodiscover/autodiscoverservice.svc/root</value>
+        </values-param>
+        <properties-param>
+          <name>provider-configuration</name>
+          <property name="web-oauth2-loginUri" value="${videocalls.mssfb.web.oauth2.loginUri:}" />
+          <property name="web-oauth2-clientId" value="${videocalls.mssfb.web.oauth2.clientId:}" />
+          <property name="web-apiKey" value="${videocalls.mssfb.web.apiKey:}" />
+          <property name="web-apiKeyCC" value="${videocalls.mssfb.web.apiKeyCC:}" />
+          <property name="disable" value="${videocalls.skype.disable:false}" />
+        </properties-param>
+      </init-params>
+    </component-plugin>
+  </external-component-plugins>
+  
+  <external-component-plugins>
+    <target-component>org.exoplatform.web.filter.ExtensibleFilter</target-component>
+    <component-plugin>
+      <name>Skype Call add-in filters Plugin</name>
+      <set-method>addFilterDefinitions</set-method>
+      <type>org.exoplatform.web.filter.FilterDefinitionPlugin</type>
+      <init-params>
+        <object-param>
+          <name>Skype Call Filter</name>
+          <object type="org.exoplatform.web.filter.FilterDefinition">
+            <field name="filter">
+              <object type="org.exoplatform.videocalls.skype.server.SkypeCallFilter" />
+            </field>
+            <field name="patterns">
+              <collection type="java.util.ArrayList" item-type="java.lang.String">
+                <value>
+                  <string>/skype/call/.*</string>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+      </init-params>
+    </component-plugin>
+  </external-component-plugins>
+
   <external-component-plugins>
     <target-component>org.exoplatform.commons.addons.AddOnService</target-component>
     <component-plugin>
@@ -54,7 +123,7 @@
             <field name="state">
               <object type="org.exoplatform.portal.config.model.TransientApplicationState">
                 <field name="contentId">
-                  <string>skype/SkypeCallPortlet</string>
+                  <string>skype/SkypeProviderPortlet</string>
                 </field>
               </object>
             </field>
@@ -94,13 +163,13 @@
           </object>
         </object-param>
         <object-param>
-          <name>SkypeCallPortlet</name>
-          <description>Skype Call page</description>
+          <name>SkypeProviderPortlet</name>
+          <description>Skype Provider page</description>
           <object type="org.exoplatform.portal.config.serialize.PortletApplication">
             <field name="state">
               <object type="org.exoplatform.portal.config.model.TransientApplicationState">
                 <field name="contentId">
-                  <string>skype/SkypeCallPortlet</string>
+                  <string>skype/SkypeProviderPortlet</string>
                 </field>
               </object>
             </field>
@@ -126,7 +195,7 @@
             <field name="patterns">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
                 <value>
-                  <string>/scripts/.*/skype.*</string>
+                  <string>/js/.*/skype.*</string>
                 </value>
                 <value>
                   <string>/skins/.*/skype.*</string>
@@ -136,6 +205,27 @@
           </object>
         </object-param>
         <object-param>
+          <name>Skype Call page filter</name>
+          <object type="org.exoplatform.web.filter.FilterDefinition">
+            <field name="filter">
+              <object type="org.exoplatform.videocalls.skype.server.SkypeCallFilter" />
+            </field>
+            <field name="patterns">
+              <collection type="java.util.ArrayList" item-type="java.lang.String">
+                <value>
+                  <string>/skype/call/.*</string>
+                </value>
+                <value>
+                  <string>/skype/call</string>
+                </value>
+                <value>
+                  <string>/skype/call\?.*</string>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+        <!-- object-param>
           <name>Video Calls Context Filter</name>
           <object type="org.exoplatform.web.filter.FilterDefinition">
             <field name="filter">
@@ -149,7 +239,7 @@
               </collection>
             </field>
           </object>
-        </object-param>
+        </object-param -->
       </init-params>
     </component-plugin>
   </external-component-plugins>
@@ -165,17 +255,19 @@
           <name>init.resources</name>
           <description>Store the following resources into the db for the first launch</description>
           <value>locale.skype.Skype</value>
+          <value>locale.skype.SkypeProvider</value>
         </values-param>
         <values-param>
           <name>portal.resource.names</name>
           <description>The properties files of the portal , those file will be merged into one ResoruceBundle
             properties</description>
           <value>locale.skype.Skype</value>
+          <value>locale.skype.SkypeProvider</value>
         </values-param>
       </init-params>
     </component-plugin>
   </external-component-plugins>
   
-  <import>war:/conf/skype/portal-configuration.xml</import>
+  <!-- import>war:/conf/skype/portal-configuration.xml</import -->
 
 </configuration>

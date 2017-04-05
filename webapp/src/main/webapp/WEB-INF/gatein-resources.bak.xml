@@ -23,61 +23,50 @@
   xsi:schemaLocation="http://www.gatein.org/xml/ns/gatein_resources_1_3 http://www.gatein.org/xml/ns/gatein_resources_1_3"
   xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
 
-  <!-- CSS for Video Calls support in Platform -->
-  <portlet-skin>
-    <application-name>videocalls</application-name>
-    <portlet-name>VideoCallsPortlet</portlet-name>
+  <!-- CSS for Skype Calls support in Platform -->
+  <!-- portlet-skin>
+    <application-name>skype</application-name>
+    <portlet-name>SkypeProviderPortlet</portlet-name>
     <skin-name>Default</skin-name>
-    <css-path>/skin/videocalls.css</css-path>
-  </portlet-skin>
-  <!-- overwrite>true</overwrite -->
-  <!-- css-priority>1</css-priority -->
-
-  <!-- Javascript for Video Calls support in Platform -->
-  <module>
-    <name>videoCallsJqueryPnotify</name>
+    <css-path>/skin/skypeprovider.css</css-path>
+    <css-priority>1</css-priority>
+  </portlet-skin -->
+  
+  <!-- Javascript for Skype Calls support in Platform -->
+  <!-- module>
+    <name>skypeURI</name>
     <load-group>videoCallsGRP</load-group>
     <script>
-      <path>/js/jquery.pnotify.min.js</path>
+      <adapter>
+        (function() {
+        <include>/js/skype-uri.js</include>
+        var skype = window.Skype;
+        window.Skype = undefined;
+        return skype;
+        })();
+      </adapter>
     </script>
-    <depends>
-      <module>jquery</module>
-      <as>jQuery</as>
-    </depends>
+  </module -->
+  <module>
+    <name>skypeWeb</name>
+    <url>https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js</url>
+    <!-- We cannot hide Skype global variable in this script, thus no sense to keep it local -->
+    <!-- load-group>videoCallsGRP</load-group>
+    <script>
+      <adapter>
+        (function() {
+        <include>/js/SkypeBootstrap.min.js</include>
+        var skype = window.Skype;
+        window.Skype = undefined;
+        return skype;
+        })();
+      </adapter>
+    </script -->
   </module>
   <module>
-    <name>videoCallsJqueryUI</name>
-    <as>jqueryUI</as>
-    <load-group>videoCallsGRP</load-group>
+    <name>videoCalls_skype</name>
     <script>
-      <path>/js/jquery-ui.min.js</path>
-    </script>
-    <depends>
-      <module>jquery</module>
-      <as>jQuery</as>
-    </depends>
-  </module>
-  <module>
-    <name>videoCalls</name>
-    <load-group>videoCallsGRP</load-group>
-    <script>
-      <path>/js/videocalls.js</path>
-    </script>
-    <depends>
-      <module>jquery</module>
-    </depends>
-    <depends>
-      <module>videoCallsJqueryUI</module>
-    </depends>
-    <depends>
-      <module>videoCallsJqueryPnotify</module>
-    </depends>
-  </module>
-  <module>
-    <name>videoCallsPortlet</name>
-    <load-group>videoCallsGRP</load-group>
-    <script>
-      <path>/js/videocalls-portlet.js</path>
+      <path>/js/videocalls-skype.js</path>
     </script>
     <depends>
       <module>jquery</module>
@@ -85,21 +74,39 @@
     <depends>
       <module>videoCalls</module>
     </depends>
+    <!-- depends>
+      <module>skypeURI</module>
+    </depends -->
+    <depends>
+      <module>skypeWeb</module>
+    </depends>
   </module>
+  <!-- module>
+    <name>skypePortlet</name>
+    <load-group>videoCallsGRP</load-group>
+    <script>
+      <path>/js/skype-portlet.js</path>
+    </script>
+    <depends>
+      <module>jquery</module>
+    </depends>
+    <depends>
+      <module>videoCalls</module>
+    </depends>
+    <depends>
+      <module>videoCalls_skype</module>
+    </depends>
+  </module -->
   
   <portlet>
-    <name>VideoCallsPortlet</name>
+    <name>SkypeProviderPortlet</name>
     <module>
       <depends>
         <module>jquery</module>
       </depends>
       <depends>
-        <module>videoCalls</module>
-      </depends>
-      <depends>
-        <module>videoCallsPortlet</module>
+        <module>videoCalls_skype</module>
       </depends>
     </module>
   </portlet>
-
 </gatein-resources>

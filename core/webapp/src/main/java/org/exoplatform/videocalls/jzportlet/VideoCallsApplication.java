@@ -1,4 +1,4 @@
-package org.exoplatform.videocalls.portlet;
+package org.exoplatform.videocalls.jzportlet;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -29,6 +29,7 @@ import juzu.template.Template;
 import juzu.template.Template.Builder;
 
 @SessionScoped
+@Deprecated
 public class VideoCallsApplication {
 
 	private static final Log LOG = ExoLogger.getLogger(VideoCallsApplication.class);

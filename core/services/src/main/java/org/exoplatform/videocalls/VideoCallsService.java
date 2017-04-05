@@ -19,7 +19,16 @@
  */
 package org.exoplatform.videocalls;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.services.cms.drives.ManageDriveService;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -35,16 +44,7 @@ import org.exoplatform.social.core.identity.provider.OrganizationIdentityProvide
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
-import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.picocontainer.Startable;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Created by The eXo Platform SAS
@@ -55,71 +55,15 @@ import java.util.regex.Pattern;
  */
 public class VideoCallsService implements Startable {
 
-  public static final String    SKYPE_SCHEMA = "skype";
-
-  public static final String    SFB_SCHEMA   = "ms-sfb";
-
-  protected static final String EMAIL_REGEX  =
-                                            "^(?=[A-Z0-9][A-Z0-9@._%+-]{5,253}+$)[A-Z0-9._%+-]{1,64}+@(?:(?=[A-Z0-9-]{1,63}+\\.)[A-Z0-9]++(?:-[A-Z0-9]++)*+\\.){1,8}+[A-Z]{2,63}+$";
-
-  /**
-   * The Class SkypeIMInfo.
-   */
-  public class SkypeIMInfo extends IMInfo {
-
-    /**
-     * Instantiates a new skype IM info.
-     *
-     * @param id the id
-     */
-    protected SkypeIMInfo(String id) {
-      super(SKYPE_SCHEMA, id);
-    }
-
-    /**
-     * Checks if is business.
-     *
-     * @return true, if is business
-     */
-    public boolean isBusiness() {
-      return false;
-    }
-  }
-
-  /**
-   * The Class SkypeBusinessIMInfo.
-   */
-  public class SkypeBusinessIMInfo extends IMInfo {
-
-    /**
-     * Instantiates a new skype business IM info.
-     *
-     * @param type the type
-     * @param id the id
-     */
-    protected SkypeBusinessIMInfo(String id) {
-      super(SFB_SCHEMA, id);
-    }
-
-    /**
-     * Checks if is business.
-     *
-     * @return true, if is business
-     */
-    public boolean isBusiness() {
-      return true;
-    }
-  }
-
   /**
    * The Class SpaceInfo.
    */
   public class SpaceInfo extends GroupInfo {
 
-    protected final String shortName;
+    protected final String                shortName;
 
-    protected final String prettyName;
-    
+    protected final String                prettyName;
+
     protected final Map<String, UserInfo> members = new LinkedHashMap<>();
 
     /**
@@ -144,7 +88,7 @@ public class VideoCallsService implements Startable {
     protected void addMember(UserInfo user) {
       members.put(user.getName(), user);
     }
-    
+
     /**
      * @return the shortName
      */
@@ -160,32 +104,34 @@ public class VideoCallsService implements Startable {
     }
   }
 
-  protected static final Log             LOG       = ExoLogger.getLogger(VideoCallsService.class);
+  protected static final Log                      LOG       = ExoLogger.getLogger(VideoCallsService.class);
 
   /** The jcr service. */
-  protected final RepositoryService      jcrService;
+  protected final RepositoryService               jcrService;
 
   /** The session providers. */
-  protected final SessionProviderService sessionProviders;
+  protected final SessionProviderService          sessionProviders;
 
   /** The hierarchy creator. */
-  protected final NodeHierarchyCreator   hierarchyCreator;
+  protected final NodeHierarchyCreator            hierarchyCreator;
 
   /** The organization. */
-  protected final OrganizationService    organization;
+  protected final OrganizationService             organization;
 
   /** The social identity manager. */
-  protected final IdentityManager        socialIdentityManager;
+  protected final IdentityManager                 socialIdentityManager;
 
   /** The drive service. */
-  protected final ManageDriveService     driveService;
+  protected final ManageDriveService              driveService;
 
   /** The listener service. */
-  protected final ListenerService        listenerService;
+  protected final ListenerService                 listenerService;
 
-  protected final Pattern                emailTest = Pattern.compile(EMAIL_REGEX, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+  /** The providers. */
+  protected final Map<String, VideoCallsProvider> providers = new ConcurrentHashMap<>();
 
-  protected SpaceService                 spaceService;
+  /** The space service. */
+  protected SpaceService                          spaceService;
 
   /**
    * Instantiates a new Skype service.
@@ -199,12 +145,12 @@ public class VideoCallsService implements Startable {
    * @param listenerService the listener service
    */
   public VideoCallsService(RepositoryService jcrService,
-                      SessionProviderService sessionProviders,
-                      NodeHierarchyCreator hierarchyCreator,
-                      OrganizationService organization,
-                      IdentityManager socialIdentityManager,
-                      ManageDriveService driveService,
-                      ListenerService listenerService) {
+                           SessionProviderService sessionProviders,
+                           NodeHierarchyCreator hierarchyCreator,
+                           OrganizationService organization,
+                           IdentityManager socialIdentityManager,
+                           ManageDriveService driveService,
+                           ListenerService listenerService) {
     this.jcrService = jcrService;
     this.sessionProviders = sessionProviders;
     this.hierarchyCreator = hierarchyCreator;
@@ -223,26 +169,23 @@ public class VideoCallsService implements Startable {
    */
   public UserInfo getUserInfo(String id) throws Exception {
     User user = organization.getUserHandler().findUserByName(id);
-    Identity userIdentity = socialIdentityManager.getOrCreateIdentity(OrganizationIdentityProvider.NAME, id, true);
+    Identity userIdentity = socialIdentityManager.getOrCreateIdentity(OrganizationIdentityProvider.NAME,
+                                                                      id,
+                                                                      true);
     if (user != null && userIdentity != null) {
       Profile socialProfile = socialIdentityManager.getProfile(userIdentity);
       @SuppressWarnings("unchecked")
-      List<Map<String, String>> ims = (List<Map<String, String>>) socialProfile.getProperty(Profile.CONTACT_IMS);
+      List<Map<String, String>> ims =
+                                    (List<Map<String, String>>) socialProfile.getProperty(Profile.CONTACT_IMS);
       UserInfo info = new UserInfo(user.getUserName(), user.getFirstName(), user.getLastName());
       if (ims != null) {
         for (Map<String, String> m : ims) {
           String imType = m.get("key");
           String imId = m.get("value");
           if (imId != null && imId.length() > 0) {
-            if (SKYPE_SCHEMA.equals(imType)) {
-              if (emailTest.matcher(imId).find()) { // imId.indexOf('@') > 0
-                // TODO it looks as email, assume it's SfB account
-                info.addImAccount(new SkypeBusinessIMInfo(imId));
-              } else {
-                info.addImAccount(new SkypeIMInfo(imId));
-              }
-            } else if (SFB_SCHEMA.equals(imType)) {
-              info.addImAccount(new SkypeBusinessIMInfo(imId));
+            VideoCallsProvider provider = providers.get(imType);
+            if (provider != null && provider.isSupportedType(imType)) {
+              info.addImAccount(provider.getIMInfo(imId));
             }
           }
         }
@@ -252,7 +195,7 @@ public class VideoCallsService implements Startable {
       return null;
     }
   }
-  
+
   /**
    * Gets the space info.
    *
@@ -270,6 +213,28 @@ public class VideoCallsService implements Startable {
     return space;
   }
 
+  public void addPlugin(ComponentPlugin plugin) {
+    Class<VideoCallsProvider> pclass = VideoCallsProvider.class;
+    if (pclass.isAssignableFrom(plugin.getClass())) {
+      addProvider(pclass.cast(plugin));
+    } else {
+      LOG.warn("Video Calls provider plugin is not an instance of " + pclass.getName() + ". Skipped plugin: "
+          + plugin);
+    }
+  }
+
+  public void addProvider(VideoCallsProvider provider) {
+    VideoCallsProvider existing = providers.putIfAbsent(provider.getType(), provider);
+    if (existing != null) {
+      LOG.warn("Video Calls provider type '" + existing.getType() + "' already registered. Skipped plugin: "
+          + provider);
+    }
+  }
+
+  public VideoCallsProvider getProvider(String type) {
+    return providers.get(type);
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -277,7 +242,8 @@ public class VideoCallsService implements Startable {
   public void start() {
     // XXX SpaceService done in crappy way and we need reference it after the container start only, otherwise
     // it will fail the whole server start due to not found JCR service
-    this.spaceService = ExoContainerContext.getCurrentContainer().getComponentInstanceOfType(SpaceService.class);
+    this.spaceService = ExoContainerContext.getCurrentContainer()
+                                           .getComponentInstanceOfType(SpaceService.class);
   }
 
   /**
@@ -300,5 +266,5 @@ public class VideoCallsService implements Startable {
     }
     return spaceMembers;
   }
-  
+
 }

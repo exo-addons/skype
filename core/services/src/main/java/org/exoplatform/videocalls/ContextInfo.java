@@ -16,8 +16,35 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
+package org.exoplatform.videocalls;
+
 /**
- * VideoCalls portlet for integration into eXo Platform Intranet pages. 
+ * A lightweight info about current Platform context: space, chat room etc.
+ * 
+ * Created by The eXo Platform SAS
+ * 
+ * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
+ * @version $Id: SpaceContextInfo.java 00000 Mar 30, 2017 pnedonosko $
  * 
  */
-package org.exoplatform.videocalls.portlet;
+public class ContextInfo {
+
+  private final String spaceName;
+
+  private final String roomName;
+
+  public ContextInfo(String spaceName, String roomName) {
+    super();
+    this.spaceName = spaceName;
+    this.roomName = roomName;
+  }
+
+  public String getSpaceName() {
+    return spaceName;
+  }
+
+  public String getRoomName() {
+    return roomName;
+  }
+
+}

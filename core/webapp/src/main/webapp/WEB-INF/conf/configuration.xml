@@ -83,7 +83,7 @@
             <field name="patterns">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
                 <value>
-                  <string>/scripts/.*/videocalls.*</string>
+                  <string>/js/.*/videocalls.*</string>
                 </value>
                 <value>
                   <string>/skins/.*/videocalls.*</string>
@@ -92,7 +92,7 @@
             </field>
           </object>
         </object-param>
-        <object-param>
+        <!-- object-param>
           <name>Video Calls Context Filter</name>
           <object type="org.exoplatform.web.filter.FilterDefinition">
             <field name="filter">
@@ -106,7 +106,7 @@
               </collection>
             </field>
           </object>
-        </object-param>
+        </object-param -->
       </init-params>
     </component-plugin>
   </external-component-plugins>

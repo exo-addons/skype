@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.videocalls;
+package org.exoplatform.videocalls.skype;
 
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.cms.drives.ManageDriveService;
@@ -35,6 +35,8 @@ import org.exoplatform.social.core.identity.provider.OrganizationIdentityProvide
 import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
+import org.exoplatform.videocalls.GroupInfo;
+import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.picocontainer.Startable;
 
@@ -53,7 +55,6 @@ import java.util.regex.Pattern;
  * @version $Id: SkypeService.java 00000 Feb 22, 2017 pnedonosko $
  * 
  */
-@Deprecated
 public class SkypeService implements Startable {
 
   public static final String    SKYPE_SCHEMA = "skype";

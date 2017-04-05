@@ -38,13 +38,16 @@
         </value-param>
         <object-param>
           <name>change</name>
-          <object type="org.exoplatform.container.definition.PortalContainerDefinitionChange$AddDependencies">
+          <object type="org.exoplatform.container.definition.PortalContainerDefinitionChange$AddDependenciesAfter">
             <field name="dependencies">
               <collection type="java.util.ArrayList">
                 <value>
                   <string>skype</string>
                 </value>
               </collection>
+            </field>
+            <field name="target">
+              <string>videocalls</string>
             </field>
           </object>
         </object-param>

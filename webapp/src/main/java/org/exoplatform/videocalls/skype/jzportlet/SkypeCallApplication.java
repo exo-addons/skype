@@ -1,4 +1,4 @@
-package org.exoplatform.videocalls.skype.portlet;
+package org.exoplatform.videocalls.skype.jzportlet;
 
 import java.net.URI;
 

@@ -1,10 +1,10 @@
 /**
- * Video Calls application (Juzu portlet) in eXo Platform. This script initializes UI of a page where it is loaded using
- * Video Calls module.
+ * Video Calls portlet in eXo Platform. This script initializes UI of a page where it is loaded using Video Calls
+ * module.
  */
-require([ "SHARED/jquery", "SHARED/videoCalls" ], function($, videoCalls) {
+(function($, videoCalls) {
 	"use strict";
-	
+
 	var getIEVersion = function()
 	// Returns the version of Windows Internet Explorer or a -1
 	// (indicating the use of another browser).
@@ -22,10 +22,10 @@ require([ "SHARED/jquery", "SHARED/videoCalls" ], function($, videoCalls) {
 
 	var updater;
 
-	$(function() {
-		if (videoCallsEnv) {
-			// init environment
-			videoCalls.init(videoCallsEnv.user, videoCallsEnv.space.name, videoCallsEnv.space.roomName);
+	var init = function(user, context) {
+		$(function() {
+			// init context
+			videoCalls.init(user, context);
 			// TODO: do we want init calls buttons on the page right here, or wait for
 			// providers with their buttons?
 			videoCalls.update();
@@ -57,14 +57,17 @@ require([ "SHARED/jquery", "SHARED/videoCalls" ], function($, videoCalls) {
 								});
 							}, 2500);
 			}
-		}
-	});
+		});
+	};
 
 	return {
+		start : function(user, context) {
+			init(user, context);
+		},
 		stop : function() {
 			if (updater) {
 				clearTimeout(updater);
 			}
 		}
 	};
-});
+})($, videoCalls);

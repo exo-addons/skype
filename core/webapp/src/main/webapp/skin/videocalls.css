@@ -11,16 +11,16 @@
   vertical-align: 0px !important;	
 }*/
 
-.startCallButton {
+.callButtonContainer {
 	position: relative;
-  top: -20px;
+	top: -22px;
+}
+
+.startCallButton:before {
+	content: "\e602";
 }
 
 /******** Video Call stuff below ************/
-
-.uiIconVideoCall:before {
-    content: "\e602";
-}
 
 @keyframes blink {  
     0% { color: red; }
@@ -40,10 +40,6 @@
 
 .meetJoined>i:before {
     color: blue !important;
-}
-
-.spaceMeet {
-	margin-top: -40px;
 }
 
 /******** Pnotify icons ********/
