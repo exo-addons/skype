@@ -24,7 +24,6 @@ import org.exoplatform.videocalls.skype.SkypeSettings;
 import org.gatein.common.logging.Logger;
 import org.gatein.common.logging.LoggerFactory;
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class SkypeCallServlet.
  */
@@ -37,19 +36,13 @@ public class SkypeCallServlet extends AbstractHttpServlet {
   protected static final Logger LOG               = LoggerFactory.getLogger(SkypeCallServlet.class);
 
   /** The Constant CALL_PAGE. */
-  private final static String   CALL_PAGE         = "/WEB-INF/pages/call.html";
+  private final static String   CALL_PAGE         = "/WEB-INF/pages/call.jsp";
 
   /** The Constant UNAUTHORIZED_PAGE. */
   private final static String   UNAUTHORIZED_PAGE = "/WEB-INF/pages/unauthorized.html";
 
   /** The Constant SERVER_ERROR_PAGE. */
   private final static String   SERVER_ERROR_PAGE = "/WEB-INF/pages/servererror.html";
-
-  /** The video calls. */
-  private VideoCallsService     videoCalls;
-
-  /** The provider. */
-  private SkypeBusinessProvider provider;
 
   /**
    * Instantiates a new skype call servlet.
@@ -62,79 +55,97 @@ public class SkypeCallServlet extends AbstractHttpServlet {
    * {@inheritDoc}
    */
   @Override
-  public void init() throws ServletException {
-    // TODO Auto-generated method stub
-    super.init();
-
-    ExoContainer container = getContainer();
-    this.videoCalls = (VideoCallsService) container.getComponentAdapterOfType(VideoCallsService.class);
-
-    try {
-      this.provider = (SkypeBusinessProvider) videoCalls.getProvider(SkypeBusinessProvider.SFB_TYPE);
-    } catch (ClassCastException e) {
-      LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of "
-          + SkypeBusinessProvider.class.getName(), e);
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException,
                                                                          IOException {
 
     HttpServletRequest httpReq = (HttpServletRequest) req;
     HttpServletResponse httpRes = (HttpServletResponse) resp;
     httpRes.setContentType("text/html; charset=UTF-8");
-    
+
     String remoteUser = httpReq.getRemoteUser();
 
-    if (provider != null) {
+    ExoContainer container = getContainer();
+    VideoCallsService videoCalls =
+                                 (VideoCallsService) container.getComponentInstanceOfType(VideoCallsService.class);
+    if (videoCalls != null) {
+      SkypeBusinessProvider provider;
       try {
-        // We set the character encoding now to UTF-8 before obtaining parameters
-        req.setCharacterEncoding("UTF-8");
-      } catch (UnsupportedEncodingException e) {
-        LOG.error("Encoding not supported", e);
+        provider = (SkypeBusinessProvider) videoCalls.getProvider(SkypeBusinessProvider.SFB_TYPE);
+      } catch (ClassCastException e) {
+        LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of "
+            + SkypeBusinessProvider.class.getName(), e);
+        provider = null;
       }
 
-      if (remoteUser != null) {
+      if (provider != null) {
         try {
-          // init page scope with settings for videoCalls and Skype provider
+          // We set the character encoding now to UTF-8 before obtaining parameters
+          req.setCharacterEncoding("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+          LOG.error("Encoding not supported", e);
+        }
 
-          ContextInfo context = getCurrentContext();
-          httpReq.setAttribute("spaceInfo", asJSON(context));
+        if (remoteUser != null) {
+          try {
+            // init page scope with settings for videoCalls and Skype provider
 
-          UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
-          httpReq.setAttribute("userInfo", asJSON(exoUser));
+            ContextInfo context = getCurrentContext();
+            httpReq.setAttribute("spaceInfo", asJSON(context));
 
-          URI redirectURI = new URI(httpReq.getScheme(),
+            UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
+            httpReq.setAttribute("userInfo", asJSON(exoUser));
+
+            URI redirectURI =
+                            new URI(httpReq.getScheme(),
                                     null,
                                     httpReq.getServerName(),
                                     httpReq.getServerPort(),
                                     null,
                                     null,
                                     null);
-          SkypeSettings settings = provider.getSettings().redirectURIBase(redirectURI.toString()).build();
-          httpReq.setAttribute("userInfo", asJSON(settings));
+            SkypeSettings settings = provider.getSettings().redirectURIBase(redirectURI.toString()).build();
+            httpReq.setAttribute("settings", asJSON(settings));
 
-          // TODO forward to JSP page
-          httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
-        } catch (Exception e) {
-          LOG.error("Error processing Skype call page", e);
-          httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-          httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
+            // XXX//
+            // ServletContainer container = ServletContainerFactory.getServletContainer();
+            // container.include(httpReq.getServletContext(), httpReq, httpRes, new RequestDispatchCallback()
+            // {
+            // @Override
+            // public Object doCallback(ServletContext dispatchedServletContext,
+            // HttpServletRequest dispatchedRequest,
+            // HttpServletResponse dispatchedResponse,
+            // Object handback) throws ServletException, IOException {
+            // // XXX do nothing for our purpose
+            // // callable.call(dispatchedServletContext, dispatchedRequest, dispatchedResponse);
+            //
+            // // We don't use return value anymore
+            // return null;
+            // }
+            // }, null);
+            ////
+
+            // forward to JSP page
+            httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
+          } catch (Exception e) {
+            LOG.error("Error processing Skype call page", e);
+            httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
+          }
+        } else {
+          // TODO user not authenticated into eXo Platform
+          // Redirect to login page?
+          // Return 401 Unauthorized?
+          // httpRes.sendError(HttpURLConnection.HTTP_UNAUTHORIZED, "");
+          httpRes.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+          httpReq.getRequestDispatcher(UNAUTHORIZED_PAGE).include(httpReq, httpRes);
         }
       } else {
-        // TODO user not authenticated into eXo Platform
-        // Redirect to login page?
-        // Return 401 Unauthorized?
-        // httpRes.sendError(HttpURLConnection.HTTP_UNAUTHORIZED, "");
-        httpRes.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        httpReq.getRequestDispatcher(UNAUTHORIZED_PAGE).include(httpReq, httpRes);
+        LOG.error("Skype provider not found for call page and user " + remoteUser);
+        httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
       }
     } else {
-      LOG.error("Skype provider not found for call page and user " + remoteUser);
+      LOG.error("Video Calls service not found for call page and user " + remoteUser);
       httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
       httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
     }

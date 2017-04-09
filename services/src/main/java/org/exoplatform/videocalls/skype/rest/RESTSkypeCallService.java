@@ -18,11 +18,17 @@
  */
 package org.exoplatform.videocalls.skype.rest;
 
+import java.io.IOException;
+
 import javax.annotation.security.RolesAllowed;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -33,120 +39,75 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
 import org.exoplatform.services.security.ConversationState;
-import org.exoplatform.videocalls.GroupInfo;
-import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
 import org.exoplatform.videocalls.rest.ErrorInfo;
+import org.exoplatform.videocalls.skype.server.SkypeCallFilter;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: RESTVideoCallsService.java 00000 Feb 22, 2017 pnedonosko $
  */
-@Deprecated
-@Path("/skype/call")
-@Produces(MediaType.APPLICATION_JSON)
+@Path("/skype")
 public class RESTSkypeCallService implements ResourceContainer {
 
-	/** The Constant ME. */
-	public static final String ME = "me";
+  /** The Constant ME. */
+  public static final String        ME  = "me";
 
-	/** The Constant LOG. */
-	protected static final Log LOG = ExoLogger.getLogger(RESTSkypeCallService.class);
+  /** The Constant LOG. */
+  protected static final Log        LOG = ExoLogger.getLogger(RESTSkypeCallService.class);
 
-	/** The video calls. */
-	protected final VideoCallsService videoCalls;
+  /** The video calls. */
+  protected final VideoCallsService videoCalls;
 
-	/**
-	 * Instantiates a new REST Skype service.
-	 *
-	 * @param skype
-	 *            the skype
-	 */
-	public RESTSkypeCallService(VideoCallsService skype) {
-		this.videoCalls = skype;
-	}
+  /**
+   * Instantiates a new REST Skype service.
+   *
+   * @param skype
+   *          the skype
+   */
+  public RESTSkypeCallService(VideoCallsService skype) {
+    this.videoCalls = skype;
+  }
 
-	/**
-	 * Gets the user info.
-	 *
-	 * @param uriInfo
-	 *            the uri info
-	 * @param userName
-	 *            the id
-	 * @return the user info response
-	 */
-	@GET
-	@RolesAllowed("users")
-	@Path("/user/{name}")
-	public Response getUserInfo(@Context UriInfo uriInfo, @PathParam("name") String userName) {
-		ConversationState convo = ConversationState.getCurrent();
-		if (convo != null) {
-			String currentUserName = convo.getIdentity().getUserId();
-			if (userName != null) {
-				if (ME.equals(userName)) {
-					userName = currentUserName;
-				}
-				try {
-					UserInfo user = videoCalls.getUserInfo(userName);
-					if (user != null) {
-						return Response.ok().entity(user).build();
-					} else {
-						return Response.status(Status.NOT_FOUND)
-								.entity(ErrorInfo.notFoundError("User not found or not accessible")).build();
-					}
-				} catch (Throwable e) {
-					LOG.error("Error reading user info of '" + userName + "' by '" + currentUserName + "'", e);
-					return Response.serverError().entity(ErrorInfo.serverError("Error reading user " + userName))
-							.build();
-				}
-			} else {
-				return Response.status(Status.BAD_REQUEST)
-						.entity(ErrorInfo.clientError("Wrong request parameters: name")).build();
-			}
-		} else {
-			return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
-		}
-	}
-
-	/**
-	 * Gets the space info.
-	 *
-	 * @param uriInfo
-	 *            the uri info
-	 * @param spaceName
-	 *            the space name
-	 * @return the space info response
-	 */
-	@GET
-	@RolesAllowed("users")
-	@Path("/space/{spaceName}")
-	public Response getSpaceInfo(@Context UriInfo uriInfo, @PathParam("spaceName") String spaceName) {
-		ConversationState convo = ConversationState.getCurrent();
-		if (convo != null) {
-			String currentUserName = convo.getIdentity().getUserId();
-			if (spaceName != null && spaceName.length() > 0) {
-				try {
-					GroupInfo space = videoCalls.getSpaceInfo(spaceName);
-					if (space != null) {
-						return Response.ok().entity(space).build();
-					} else {
-						return Response.status(Status.NOT_FOUND)
-								.entity(ErrorInfo.notFoundError("Space not found or not accessible")).build();
-					}
-				} catch (Throwable e) {
-					LOG.error("Error reading space info of '" + spaceName + "' by '" + currentUserName + "'", e);
-					return Response.serverError().entity(ErrorInfo.serverError("Error reading space " + spaceName))
-							.build();
-				}
-			} else {
-				return Response.status(Status.BAD_REQUEST)
-						.entity(ErrorInfo.clientError("Wrong request parameters: name")).build();
-			}
-		} else {
-			return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
-		}
-	}
+  /**
+   * Call resource (page). It forwards internaly to a servlet.
+   *
+   * @param uriInfo
+   *          the uri info
+   * @param userName
+   *          the id
+   * @return the user info response
+   */
+  @GET
+  @RolesAllowed("users")
+  @Path("/call")
+  @Produces(MediaType.TEXT_HTML)
+  public Response forwardCallPage(@Context UriInfo uriInfo,
+                                  @Context HttpServletRequest request,
+                                  @Context HttpServletResponse response,
+                                  @QueryParam("call") String participants) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      request.setAttribute("currentUserName", currentUserName);
+      try {
+        // request.getRequestDispatcher("/WEB-INF/pages/call.jsp").forward(request, response);
+        ServletContext skypeContext =
+                                    request.getSession()
+                                           .getServletContext()
+                                           .getContext(SkypeCallFilter.SKYPE_SERVLET_CTX);
+        skypeContext.getRequestDispatcher(SkypeCallFilter.CALL_SERVLET).forward(request, response);
+      } catch (ServletException | IOException e) {
+        LOG.error("Error forwarding to call page for " + currentUserName, e);
+        return Response.status(Status.INTERNAL_SERVER_ERROR)
+                       .entity(ErrorInfo.accessError("Internal error. Call cannot be started right now."))
+                       .build();
+      }
+      return null;
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
 }

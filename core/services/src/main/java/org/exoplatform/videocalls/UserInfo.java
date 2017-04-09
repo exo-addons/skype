@@ -19,11 +19,16 @@
  */
 package org.exoplatform.videocalls;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-// TODO: Auto-generated Javadoc
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
 /**
  * Created by The eXo Platform SAS.
  *
@@ -32,11 +37,13 @@ import java.util.Map;
  */
 public class UserInfo {
 
+  protected static final Log LOG = ExoLogger.getLogger(UserInfo.class);
+
   /**
    * The Class IMInfo.
    */
   public static class IMInfo {
-    
+
     /** The type. */
     private final String type;
 
@@ -73,18 +80,18 @@ public class UserInfo {
       return id;
     }
   }
-  
+
   /** The name. */
-  private final String name;
+  private final String                    name;
 
   /** The first name. */
-  private final String firstName;
+  private final String                    firstName;
 
   /** The last name. */
-  private final String lastName;
+  private final String                    lastName;
 
-  /** The ims. */
-  private final Map<String, IMInfo> ims = new HashMap<String, IMInfo>();
+  /** The IM accounts. */
+  private final Map<String, List<IMInfo>> imAccounts = new HashMap<String, List<IMInfo>>();
 
   /**
    * Instantiates a new user info.
@@ -130,51 +137,53 @@ public class UserInfo {
   /**
    * Gets the im accounts.
    *
-   * @return the map of user instant messaging accounts: key is a type, value is {@link IMInfo}
+   * @return the map of user instant messaging accounts: key is a type, value is a collection of {@link IMInfo}
    */
-  public Map<String, IMInfo> getImAccounts() {
-    return Collections.unmodifiableMap(ims);
+  public Map<String, Collection<IMInfo>> getImAccounts() {
+    return Collections.unmodifiableMap(imAccounts);
   }
-  
+
   /**
    * Adds the user IM account.
    *
    * @param type the IM type type (e.g. <code>gtalk</code>)
    * @param id the IM id
-   * @return the IM info
+   * @return the added IM info
    */
   public IMInfo addImAccount(String type, String id) {
     IMInfo im = new IMInfo(type, id);
-    ims.put(type, im);
+    imAccounts.computeIfAbsent(type, list -> new ArrayList<IMInfo>()).add(im);
     return im;
   }
-  
+
   /**
-   * Adds the user IM account instance.
+   * Adds the user IM account(s). Note that if IM with some type already added an another one will be skipped.
    *
-   * @param im the im
+   * @param ims the IM account(s) to add to the user profile
    */
-  public void addImAccount(IMInfo im) {
-    ims.put(im.getType(), im);
+  public void addImAccount(IMInfo... ims) {
+    for (IMInfo im : ims) {
+      imAccounts.computeIfAbsent(im.getType(), list -> new ArrayList<IMInfo>()).add(im);
+    }
   }
-  
+
   /**
-   * Checks for IM account.
+   * Checks for IM account associated with the user.
    *
-   * @param type the type
-   * @return true, if successful
+   * @param type the IM account type
+   * @return <code>true</code>, if successful
    */
   public boolean hasImAccount(String type) {
-    return ims.containsKey(type);
+    return imAccounts.containsKey(type);
   }
-  
+
   /**
-   * Gets the IM account by type.
+   * Gets the IM accounts by type.
    *
    * @param type the type
-   * @return the IM account
+   * @return the IM accounts
    */
-  public IMInfo getImAccount(String type) {
-    return ims.get(type);
+  public Collection<IMInfo> getImAccount(String type) {
+    return Collections.unmodifiableCollection(imAccounts.get(type));
   }
 }

@@ -19,7 +19,12 @@
  */
 package org.exoplatform.videocalls.skype;
 
-import org.exoplatform.container.ExoContainerContext;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import org.exoplatform.services.cms.drives.ManageDriveService;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -39,14 +44,6 @@ import org.exoplatform.videocalls.GroupInfo;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.picocontainer.Startable;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 // TODO: Auto-generated Javadoc
 /**
@@ -121,11 +118,11 @@ public class SkypeService implements Startable {
   public class SpaceInfo extends GroupInfo {
 
     /** The short name. */
-    protected final String shortName;
+    protected final String                shortName;
 
     /** The pretty name. */
-    protected final String prettyName;
-    
+    protected final String                prettyName;
+
     /** The members. */
     protected final Map<String, UserInfo> members = new LinkedHashMap<>();
 
@@ -156,7 +153,7 @@ public class SkypeService implements Startable {
     protected void addMember(UserInfo user) {
       members.put(user.getName(), user);
     }
-    
+
     /**
      * Gets the short name.
      *
@@ -201,7 +198,9 @@ public class SkypeService implements Startable {
   protected final ListenerService        listenerService;
 
   /** The email test. */
-  protected final Pattern                emailTest = Pattern.compile(EMAIL_REGEX, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+  protected final Pattern                emailTest =
+                                                   Pattern.compile(EMAIL_REGEX,
+                                                                   Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
   /** The space service. */
   protected SpaceService                 spaceService;
@@ -242,11 +241,14 @@ public class SkypeService implements Startable {
    */
   public UserInfo getUserInfo(String id) throws Exception {
     User user = organization.getUserHandler().findUserByName(id);
-    Identity userIdentity = socialIdentityManager.getOrCreateIdentity(OrganizationIdentityProvider.NAME, id, true);
+    Identity userIdentity = socialIdentityManager.getOrCreateIdentity(OrganizationIdentityProvider.NAME,
+                                                                      id,
+                                                                      true);
     if (user != null && userIdentity != null) {
       Profile socialProfile = socialIdentityManager.getProfile(userIdentity);
       @SuppressWarnings("unchecked")
-      List<Map<String, String>> ims = (List<Map<String, String>>) socialProfile.getProperty(Profile.CONTACT_IMS);
+      List<Map<String, String>> ims =
+                                    (List<Map<String, String>>) socialProfile.getProperty(Profile.CONTACT_IMS);
       UserInfo info = new UserInfo(user.getUserName(), user.getFirstName(), user.getLastName());
       if (ims != null) {
         for (Map<String, String> m : ims) {
@@ -271,32 +273,13 @@ public class SkypeService implements Startable {
       return null;
     }
   }
-  
-  /**
-   * Gets the space info.
-   *
-   * @param spacePrettyName the space pretty name
-   * @return the space info
-   * @throws Exception the exception
-   */
-  public SpaceInfo getSpaceInfo(String spacePrettyName) throws Exception {
-    Space socialSpace = spaceService.getSpaceByPrettyName(spacePrettyName);
-    SpaceInfo space = new SpaceInfo(socialSpace);
-    for (String sm : socialSpace.getMembers()) {
-      UserInfo user = getUserInfo(sm);
-      space.addMember(user);
-    }
-    return space;
-  }
 
   /**
    * {@inheritDoc}
    */
   @Override
   public void start() {
-    // XXX SpaceService done in crappy way and we need reference it after the container start only, otherwise
-    // it will fail the whole server start due to not found JCR service
-    this.spaceService = ExoContainerContext.getCurrentContainer().getComponentInstanceOfType(SpaceService.class);
+    // nothing
   }
 
   /**
@@ -307,30 +290,4 @@ public class SkypeService implements Startable {
     // nothing
   }
 
-  /**
-   * Checks if is space member.
-   *
-   * @param userName the user name
-   * @param spacePrettyName the space pretty name
-   * @return true, if is space member
-   */
-  protected boolean isSpaceMember(String userName, String spacePrettyName) {
-    return getSpaceMembers(spacePrettyName).contains(userName);
-  }
-
-  /**
-   * Gets the space members.
-   *
-   * @param spacePrettyName the space pretty name
-   * @return the space members
-   */
-  protected Set<String> getSpaceMembers(String spacePrettyName) {
-    Space space = spaceService.getSpaceByPrettyName(spacePrettyName);
-    Set<String> spaceMembers = new HashSet<String>();
-    for (String sm : space.getMembers()) {
-      spaceMembers.add(sm);
-    }
-    return spaceMembers;
-  }
-  
 }

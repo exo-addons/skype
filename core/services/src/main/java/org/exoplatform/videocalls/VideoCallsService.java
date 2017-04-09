@@ -247,10 +247,12 @@ public class VideoCallsService implements Startable {
    * @param provider the provider
    */
   public void addProvider(VideoCallsProvider provider) {
-    VideoCallsProvider existing = providers.putIfAbsent(provider.getType(), provider);
-    if (existing != null) {
-      LOG.warn("Video Calls provider type '" + existing.getType() + "' already registered. Skipped plugin: "
-          + provider);
+    for (String type : provider.getSupportedTypes()) {
+      VideoCallsProvider existing = providers.putIfAbsent(type, provider);
+      if (existing != null) {
+        LOG.warn("Video Calls provider type '" + existing.getType() + "' already registered. Skipped plugin: "
+            + provider);
+      } 
     }
   }
 

@@ -26,50 +26,42 @@ package org.exoplatform.videocalls.skype;
  * @version $Id: SkypeSettings.java 00000 Mar 30, 2017 pnedonosko $
  */
 public class SkypeSettings {
-  
+
   /** The name. */
-  protected final String name;
-  
+  protected final String   type;
+
+  /** The supported types. */
+  protected final String[] supportedTypes;
+
   /** The title. */
-  protected final String title;
-  
+  protected final String   title;
+
   /** The call title. */
-  protected final String callTitle;
-  
+  protected final String   callTitle;
+
   /** The client id. */
-  protected final String clientId;
-  
+  protected final String   clientId;
+
   /** The redirect uri. */
-  protected final String redirectUri;
-  
+  protected final String   redirectUri;
+
   /** The version. */
-  protected final String version;
+  protected final String   version;
 
   /** The api key. */
-  protected final String apiKey;
-  
+  protected final String   apiKey;
+
   /** The api key CC. */
-  protected final String apiKeyCC;
-  
+  protected final String   apiKeyCC;
+
   /** The origins. */
   protected final String[] origins;
 
   /**
    * Instantiates a new skype settings.
-   * 
-   * {
-    name : "${name}",
-    title : "${title}",
-    callTitle : "${callTitle}",
-    clientId : "${clientId}",
-    redirectUri : "${redirectUri}",
-    origins : ["https://webdir.online.lync.com/autodiscover/autodiscoverservice.svc/root"],
-    version : "${version}",
-    apiKey : "${apiKey}",
-    apiKeyCC : "${apiKeyCC}"
-  };
    *
-   * @param name the name
+   * @param type the name
+   * @param supportedTypes the supported types
    * @param title the title
    * @param callTitle the call title
    * @param clientId the client id
@@ -79,7 +71,8 @@ public class SkypeSettings {
    * @param apiKeyCC the api key CC
    * @param origins the origins
    */
-  public SkypeSettings(String name,
+  public SkypeSettings(String type,
+                       String[] supportedTypes,
                        String title,
                        String callTitle,
                        String clientId,
@@ -89,7 +82,8 @@ public class SkypeSettings {
                        String apiKeyCC,
                        String[] origins) {
     super();
-    this.name = name;
+    this.type = type;
+    this.supportedTypes = supportedTypes;
     this.title = title;
     this.callTitle = callTitle;
     this.clientId = clientId;
@@ -105,8 +99,17 @@ public class SkypeSettings {
    *
    * @return the name
    */
-  public String getName() {
-    return name;
+  public String getType() {
+    return type;
+  }
+
+  /**
+   * Gets the supported types.
+   *
+   * @return the supported types
+   */
+  public String[] getSupportedTypes() {
+    return supportedTypes;
   }
 
   /**
@@ -180,5 +183,5 @@ public class SkypeSettings {
   public String[] getOrigins() {
     return origins;
   }
-  
+
 }

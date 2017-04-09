@@ -22,6 +22,7 @@ package org.exoplatform.videocalls.skype.server;
 import java.io.IOException;
 
 import javax.servlet.FilterChain;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -32,8 +33,10 @@ import org.exoplatform.container.web.AbstractFilter;
 import org.exoplatform.web.filter.Filter;
 import org.gatein.common.logging.Logger;
 import org.gatein.common.logging.LoggerFactory;
+import org.gatein.wci.RequestDispatchCallback;
+import org.gatein.wci.ServletContainer;
+import org.gatein.wci.ServletContainerFactory;
 
-// TODO: Auto-generated Javadoc
 /**
  * Filter forwards requests to Skype call URLs to related servlets.<br>
  * 
@@ -49,10 +52,10 @@ public class SkypeCallFilter extends AbstractFilter implements Filter {
   protected static final Logger LOG               = LoggerFactory.getLogger(SkypeCallFilter.class);
 
   /** The Constant SKYPE_SERVLET_CTX. */
-  private static final String   SKYPE_SERVLET_CTX = "/skype";
+  public static final String    SKYPE_SERVLET_CTX = "/skype";
 
   /** The Constant CALL_SERVLET. */
-  private static final String   CALL_SERVLET      = "/skypecallservlet".intern();
+  public static final String    CALL_SERVLET      = "/skypecallservlet".intern();
 
   /**
    * {@inheritDoc}
@@ -65,9 +68,27 @@ public class SkypeCallFilter extends AbstractFilter implements Filter {
     HttpServletResponse httpRes = (HttpServletResponse) response;
 
     if (httpReq.getRemoteUser() != null) {
-      // ServletContext skypeContext = httpReq.getSession().getServletContext().getContext(SKYPE_SERVLET_CTX);
-      // skypeContext.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
-      httpReq.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
+      ServletContext skypeContext = httpReq.getSession().getServletContext().getContext(SKYPE_SERVLET_CTX);
+
+      // XXX//
+      // ServletContainer container = ServletContainerFactory.getServletContainer();
+      // container.include(skypeContext, httpReq, httpRes, new RequestDispatchCallback() {
+      // @Override
+      // public Object doCallback(ServletContext dispatchedServletContext,
+      // HttpServletRequest dispatchedRequest,
+      // HttpServletResponse dispatchedResponse,
+      // Object handback) throws ServletException, IOException {
+      // // XXX do nothing for our purpose
+      // // callable.call(dispatchedServletContext, dispatchedRequest, dispatchedResponse);
+      //
+      // // We don't use return value anymore
+      // return null;
+      // }
+      // }, null);
+      ////
+
+      skypeContext.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
+      // httpReq.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
     } else {
       // TODO user not authenticated into eXo Platform
       // Redirect to login page?

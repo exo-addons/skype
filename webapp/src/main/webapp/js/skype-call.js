@@ -39,21 +39,6 @@ if (eXo.videoCalls) {
 				return decodeURIComponent(results[2].replace(/\+/g, " "));
 			}
 
-			// var initializer = $.Deferred();
-			function listener(event) {
-				var origin = event.origin || event.originalEvent.origin;
-				if (origin.startsWith(videoCalls.getBaseUrl() + "/portal/intranet/skype")) {
-					// initializer.resolve(event.data);
-				} else {
-					console.log("Ignoring not known message to " + location);
-				}
-			}
-			// if (window.addEventListener) {
-			// addEventListener("message", listener, false);
-			// } else {
-			// attachEvent("onmessage", listener);
-			// }
-
 			$(function() {
 				var clientId = skype.getClientId();
 				if (isLogin) {
@@ -109,7 +94,7 @@ if (eXo.videoCalls) {
 							}
 							// //
 							var $convo = $("#skype-call-conversation");
-							if ($convo.size() == 0) {
+							if ($convo.length == 0) {
 								var $container = $("<div class='skype-call-container'></div>");
 								$(document.body).append($container);
 								$convo = $("<div id='skype-call-conversation'></div>");
@@ -155,6 +140,8 @@ if (eXo.videoCalls) {
 					log("<<< Skype call");
 				}
 			});
+		} else {
+			console.log("Skype provider not found for skype-call.js");
 		}
 	})(eXo.videoCalls);
 } else {

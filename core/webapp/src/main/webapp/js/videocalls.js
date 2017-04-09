@@ -1,5 +1,5 @@
 /**
- * Skype calls integration for eXo Platform.
+ * Video Calls integration for eXo Platform.
  */
 (function($) {
 	"use strict";
@@ -282,9 +282,9 @@
 				log("Init chat for " + chatApplication.username);
 
 				var $chat = $("#chat-application");
-				if ($chat.size() > 0) {
+				if ($chat.length > 0) {
 					var $room = $chat.find("a.room-detail-fullname");
-					if ($room.size() == 0) {
+					if ($room.length == 0) {
 						// TODO
 					}
 				}
@@ -295,14 +295,14 @@
 			var $tiptip = $("#tiptip_content");
 			// if not in user profile wait for UIUserProfilePopup script load
 			if (window.location.href.indexOf("/portal/intranet/profile") < 0) {
-				if ($tiptip.size() == 0 || $tiptip.hasClass("DisabledEvent")) {
+				if ($tiptip.length == 0 || $tiptip.hasClass("DisabledEvent")) {
 					setTimeout($.proxy(initUserPopups, this), 250, compId);
 					return;
 				}
 			}
 
 			function addButton($userAction, userName, userTitle, tuningFunc) {
-				if ($userAction.size() > 0 && !$userAction.data("skypebutton")) {
+				if ($userAction.length > 0 && !$userAction.data("skypebutton")) {
 					$userAction.data("skypebutton", true);
 					var callId = "Call " + currentUser.title + " with " + userTitle;
 					// TODO check if call not already started (by another user)
@@ -314,11 +314,11 @@
 							var $button = $("<div id='" + linkId + "' style='display: none;'></div>");
 							$userAction.append($button);
 							var userIM, isBusiness;
-							if (user.imAccounts["ms-sfb"]) {
-								userIM = user.imAccounts["ms-sfb"].id;
+							if (user.imAccounts.mssfb) {
+								userIM = user.imAccounts.mssfb[0].id;
 								isBusiness = true;
 							} else {
-								userIM = user.imAccounts.skype.id;
+								userIM = user.imAccounts.skype[0].id;
 								isBusiness = false;
 							}
 							var res = Skype.ui({
@@ -331,7 +331,7 @@
 								useDetection: "false"
 							});
 							if (res) {
-								var currentIsBusiness = currentUser.imAccounts["ms-sfb"];
+								var currentIsBusiness = currentUser.imAccounts.mssfb;
 								if (currentIsBusiness && isBusiness && (isIOS || isAndroid)) { 
 									// current user is business - use SfB URI
 									// TODO is it for mobile only?
@@ -382,7 +382,7 @@
 					setTimeout(function() {
 						// Find user's first name for a tip
 						var $td = $tiptip.children("#tipName").children("tbody").children("tr").children("td");
-						if ($td.size() > 1) {
+						if ($td.length > 1) {
 							var $userLink = $("a", $td.get(1));
 							var userTitle = $userLink.text();
 							var userName = extractUserName($userLink);
@@ -399,7 +399,7 @@
 			// user panel in connections (all, personal and in space)
 			$("#" + compId).find(".spaceBox").each(function(i, elem) {
 				var $userLink = $(elem).find(".spaceTitle a:first");
-				if ($userLink.size() > 0) {
+				if ($userLink.length > 0) {
 					var userTitle = $userLink.text();
 					var userName = extractUserName($userLink);
 					var $userAction = $(elem).find(".connectionBtn");
@@ -446,16 +446,16 @@
 		var initSpace = function(compId) {
 			if (currentUser && currentSpace) {
 				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
-				if ($navigationPortlet.size() == 0) {
+				if ($navigationPortlet.length == 0) {
 					setTimeout($.proxy(initSpace, this), 250, compId);
 					return;
 				}
 				
 				var currentIsSkype = currentUser.imAccounts.skype;
-				var currentIsBusiness = currentUser.imAccounts["ms-sfb"];
+				var currentIsBusiness = currentUser.imAccounts.mssfb;
 				if (currentIsSkype || currentIsBusiness) {
 					var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
-					if ($breadcumbEntry.size() > 0 && !$breadcumbEntry.data("skypebutton")) {
+					if ($breadcumbEntry.length > 0 && !$breadcumbEntry.data("skypebutton")) {
 						$breadcumbEntry.data("skypebutton", true);
 						if (spaceUpdater) {
 							spaceUpdater.clearInterval();
@@ -485,7 +485,7 @@
 								  if (space.members.hasOwnProperty(uname)) {
 								  	var u = space.members[uname];
 								  	var isSkype = u.imAccounts.skype;
-								  	var isBusiness = u.imAccounts["ms-sfb"];
+								  	var isBusiness = u.imAccounts.mssfb;
 								  	if (isBusiness) {
 								  		participants.push(encodeURIComponent(isBusiness.id));
 								  	} else if (isSkype) {
@@ -533,7 +533,7 @@
 		var initSpaceWeb_Skype = function(compId) {
 			if (currentUser && currentSpace) {
 				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
-				if ($navigationPortlet.size() == 0) {
+				if ($navigationPortlet.length == 0) {
 					setTimeout($.proxy(initSpace, this), 250, compId);
 					return;
 				}
@@ -543,7 +543,7 @@
 				if (currentIsBusiness) {
 					var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
 					// TODO callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
-					if ($breadcumbEntry.size() > 0 && !$breadcumbEntry.data("callbuttoninit")) {
+					if ($breadcumbEntry.length > 0 && !$breadcumbEntry.data("callbuttoninit")) {
 						log(">>> initSpaceWeb " + compId + " " + currentUser.name);
 						var initializer = $.Deferred();
 						$breadcumbEntry.data("callbuttoninit", true);
@@ -553,11 +553,11 @@
 						var $container = $breadcumbEntry.find(".callButtonContainer");
 						// TODO check precisely that we have an one button for each provider
 						if (providers.length > 0) {
-							if ($container.find(".startCallButton").size() != providers.length) {
+							if ($container.find(".startCallButton").length != providers.length) {
 								var get = getSpaceInfo(currentSpace.spaceName);
 								// TODO do we really need call REST, may be it could be injected in env?
 								get.done(function(space) {
-									if ($container.size() == 0) {
+									if ($container.length == 0) {
 										$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
 										$breadcumbEntry.append($container);
 									}
@@ -574,7 +574,7 @@
 										var p = providers[i];
 										var $button = p.callButton(context);
 										if ($button) {
-											if ($dropdown.size() > 0) {
+											if ($dropdown.length > 0) {
 												// add others in dropdown
 												$button.addClass(actionClasses);
 												$dropdown.append($button);	
@@ -586,7 +586,7 @@
 											}
 										}
 									}
-									if ($dropdown.children().size() > 0) {
+									if ($dropdown.children().length > 0) {
 										// btn-primary
 										$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
 										$container.append($dropdown);
@@ -626,14 +626,14 @@
 		var initSpaceWeb = function(compId) {
 			if (currentUser && currentSpace) {
 				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
-				if ($navigationPortlet.size() == 0) {
+				if ($navigationPortlet.length == 0) {
 					setTimeout($.proxy(initSpace, this), 250, compId);
 					return;
 				}
 				
 				var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
 				// TODO callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
-				if ($breadcumbEntry.size() > 0 && !$breadcumbEntry.data("callbuttoninit")) {
+				if ($breadcumbEntry.length > 0 && !$breadcumbEntry.data("callbuttoninit")) {
 					log(">>> initSpaceWeb " + compId + " " + currentUser.name);
 					var initializer = $.Deferred();
 					$breadcumbEntry.data("callbuttoninit", true);
@@ -643,11 +643,11 @@
 					// TODO check precisely that we have an one button for each provider
 					if (providers.length > 0) {
 						var $container = $breadcumbEntry.find(".callButtonContainer");
-						if ($container.find(".startCallButton").size() != providers.length) {
+						if ($container.find(".startCallButton").length != providers.length) {
 							var get = getSpaceInfo(currentSpace.spaceName);
 							// TODO do we really need call REST, may be it could be injected in env?
 							get.done(function(space) {
-								if ($container.size() == 0) {
+								if ($container.length == 0) {
 									$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
 									$breadcumbEntry.append($container);
 								}
@@ -664,7 +664,7 @@
 									var p = providers[i];
 									var $button = p.callButton(context);
 									if ($button) {
-										if ($dropdown.size() > 0) {
+										if ($dropdown.length > 0) {
 											// add others in dropdown
 											$button.addClass(actionClasses);
 											$dropdown.append($button);	
@@ -676,7 +676,7 @@
 										}
 									}
 								}
-								if ($dropdown.children().size() > 0) {
+								if ($dropdown.children().length > 0) {
 									// btn-primary
 									$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
 									$container.append($dropdown);
@@ -753,7 +753,8 @@
 		 */
 		this.addProvider = function(provider) {
 			// A Provider should support set of API methods:
-			// * getName() - internal ID and schema/prefix in profile's IM accounts
+			// * getType() - major call type name
+			// * getSupportedTypes() - all supported call types
 			// * getTitle() - human-readable title for UI
 			// * callButton(context) - provider should offer an implementation of a Call button and call invoker in it
 			//
@@ -763,7 +764,7 @@
 			// WARN Provider may be added before the app initialization with user context and settings.
 			
 			// TODO avoid duplicates, use map like?
-			if (provider.getName && provider.hasOwnProperty("getName") && provider.getTitle && provider.hasOwnProperty("getTitle")) {
+			if (provider.getSupportedTypes && provider.hasOwnProperty("getSupportedTypes") && provider.getTitle && provider.hasOwnProperty("getTitle")) {
 				if (provider.update && provider.hasOwnProperty("update")) {
 					provider.useUpdate = true;
 				}
@@ -779,26 +780,46 @@
 		};
 		
 		/**
-		 * Return registered provider by its name.
+		 * Return registered provider by its type name.
 		 */
-		this.getProvider = function(name) {
+		this.getProvider = function(type) {
 			// TODO use more fast way with object-map?
 			for (var i = 0; i < providers.length; i++) {
 				var p = providers[i];
-				if (p.name === name) {
-					return p;
+				var ptypes = p.getSupportedTypes();
+				for (var ti = 0; ti < ptypes.length; ti++) {
+					if (ptypes[ti] === type) {
+						return p;
+					}					
 				}
+			}
+		};
+		
+		/**
+		 * Add style to current document (to the end of head).
+		 */
+		this.loadStyle = function(cssUrl) {
+			if (document.createStyleSheet) {
+				document.createStyleSheet(cssUrl); // IE way
+			} else {
+				if ($("head").find("link[href='"+cssUrl+"']").length == 0) {
+					var headElems = document.getElementsByTagName("head");
+					var style = document.createElement("link");
+					style.type = "text/css";
+					style.rel = "stylesheet";
+					style.href = cssUrl;
+					headElems[headElems.length - 1].appendChild(style);
+					// $("head").append($("<link href='" + cssUrl + "' rel='stylesheet' type='text/css' />"));					
+				} // else, already added
 			}
 		};
 	}
 	
-	// /////
-
 	var videoCalls = new VideoCalls();
 	
 	// Register videoCalls in global eXo namespace (for non AMD uses)
-	if (typeof eXo === "undefined" || !eXo) {
-		eXo = {};
+	if (typeof window.eXo === "undefined" || !eXo) {
+		window.eXo = {};
 	}
 	if (typeof eXo.videoCalls === "undefined" || !eXo.videoCalls) {
 		eXo.videoCalls = videoCalls;
@@ -813,6 +834,9 @@
 			$.pnotify.defaults.styling = "jqueryui";
 			// no history roller in the right corner
 			$.pnotify.defaults.history = false;
+			
+			// XXX temporal workaround to load CSS until gatein-resources.xml's portlet-skin will work as expected
+			videoCalls.loadStyle("/videocalls/skin/videocalls.css");
 		} catch(e) {
 			log("Error configuring Video Calls notifications.", e);
 		}

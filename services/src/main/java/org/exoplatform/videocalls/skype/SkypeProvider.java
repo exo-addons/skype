@@ -24,7 +24,6 @@ import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.exoplatform.videocalls.VideoCallsProvider;
 import org.exoplatform.videocalls.VideoCallsProviderException;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *
@@ -41,9 +40,9 @@ public class SkypeProvider extends VideoCallsProvider {
 
   /** The Constant SKYPE_TITLE. */
   public static final String SKYPE_TITLE                 = "Skype";
-  
+
   /** The Constant VERSION. */
-  public static final String VERSION                 = "eXoWebSkype/1.0.0";
+  public static final String VERSION                     = "eXoWebSkype/1.0.0";
 
   /** The Constant CONFIG_AUTODISCOVER_ORIGINS. */
   public static final String CONFIG_AUTODISCOVER_ORIGINS = "autodiscover-origins";
@@ -78,6 +77,7 @@ public class SkypeProvider extends VideoCallsProvider {
      */
     public SkypeSettings build() {
       return new SkypeSettings(getType(),
+                               getSupportedTypes(),
                                getTitle(),
                                "Call", // TODO in18n
                                null,
@@ -99,8 +99,8 @@ public class SkypeProvider extends VideoCallsProvider {
      *
      * @param id the id
      */
-    protected SkypeIMInfo(String id) {
-      super(SKYPE_TYPE, id);
+    protected SkypeIMInfo(VideoCallsProvider provider, String id) {
+      super(provider.getType(), id);
     }
 
     /**
@@ -138,9 +138,9 @@ public class SkypeProvider extends VideoCallsProvider {
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
-  public SkypeProvider(/*SkypeService skypeService,*/ InitParams params) throws ConfigurationException {
+  public SkypeProvider(/* SkypeService skypeService, */ InitParams params) throws ConfigurationException {
     super(params);
-    //this.skypeService = skypeService;
+    // this.skypeService = skypeService;
   }
 
   /**
@@ -160,7 +160,7 @@ public class SkypeProvider extends VideoCallsProvider {
     if (emailTest.matcher(imId).find()) {
       throw new SkypeProviderException("Email not supported as a regular Skype IM. Probably you need Business provider. Check the configuration.");
     } else {
-      return new SkypeIMInfo(imId);
+      return new SkypeIMInfo(this, imId);
     }
   }
 
@@ -177,7 +177,15 @@ public class SkypeProvider extends VideoCallsProvider {
    */
   @Override
   public String getType() {
-    return SKYPE_SCHEMA;
+    return SKYPE_TYPE;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String[] getSupportedTypes() {
+    return new String[] { getType() };
   }
 
   /**

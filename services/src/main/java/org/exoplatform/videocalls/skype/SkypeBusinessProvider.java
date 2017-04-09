@@ -26,7 +26,6 @@ import org.exoplatform.container.xml.ValuesParam;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.exoplatform.videocalls.VideoCallsProviderException;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *
@@ -53,10 +52,8 @@ public class SkypeBusinessProvider extends SkypeProvider {
   /** The Constant SFB_SCHEMA. */
   public static final String SFB_SCHEMA                       = "ms-sfb";
 
-  // TODO until we added IM pluggable in user profile (Social) we use 'skype' here
   /** The Constant SFB_TYPE. */
-  // TODO use SFB_SCHEMA
-  public static final String SFB_TYPE                         = "skype";
+  public static final String SFB_TYPE                         = "mssfb";
 
   /** The Constant SFB_AUTODISCOVER_ORIGINS_DEFAULT. */
   public static final String SFB_AUTODISCOVER_ORIGINS_DEFAULT =
@@ -73,6 +70,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
     @Override
     public SkypeSettings build() {
       return new SkypeSettings(getType(),
+                               getSupportedTypes(),
                                getTitle(),
                                "Call", // TODO in18n
                                getClientId(),
@@ -82,7 +80,6 @@ public class SkypeBusinessProvider extends SkypeProvider {
                                getApiKeyCC(),
                                origins);
     }
-
   }
 
   /**
@@ -91,12 +88,12 @@ public class SkypeBusinessProvider extends SkypeProvider {
   public class SkypeBusinessIMInfo extends SkypeIMInfo {
 
     /**
-     * Instantiates a new skype business IM info.
+     * Instantiates a new SfB IM info.
      *
      * @param id the id
      */
-    protected SkypeBusinessIMInfo(String id) {
-      super(SFB_TYPE, id);
+    protected SkypeBusinessIMInfo(SkypeBusinessProvider provider, String id) {
+      super(provider.getType(), id);
     }
 
     /**
@@ -138,8 +135,9 @@ public class SkypeBusinessProvider extends SkypeProvider {
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
-  public SkypeBusinessProvider(/*SkypeService skypeService,*/ InitParams params) throws ConfigurationException {
-    super(/*skypeService, */params);
+  public SkypeBusinessProvider(/* SkypeService skypeService, */ InitParams params)
+      throws ConfigurationException {
+    super(/* skypeService, */params);
 
     String loginUrl = this.config.get(CONFIG_WEB_OAUTH2_URL);
     if (loginUrl == null || (loginUrl = loginUrl.trim()).length() == 0) {
@@ -227,12 +225,20 @@ public class SkypeBusinessProvider extends SkypeProvider {
   public IMInfo getIMInfo(String imId) throws VideoCallsProviderException {
     if (emailTest.matcher(imId).find()) {
       // it looks as email, assume it's SfB account
-      return new SkypeBusinessIMInfo(imId);
+      return new SkypeBusinessIMInfo(this, imId);
     } else {
-      return new SkypeIMInfo(imId);
+      return new SkypeIMInfo(this, imId);
     }
   }
-  
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String getType() {
+    return SFB_TYPE;
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -240,6 +246,15 @@ public class SkypeBusinessProvider extends SkypeProvider {
   public boolean isSupportedType(String type) {
     // TODO regular Skype support temporal, remove it when introduce SFB support in eXo user profile
     return super.isSupportedType(type) || SkypeProvider.SKYPE_TYPE.equals(type);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String[] getSupportedTypes() {
+    // TODO regular Skype support temporal, remove it when introduce SFB support in eXo user profile
+    return new String[] { getType(), SkypeProvider.SKYPE_TYPE };
   }
 
 }

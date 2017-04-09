@@ -25,7 +25,7 @@
   xmlns="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd">
 
   <!-- component>
-    <type>org.exoplatform.videocalls.rest.RESTVideoCallsService</type>
+    <type>org.exoplatform.videocalls.skype.rest.RESTSkypeCallService</type>
   </component -->
   
   <!-- Skype provider plugin -->

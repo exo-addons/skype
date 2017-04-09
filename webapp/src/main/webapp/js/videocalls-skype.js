@@ -30,13 +30,23 @@
 			var settings, currentKey;
 			var appInstance, uiAppInstance;
 
+			var imAccount = function(user, type) {
+				var ims = user.imAccounts[type];
+				if (ims && ims.length > 0) {
+					// TODO work with multiple IMs of same type
+					return ims[0]; 
+				} else {
+					return null;
+				}
+			};
+			
 			var getGroupParticipants = function(group, context) {
 				var participants = [];
 				for ( var uname in group.members) {
 					if (group.members.hasOwnProperty(uname)) {
 						var u = group.members[uname];
-						var uskype = u.imAccounts.skype;
-						var ubusiness = u.imAccounts.mssfb;
+						var uskype = imAccount(u, "skype");
+						var ubusiness = imAccount(u, "mssfb");
 						if (context.currentUserSFB) {
 							if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
 								participants.push(encodeURIComponent(ubusiness.id));
@@ -63,8 +73,8 @@
 				} else {
 					// otherwise assume it's one-on-one call
 					participants = [];
-					var uskype = context.user.imAccounts.skype;
-					var ubusiness = context.user.imAccounts.mssfb;
+					var uskype = imAccount(context.user, "skype");
+					var ubusiness = imAccount(context.user, "mssfb");
 					if (context.currentUserSFB) {
 						if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
 							// participants.push(encodeURIComponent(context.currentUserSFB.id));
@@ -85,9 +95,15 @@
 				return participants;
 			};
 
-			this.getName = function() {
+			this.getType = function() {
 				if (settings) {
-					return settings.name;
+					return settings.type;
+				}
+			};
+			
+			this.getSupportedTypes = function() {
+				if (settings) {
+					return settings.supportedTypes;
 				}
 			};
 
@@ -227,8 +243,12 @@
 			this.callButton = function(context) {
 				var $button;
 				if (context && context.currentUser) {
-					context.currentUserSkype = context.currentUser.imAccounts.skype;
-					context.currentUserSFB = context.currentUser.imAccounts.mssfb;
+					context.currentUserSkype = imAccount(context.currentUser, "skype");
+					context.currentUserSFB = imAccount(context.currentUser, "mssfb");
+//					if (!context.currentUserSFB && context.currentUserSkype.business) {
+//						context.currentUserSFB = context.currentUserSkype;
+//						// delete context.currentUserSkype;
+//					}
 					var callParts = participants(context);
 					var isGroupCall;
 					var linkId, title; // TODO i18n for title
@@ -255,14 +275,8 @@
 										+ "' href='javascript:void(0);'><i class='skypeCallIcon'></i>" + this.getCallTitle() + "</a>");
 							$button.click(function() {
 								// TODO check if such window isn't already open by this app
-								var destUrl = videoCalls.getBaseUrl() + "/portal/intranet/skype";
+								var destUrl = videoCalls.getBaseUrl() + "/portal/skype/call";
 								var callWindow = window.open(destUrl + "?call=" + userIMs);
-								// if (callWindow) {
-								// $(callWindow).ready(function() {
-								// context.participants = callParts;
-								// callWindow.postMessage(context, destUrl);
-								// });
-								// }
 							});
 						} else if (context.currentUserSkype) {
 							// use Skype URI for regular Skype user
@@ -292,12 +306,6 @@
 
 		var provider = new SkypeProvider();
 
-		/*
-		 * $(function() { var user = videoCalls.getUser(); // only if user has Skype IMs if (provider.isSkypeUser(user)) {
-		 * if (videoCallsEnv && videoCallsEnv.skype) { provider.configure(videoCallsEnv.skype);
-		 * videoCalls.addProvider(provider); } } });
-		 */
-		
 		// Add Skype provider into videoCalls object of global eXo namespace (for non AMD uses)
 		if (globalVideoCalls) {
 			globalVideoCalls.skype = provider;
@@ -309,4 +317,4 @@
 	} else {
 		log("WARN: videoCalls not given and eXo.videoCalls not defined. Skype provider registration skipped.");
 	}
-})($, videoCalls);
+})($, typeof videoCalls != "undefined" ? videoCalls : null );

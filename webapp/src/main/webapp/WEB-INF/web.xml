@@ -29,11 +29,6 @@
   
   <absolute-ordering />
   
-  <!-- context-param>
-    <param-name>juzu.inject</param-name>
-    <param-value>guice</param-value>
-  </context-param -->
-  
   <filter>
     <filter-name>ResourceRequestFilter</filter-name>
     <filter-class>org.exoplatform.portal.application.ResourceRequestFilter</filter-class>
@@ -54,14 +49,9 @@
   </servlet>
   <servlet>
     <servlet-name>SkypeCallServlet</servlet-name>
-    <servlet-class>org.gatein.wci.api.GateInServlet</servlet-class>
+    <servlet-class>org.exoplatform.videocalls.skype.server.SkypeCallServlet</servlet-class>
     <load-on-startup>0</load-on-startup>
   </servlet>
-  <!-- servlet>
-    <servlet-name>AssetServlet</servlet-name>
-    <servlet-class>juzu.impl.asset.AssetServlet</servlet-class>
-    <load-on-startup>0</load-on-startup>
-  </servlet -->
   
   <servlet-mapping>
     <servlet-name>GateInServlet</servlet-name>
@@ -71,9 +61,5 @@
     <servlet-name>SkypeCallServlet</servlet-name>
     <url-pattern>/skypecallservlet</url-pattern>
   </servlet-mapping>
-  <!-- servlet-mapping>
-    <servlet-name>AssetServlet</servlet-name>
-    <url-pattern>/assets/*</url-pattern>
-  </servlet-mapping -->
   
 </web-app>

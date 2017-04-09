@@ -27,6 +27,7 @@ import org.exoplatform.social.common.router.ExoRouter;
 import org.exoplatform.social.common.router.ExoRouter.Route;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
+import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
 import org.exoplatform.ws.frameworks.json.value.JsonValue;
@@ -69,20 +70,30 @@ public class VideoCallsUtils {
    */
   public static Space getSpaceByContext() {
     //
-    PortalRequestContext pcontext = Util.getPortalRequestContext();
-    String requestPath = pcontext.getControllerContext().getParameter(RequestNavigationData.REQUEST_PATH);
-    Route route = ExoRouter.route(requestPath);
-    if (route == null)
-      return null;
+    PortalRequestContext portlalContext;
+    WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
+    if (webuiContext != null) {
+      if (webuiContext instanceof PortalRequestContext) {
+        portlalContext = (PortalRequestContext) webuiContext;
+      } else {
+        portlalContext = (PortalRequestContext) webuiContext.getParentAppRequestContext();
+      }
 
-    //
-    String spacePrettyName = route.localArgs.get("spacePrettyName");
-    SpaceService spaceService = pcontext.getUIApplication().getApplicationComponent(SpaceService.class);
-    if (spaceService != null) {
-      return spaceService.getSpaceByPrettyName(spacePrettyName);
-    } else {
-      return null;
+      String requestPath = portlalContext.getControllerContext()
+                                         .getParameter(RequestNavigationData.REQUEST_PATH);
+      Route route = ExoRouter.route(requestPath);
+      if (route != null) {
+
+        //
+        String spacePrettyName = route.localArgs.get("spacePrettyName");
+        SpaceService spaceService = portlalContext.getUIApplication()
+                                                  .getApplicationComponent(SpaceService.class);
+        if (spaceService != null) {
+          return spaceService.getSpaceByPrettyName(spacePrettyName);
+        }
+      }
     }
+    return null;
   }
 
   /**
@@ -102,7 +113,7 @@ public class VideoCallsUtils {
     }
     return new ContextInfo(spacePrettyName, spaceRoomName);
   }
-  
+
   /**
    * As JSON.
    *

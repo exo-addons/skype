@@ -75,14 +75,6 @@ public abstract class VideoCallsProvider extends BaseComponentPlugin {
   }
 
   /**
-   * Gets the type name of this provider (e.g. 'skype'). Provider type should be in lower case and without
-   * white spaces.
-   *
-   * @return the type
-   */
-  public abstract String getType();
-
-  /**
    * Gets human-readable name of this provider (e.g. 'Skype'). Provider name can be used in building UI
    * labels and messages.
    *
@@ -98,6 +90,15 @@ public abstract class VideoCallsProvider extends BaseComponentPlugin {
   public abstract String getVersion();
 
   /**
+   * Gets the main type name of this provider (e.g. 'skype'). Provider type should be in lower case and without
+   * white spaces. A provider may support several types as well, to observe all supported types use {@link #getSupportedTypes()}.
+   *
+   * @return the type
+   */
+  public abstract String getType();
+
+  
+  /**
    * Checks if it is a supported type by this provider.
    *
    * @param type the type
@@ -106,12 +107,21 @@ public abstract class VideoCallsProvider extends BaseComponentPlugin {
   public boolean isSupportedType(String type) {
     return getType().equals(type);
   }
+  
+
+  /**
+   * Gets all types supported by this provider. Provider type should be in lower case and without
+   * white spaces.
+   *
+   * @return the types array
+   */
+  public abstract String[] getSupportedTypes();
 
   /**
    * Gets the {@link IMInfo} instance for given IM identifier.
    *
    * @param imId the IM identifier
-   * @return the {@link IMInfo} instance
+   * @return an instance of {@link IMInfo}
    * @throws VideoCallsProviderException if the provider cannot recognize given IM id or failed to instantiate
    *           an {@link IMInfo} object
    */

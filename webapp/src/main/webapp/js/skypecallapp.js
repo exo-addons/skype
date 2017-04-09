@@ -2,7 +2,9 @@
  * Skype Call application (Juzu portlet for handling a call) in eXo Platform. This script initializes an UI of a page
  * that will handle a particular Skype call (invoked from videoCalls/videoCalls_skype script).
  * 
- * TODO @Deprecared // Not used
+ * TODO
+ * 
+ * @Deprecared // Not used
  */
 require([ "SHARED/jquery", "SHARED/videoCalls", "SHARED/videoCalls_skype" ], function($, videoCalls, skype) {
 	"use strict";
@@ -39,14 +41,14 @@ require([ "SHARED/jquery", "SHARED/videoCalls", "SHARED/videoCalls_skype" ], fun
 	}
 
 	// var initializer = $.Deferred();
-	function listener(event) {
-		var origin = event.origin || event.originalEvent.origin;
-		if (origin.startsWith(videoCalls.getBaseUrl() + "/portal/intranet/skype")) {
-			// initializer.resolve(event.data);
-		} else {
-			console.log("Ignoring not known message to " + location);
-		}
-	}
+	// function listener(event) {
+	// var origin = event.origin || event.originalEvent.origin;
+	// if (origin.startsWith(videoCalls.getBaseUrl() + "/portal/intranet/skype")) {
+	// // initializer.resolve(event.data);
+	// } else {
+	// console.log("Ignoring not known message to " + location);
+	// }
+	// }
 	// if (window.addEventListener) {
 	// addEventListener("message", listener, false);
 	// } else {
