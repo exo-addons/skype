@@ -210,7 +210,7 @@
 							// SignIn SfB Online: the SDK will get its own access token
 							app.signInManager.signIn({
 								"client_id" : settings.clientId,
-								"cors" : true,
+								cors : true,
 								"redirect_uri" : redirectUri ? redirectUri : settings.redirectUri,
 								"origins" : settings.origins,
 								"version" : settings.version

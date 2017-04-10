@@ -57,7 +57,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
 
   /** The Constant SFB_AUTODISCOVER_ORIGINS_DEFAULT. */
   public static final String SFB_AUTODISCOVER_ORIGINS_DEFAULT =
-                                                              "https://webdir.online.lync.com/autodiscover/autodiscoverservice.svc/root";
+                                                              "https://webdir.online.lync.com/AutoDiscover/AutoDiscoverservice.svc/root";
 
   /**
    * The Class WebSettingsBuilder.
@@ -172,7 +172,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
         origins[i] = values.get(i);
       }
     } else {
-      origins = new String[0];
+      origins = new String[] { SFB_AUTODISCOVER_ORIGINS_DEFAULT };
     }
   }
 

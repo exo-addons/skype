@@ -94,14 +94,15 @@ public class SkypeProviderPortlet extends GenericPortlet {
         // prd.include(request, response);
 
         // PortalRequestContext requestContext = Util.getPortalRequestContext();
+        // TODO here we may want redirect URI to the current portal page, don't we?
         URI redirectURI = new URI(request.getScheme(),
                                   null,
                                   request.getServerName(),
                                   request.getServerPort(),
-                                  null,
+                                  "/portal/skype/call",
                                   null,
                                   null);
-        SkypeSettings settings = provider.getSettings().redirectURIBase(redirectURI.toString()).build();
+        SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
         String settingsJson = asJSON(settings);
 
         JavascriptManager js =

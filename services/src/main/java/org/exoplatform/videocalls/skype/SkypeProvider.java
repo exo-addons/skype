@@ -33,19 +33,16 @@ import org.exoplatform.videocalls.VideoCallsProviderException;
 public class SkypeProvider extends VideoCallsProvider {
 
   /** The Constant SKYPE_SCHEMA. */
-  public static final String SKYPE_SCHEMA                = "skype";
+  public static final String SKYPE_SCHEMA = "skype";
 
   /** The Constant SKYPE_TYPE. */
-  public static final String SKYPE_TYPE                  = SKYPE_SCHEMA;
+  public static final String SKYPE_TYPE   = SKYPE_SCHEMA;
 
   /** The Constant SKYPE_TITLE. */
-  public static final String SKYPE_TITLE                 = "Skype";
+  public static final String SKYPE_TITLE  = "Skype";
 
   /** The Constant VERSION. */
-  public static final String VERSION                     = "eXoWebSkype/1.0.0";
-
-  /** The Constant CONFIG_AUTODISCOVER_ORIGINS. */
-  public static final String CONFIG_AUTODISCOVER_ORIGINS = "autodiscover-origins";
+  public static final String VERSION      = "eXoWebSkype/1.0.0";
 
   /**
    * The Class SettingsBuilder.
@@ -56,17 +53,19 @@ public class SkypeProvider extends VideoCallsProvider {
     protected String redirectURI;
 
     /**
-     * Redirect URI base.
+     * Redirect URI.
      *
-     * @param redirectURIBase the redirect URI base
+     * @param redirectURI the redirect URI
      * @return the settings builder
      */
-    public SettingsBuilder redirectURIBase(String redirectURIBase) {
-      StringBuilder uri = new StringBuilder(redirectURIBase);
-      if (uri.charAt(uri.length() - 1) != '/') {
-        uri.append('/');
-      }
-      this.redirectURI = uri.append("portal/skype").toString();
+    public SettingsBuilder redirectURI(String redirectURI) {
+      // TODO cleanup
+      // StringBuilder uri = new StringBuilder(redirectURIBase);
+      // if (uri.charAt(uri.length() - 1) != '/') {
+      // uri.append('/');
+      // }
+      // this.redirectURI = uri.append("portal/skype").toString();
+      this.redirectURI = redirectURI;
       return this;
     }
 

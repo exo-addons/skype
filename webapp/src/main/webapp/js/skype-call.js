@@ -108,7 +108,7 @@ if (eXo.videoCalls) {
 							$("#UIWorkingWorkspace").hide();
 							log("Skype conversation is creating in " + $convo.get(0) + " participants: " + participants.join(","));
 							api.renderConversation($convo.get(0), {
-								"modalities" : [ "Video" ], // , 'Video'
+								"modalities" : [ "Chat", "Video" ], // 
 								"participants" : participants
 							}).then(function(conversation) {
 								// Conversation Control was rendered successfully

@@ -34,7 +34,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
 /**
- * Filter for /portal/intranet/outlook path. When the Outlook site reached it adds a lifecycle listener to the
+ * Filter for /portal/skype/ path. When the Outlook site reached it adds a lifecycle listener to the
  * portal app, this listener responsible for context preparation for Outlook pages running.
  * <br>
  * 
@@ -44,6 +44,7 @@ import javax.servlet.ServletResponse;
  * @version $Id: SkypeContextFilter.java 00000 Jul 1, 2016 pnedonosko $
  * 
  */
+@Deprecated // TODO not required
 public class VideoCallsContextFilter implements Filter {
 
   /** The Constant LOG. */

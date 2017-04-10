@@ -100,10 +100,10 @@ public class SkypeCallServlet extends AbstractHttpServlet {
                                     null,
                                     httpReq.getServerName(),
                                     httpReq.getServerPort(),
-                                    null,
+                                    "/portal/skype/call",
                                     null,
                                     null);
-            SkypeSettings settings = provider.getSettings().redirectURIBase(redirectURI.toString()).build();
+            SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
             httpReq.setAttribute("settings", asJSON(settings));
 
             // XXX//
