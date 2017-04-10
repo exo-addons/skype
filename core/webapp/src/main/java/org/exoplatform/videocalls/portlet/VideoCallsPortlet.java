@@ -32,17 +32,12 @@ import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.videocalls.ContextInfo;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
-import org.exoplatform.videocalls.VideoCallsUtils;
 import org.exoplatform.web.application.JavascriptManager;
 import org.exoplatform.webui.application.WebuiRequestContext;
-import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
-import org.exoplatform.ws.frameworks.json.value.JsonValue;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *

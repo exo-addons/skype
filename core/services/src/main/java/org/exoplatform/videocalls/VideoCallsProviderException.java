@@ -18,7 +18,6 @@
  */
 package org.exoplatform.videocalls;
 
-// TODO: Auto-generated Javadoc
 /**
  * VideoCalls provider exception.
  * 

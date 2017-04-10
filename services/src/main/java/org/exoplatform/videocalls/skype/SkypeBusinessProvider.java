@@ -90,6 +90,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
     /**
      * Instantiates a new SfB IM info.
      *
+     * @param provider the provider
      * @param id the id
      */
     protected SkypeBusinessIMInfo(SkypeBusinessProvider provider, String id) {

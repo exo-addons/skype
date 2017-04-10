@@ -46,7 +46,6 @@ import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.picocontainer.Startable;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *

@@ -33,9 +33,6 @@ import org.exoplatform.container.web.AbstractFilter;
 import org.exoplatform.web.filter.Filter;
 import org.gatein.common.logging.Logger;
 import org.gatein.common.logging.LoggerFactory;
-import org.gatein.wci.RequestDispatchCallback;
-import org.gatein.wci.ServletContainer;
-import org.gatein.wci.ServletContainerFactory;
 
 /**
  * Filter forwards requests to Skype call URLs to related servlets.<br>

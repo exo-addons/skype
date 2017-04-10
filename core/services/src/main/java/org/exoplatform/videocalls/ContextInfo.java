@@ -18,7 +18,6 @@
  */
 package org.exoplatform.videocalls;
 
-// TODO: Auto-generated Javadoc
 /**
  * A lightweight info about current Platform context: space, chat room etc.
  * 

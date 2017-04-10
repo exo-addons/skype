@@ -21,7 +21,6 @@ package org.exoplatform.videocalls;
 
 import java.util.Map;
 
-// TODO: Auto-generated Javadoc
 /**
  * Group abstraction for conversations in eXo video calls.<br>
  * 

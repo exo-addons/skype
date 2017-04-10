@@ -34,15 +34,11 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.videocalls.VideoCallsService;
-import org.exoplatform.videocalls.VideoCallsUtils;
 import org.exoplatform.videocalls.skype.SkypeBusinessProvider;
 import org.exoplatform.videocalls.skype.SkypeSettings;
 import org.exoplatform.web.application.JavascriptManager;
 import org.exoplatform.webui.application.WebuiRequestContext;
-import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
-import org.exoplatform.ws.frameworks.json.value.JsonValue;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *

@@ -32,7 +32,6 @@ import org.exoplatform.webui.core.UIApplication;
 import org.exoplatform.webui.core.UIComponent;
 import org.exoplatform.webui.core.UIComponentDecorator;
 
-// TODO: Auto-generated Javadoc
 /**
  * Prepare Video Calls site for showing without navigation bar from Platform's
  * shared layout.<br>

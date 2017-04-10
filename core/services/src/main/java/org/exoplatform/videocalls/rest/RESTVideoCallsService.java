@@ -37,7 +37,6 @@ import org.exoplatform.videocalls.GroupInfo;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *

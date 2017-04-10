@@ -20,7 +20,6 @@ package org.exoplatform.videocalls.skype;
 
 import org.exoplatform.videocalls.VideoCallsProviderException;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *

@@ -18,7 +18,6 @@
  */
 package org.exoplatform.videocalls.rest;
 
-// TODO: Auto-generated Javadoc
 /**
  * Basic error entity.<br>
  * 

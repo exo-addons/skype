@@ -45,7 +45,6 @@ import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.picocontainer.Startable;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *

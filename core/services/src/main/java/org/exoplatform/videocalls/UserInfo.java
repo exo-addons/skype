@@ -37,6 +37,7 @@ import org.exoplatform.services.log.Log;
  */
 public class UserInfo {
 
+  /** The Constant LOG. */
   protected static final Log LOG = ExoLogger.getLogger(UserInfo.class);
 
   /**

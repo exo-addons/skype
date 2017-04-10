@@ -18,7 +18,6 @@
  */
 package org.exoplatform.videocalls.skype;
 
-// TODO: Auto-generated Javadoc
 /**
  * Created by The eXo Platform SAS.
  *

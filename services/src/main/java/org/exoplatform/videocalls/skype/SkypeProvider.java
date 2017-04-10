@@ -97,6 +97,7 @@ public class SkypeProvider extends VideoCallsProvider {
     /**
      * Instantiates a new skype IM info.
      *
+     * @param provider the provider
      * @param id the id
      */
     protected SkypeIMInfo(VideoCallsProvider provider, String id) {

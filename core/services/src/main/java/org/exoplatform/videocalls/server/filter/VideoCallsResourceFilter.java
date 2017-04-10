@@ -36,7 +36,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 
-// TODO: Auto-generated Javadoc
 /**
  * Filter updates request to Skype resources with proper HTTP headers (for caching etc.).<br>
  * 

@@ -18,30 +18,12 @@
  */
 package org.exoplatform.videocalls.skype.rest;
 
-import java.io.IOException;
-
-import javax.annotation.security.RolesAllowed;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
 
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
-import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.videocalls.VideoCallsService;
-import org.exoplatform.videocalls.rest.ErrorInfo;
-import org.exoplatform.videocalls.skype.server.SkypeCallFilter;
 
 /**
  * Created by The eXo Platform SAS.
@@ -74,40 +56,42 @@ public class RESTSkypeCallService implements ResourceContainer {
   /**
    * Call resource (page). It forwards internaly to a servlet.
    *
-   * @param uriInfo
-   *          the uri info
-   * @param userName
-   *          the id
+   * @param uriInfo the uri info
+   * @param request the request
+   * @param response the response
+   * @param participants the participants
    * @return the user info response
    */
-  @GET
-  @RolesAllowed("users")
-  @Path("/call")
-  @Produces(MediaType.TEXT_HTML)
-  public Response forwardCallPage(@Context UriInfo uriInfo,
-                                  @Context HttpServletRequest request,
-                                  @Context HttpServletResponse response,
-                                  @QueryParam("call") String participants) {
-    ConversationState convo = ConversationState.getCurrent();
-    if (convo != null) {
-      String currentUserName = convo.getIdentity().getUserId();
-      request.setAttribute("currentUserName", currentUserName);
-      try {
-        // request.getRequestDispatcher("/WEB-INF/pages/call.jsp").forward(request, response);
-        ServletContext skypeContext =
-                                    request.getSession()
-                                           .getServletContext()
-                                           .getContext(SkypeCallFilter.SKYPE_SERVLET_CTX);
-        skypeContext.getRequestDispatcher(SkypeCallFilter.CALL_SERVLET).forward(request, response);
-      } catch (ServletException | IOException e) {
-        LOG.error("Error forwarding to call page for " + currentUserName, e);
-        return Response.status(Status.INTERNAL_SERVER_ERROR)
-                       .entity(ErrorInfo.accessError("Internal error. Call cannot be started right now."))
-                       .build();
-      }
-      return null;
-    } else {
-      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
-    }
-  }
+  /*
+   * @GET
+   * @RolesAllowed("users")
+   * @Path("/call")
+   * @Produces(MediaType.TEXT_HTML)
+   * public Response forwardCallPage(@Context UriInfo uriInfo,
+   * @Context HttpServletRequest request,
+   * @Context HttpServletResponse response,
+   * @QueryParam("call") String participants) {
+   * ConversationState convo = ConversationState.getCurrent();
+   * if (convo != null) {
+   * String currentUserName = convo.getIdentity().getUserId();
+   * request.setAttribute("currentUserName", currentUserName);
+   * try {
+   * // request.getRequestDispatcher("/WEB-INF/pages/call.jsp").forward(request, response);
+   * ServletContext skypeContext =
+   * request.getSession()
+   * .getServletContext()
+   * .getContext(SkypeCallFilter.SKYPE_SERVLET_CTX);
+   * skypeContext.getRequestDispatcher(SkypeCallFilter.CALL_SERVLET).forward(request, response);
+   * } catch (ServletException | IOException e) {
+   * LOG.error("Error forwarding to call page for " + currentUserName, e);
+   * return Response.status(Status.INTERNAL_SERVER_ERROR)
+   * .entity(ErrorInfo.accessError("Internal error. Call cannot be started right now."))
+   * .build();
+   * }
+   * return null;
+   * } else {
+   * return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+   * }
+   * }
+   */
 }
