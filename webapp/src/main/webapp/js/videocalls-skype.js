@@ -245,20 +245,16 @@
 				if (context && context.currentUser) {
 					context.currentUserSkype = imAccount(context.currentUser, "skype");
 					context.currentUserSFB = imAccount(context.currentUser, "mssfb");
-//					if (!context.currentUserSFB && context.currentUserSkype.business) {
-//						context.currentUserSFB = context.currentUserSkype;
-//						// delete context.currentUserSkype;
-//					}
 					var callParts = participants(context);
 					var isGroupCall;
 					var linkId, title; // TODO i18n for title
 					var rndText = Math.floor((Math.random() * 1000000) + 1);
 					if (context.space) {
-						linkId = "SkypeCall-" + context.space.shortName + "-" + rndText;
+						linkId = "SkypeCall-" + context.space.prettyName + "-" + rndText;
 						title = context.space.title + " meeting";
 						isGroupCall = true;
 					} else if (context.chat && context.chat.room) {
-						linkId = "SkypeCall-" + context.space.shortName + "-" + rndText;
+						linkId = "SkypeCall-" + context.space.prettyName + "-" + rndText;
 						title = context.chat.room.title + " meeting"; // TODO define Chat/Room API
 						isGroupCall = true;
 					} else {
@@ -271,8 +267,9 @@
 							// TODO use Skype WebSDK for Business users
 							// var useBusiness = context.currentUserSFB; // && (isIOS || isAndroid)
 							var userIMs = callParts.join(";");
+							//<i class='sfbCallIcon'></i>
 							$button = $("<a id='" + linkId + "' title='" + title
-										+ "' href='javascript:void(0);'><i class='skypeCallIcon'></i>" + this.getCallTitle() + "</a>");
+										+ "' href='javascript:void(0);' class='sfbCallIcon'>" + this.getCallTitle() + "</a>");
 							$button.click(function() {
 								// TODO check if such window isn't already open by this app
 								var destUrl = videoCalls.getBaseUrl() + "/portal/skype/call";
@@ -312,6 +309,16 @@
 		} else {
 			log("eXo.videoCalls not defined");
 		}
+		
+		$(function() {
+			try {
+				// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will work as expected
+				// for Dynamic Containers
+				videoCalls.loadStyle("/skype/skin/skype.css");
+			} catch(e) {
+				log("Error loading Skype Call styles.", e);
+			}
+		});
 
 		return provider;
 	} else {

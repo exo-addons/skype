@@ -110,11 +110,6 @@ public class VideoCallsResourceFilter extends AbstractFilter implements Filter {
 
       String method = httpReq.getMethod();
       if (method != null && METHOD_GET.equals(method)) {
-        // FYI Filter configuration already have a mapping to the path, no need type check
-        // String contentType = httpReq.getContentType();
-        // if (contentType.startsWith("application/javascript") || contentType.startsWith("text/css")
-        // || contentType.startsWith("text/javascript")) {
-        // || contentType.startsWith("image/") ?
         String ver = version();
         if (!NO_VERSION.equals(ver)) {
           if (ver.indexOf("Beta") > 0 || ver.indexOf("RC") > 0 || ver.indexOf("M") > 0) {

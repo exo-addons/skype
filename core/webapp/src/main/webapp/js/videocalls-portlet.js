@@ -41,12 +41,11 @@
 								var MutationObserver = window.MutationObserver || window.WebKitMutationObserver
 											|| window.MozMutationObserver;
 								var observer = new MutationObserver(function(mutations) {
+									// TODO it's for development tracing - remove it finally
 									// mutations.forEach(function(mutation) {
 									// console.log(mutation.type);
 									// });
-									// TODO this will be fired twice on each update, try
-									// reduce or use another approach
-									// (call from WebUI server-side)
+									// FYI this will be fired twice on each update
 									videoCalls.update();
 								});
 								observer.observe(portal, {

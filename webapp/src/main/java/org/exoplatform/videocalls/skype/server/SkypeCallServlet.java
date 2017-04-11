@@ -95,34 +95,15 @@ public class SkypeCallServlet extends AbstractHttpServlet {
             UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
             httpReq.setAttribute("userInfo", asJSON(exoUser));
 
-            URI redirectURI =
-                            new URI(httpReq.getScheme(),
-                                    null,
-                                    httpReq.getServerName(),
-                                    httpReq.getServerPort(),
-                                    "/portal/skype/call",
-                                    null,
-                                    null);
+            URI redirectURI = new URI(httpReq.getScheme(),
+                                      null,
+                                      httpReq.getServerName(),
+                                      httpReq.getServerPort(),
+                                      "/portal/skype/call",
+                                      null,
+                                      null);
             SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
             httpReq.setAttribute("settings", asJSON(settings));
-
-            // XXX//
-            // ServletContainer container = ServletContainerFactory.getServletContainer();
-            // container.include(httpReq.getServletContext(), httpReq, httpRes, new RequestDispatchCallback()
-            // {
-            // @Override
-            // public Object doCallback(ServletContext dispatchedServletContext,
-            // HttpServletRequest dispatchedRequest,
-            // HttpServletResponse dispatchedResponse,
-            // Object handback) throws ServletException, IOException {
-            // // XXX do nothing for our purpose
-            // // callable.call(dispatchedServletContext, dispatchedRequest, dispatchedResponse);
-            //
-            // // We don't use return value anymore
-            // return null;
-            // }
-            // }, null);
-            ////
 
             // forward to JSP page
             httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
@@ -132,10 +113,6 @@ public class SkypeCallServlet extends AbstractHttpServlet {
             httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
           }
         } else {
-          // TODO user not authenticated into eXo Platform
-          // Redirect to login page?
-          // Return 401 Unauthorized?
-          // httpRes.sendError(HttpURLConnection.HTTP_UNAUTHORIZED, "");
           httpRes.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
           httpReq.getRequestDispatcher(UNAUTHORIZED_PAGE).include(httpReq, httpRes);
         }

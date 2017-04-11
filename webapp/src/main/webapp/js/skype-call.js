@@ -12,7 +12,6 @@ if (eXo.videoCalls) {
 			var hasError = /#error=/.test(location.hash);
 			var isLogin = /\?call=/.test(location.search);
 			var isCall = /\/_call_/.test(location.pathname);
-			// var isLogin = !isCall;
 
 			/** For debug logging. */
 			var objId = Math.floor((Math.random() * 1000) + 1);
@@ -45,6 +44,10 @@ if (eXo.videoCalls) {
 					// it's login page
 					log("Skype login >>>");
 					if (!hasToken && !hasError) {
+						// TODO need more robust way of state-less URI building to avoid too long links for multi-user calls (e.g.
+						// in spaces).
+						// 1) user browser storage between initial call and the redirect
+						// 2) use server-side (REST) for temporal store of the call info (participants, name etc)
 						var redirectUri = location.protocol + "//" + location.hostname + (location.port ? ":" + location.port : "")
 									+ location.pathname + "/_call_" + location.search.substring(6);
 						location.assign('https://login.microsoftonline.com/common/oauth2/authorize?response_type=token&client_id='
@@ -69,15 +72,8 @@ if (eXo.videoCalls) {
 					uiInitializer.done(function(api, uiApp) {
 						// render the call CC
 						log("Skype app created OK, user: " + uiApp.personsAndGroupsManager.mePerson.displayName());
-						// initializer.done(function(context) {
-						// if (!context) {
-						// context = {
-						// participants : getParameterByName("call").split(";")
-						// };
-						// }
 						try {
 							var participants = location.pathname.substring(location.pathname.indexOf("_call_") + 6).split(";")
-							// //
 							for (var i = 0; i < participants.length; i++) {
 								var p = participants[i];
 								var personSearchQuery = uiApp.personsAndGroupsManager.createPersonSearchQuery();
@@ -92,7 +88,6 @@ if (eXo.videoCalls) {
 									});
 								});
 							}
-							// //
 							var $convo = $("#skype-call-conversation");
 							if ($convo.length == 0) {
 								var $container = $("<div class='skype-call-container'></div>");
@@ -105,7 +100,6 @@ if (eXo.videoCalls) {
 									$container.height(newHeight);
 								}
 							}
-							$("#UIWorkingWorkspace").hide();
 							log("Skype conversation is creating in " + $convo.get(0) + " participants: " + participants.join(","));
 							api.renderConversation($convo.get(0), {
 								"modalities" : [ "Chat", "Video" ], // 

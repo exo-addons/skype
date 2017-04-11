@@ -269,8 +269,6 @@
 		var currentUser, currentSpace;
 		
 		var spaceUpdater;
-		// TODO move to Skype provider script
-		var config, skype;
 		// Registered providers
 		var providers = [];
 
@@ -291,6 +289,9 @@
 			}
 		};
 
+		/**
+		 * Add call button to user popups and panels. TODO Adapt to provider model.
+		 */
 		var initUserPopups = function(compId) {
 			var $tiptip = $("#tiptip_content");
 			// if not in user profile wait for UIUserProfilePopup script load
@@ -632,7 +633,7 @@
 				}
 				
 				var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
-				// TODO callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
+				// XXX callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
 				if ($breadcumbEntry.length > 0 && !$breadcumbEntry.data("callbuttoninit")) {
 					log(">>> initSpaceWeb " + compId + " " + currentUser.name);
 					var initializer = $.Deferred();
@@ -651,7 +652,7 @@
 									$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
 									$breadcumbEntry.append($container);
 								}
-								var actionClasses = "actionIcon startCallButton spaceCall";
+								var actionClasses = "startCallButton spaceCall"; // actionIcon 
 								var context = {
 									currentUser : currentUser,
 									space : space,
@@ -809,7 +810,7 @@
 					style.rel = "stylesheet";
 					style.href = cssUrl;
 					headElems[headElems.length - 1].appendChild(style);
-					// $("head").append($("<link href='" + cssUrl + "' rel='stylesheet' type='text/css' />"));					
+					// $("head").append($("<link href='" + cssUrl + "' rel='stylesheet' type='text/css' />"));
 				} // else, already added
 			}
 		};
@@ -835,7 +836,8 @@
 			// no history roller in the right corner
 			$.pnotify.defaults.history = false;
 			
-			// XXX temporal workaround to load CSS until gatein-resources.xml's portlet-skin will work as expected
+			// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will work as expected
+			// for Dynamic Containers
 			videoCalls.loadStyle("/videocalls/skin/videocalls.css");
 		} catch(e) {
 			log("Error configuring Video Calls notifications.", e);
@@ -843,4 +845,4 @@
 	});
 
 	return videoCalls;
-})($); // , videoCallsJqueryUI, videoCallsJqueryPnotify
+})($);

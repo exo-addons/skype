@@ -16,10 +16,6 @@
 	top: -22px;
 }
 
-.startCallButton:before {
-	content: "\e602";
-}
-
 /******** Video Call stuff below ************/
 
 @keyframes blink {  

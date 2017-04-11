@@ -1,7 +1,22 @@
 /* Styles for Skype provider */
-.skypeCallIcon {
-	background: url(https://www.skypeassets.com/i/scom/images/skype-buttons/callbutton_24px.png) center right no-repeat;
-    border: 0px; margin: 2px;
+
+.skypeCallIcon, .sfbCallIcon {
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
+
+.sfbCallIcon:before {
+	content: url("/skype/skin/icons/sfbicon_16px.png");
+	position: relative;
+    top: 3px;
+    margin-right: 3px;
+}
+
+.skypeCallIcon:before {
+	content: url("/skype/skin/icons/skypeicon_16px.png");
+	position: relative;
+    top: 3px;
+    margin-right: 3px;
 }
 
 .skype-call-container {

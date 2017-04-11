@@ -18,11 +18,8 @@
  */
 package org.exoplatform.videocalls;
 
-import java.io.IOException;
-
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.application.RequestNavigationData;
-import org.exoplatform.portal.webui.util.Util;
 import org.exoplatform.social.common.router.ExoRouter;
 import org.exoplatform.social.common.router.ExoRouter.Route;
 import org.exoplatform.social.core.space.model.Space;
@@ -41,16 +38,15 @@ import org.exoplatform.ws.frameworks.json.value.JsonValue;
 public class VideoCallsUtils {
 
   /**
-   * Space room name.
+   * Generate a space room name.
    *
-   * @param space the space
+   * @param spacePrettyName the space pretty name
    * @return the string
    */
-  public static String spaceRoomName(Space space) {
+  public static String spaceRoomName(String spacePrettyName) {
     StringBuilder sname = new StringBuilder();
     sname.append("eXoVideoCalls");
-    String spaceName = space.getShortName();
-    for (String s : spaceName.split("_")) {
+    for (String s : spacePrettyName.split("_")) {
       if (s.length() > 0) {
         sname.append(Character.toUpperCase(s.charAt(0)));
         if (s.length() > 1) {
@@ -68,6 +64,23 @@ public class VideoCallsUtils {
    * @return the space by context
    */
   public static Space getSpaceByContext() {
+    WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
+    if (webuiContext != null) {
+      SpaceService spaceService = webuiContext.getUIApplication().getApplicationComponent(SpaceService.class);
+      if (spaceService != null) {
+        String spacePrettyName = getSpaceNameByContext();
+        return spaceService.getSpaceByPrettyName(spacePrettyName);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Gets the space name by context.
+   *
+   * @return the space name in portal context
+   */
+  public static String getSpaceNameByContext() {
     //
     PortalRequestContext portlalContext;
     WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
@@ -82,14 +95,7 @@ public class VideoCallsUtils {
                                          .getParameter(RequestNavigationData.REQUEST_PATH);
       Route route = ExoRouter.route(requestPath);
       if (route != null) {
-
-        //
-        String spacePrettyName = route.localArgs.get("spacePrettyName");
-        SpaceService spaceService = portlalContext.getUIApplication()
-                                                  .getApplicationComponent(SpaceService.class);
-        if (spaceService != null) {
-          return spaceService.getSpaceByPrettyName(spacePrettyName);
-        }
+        return route.localArgs.get("spacePrettyName");
       }
     }
     return null;
@@ -101,12 +107,11 @@ public class VideoCallsUtils {
    * @return the current context
    */
   public static ContextInfo getCurrentContext() {
-    String spacePrettyName, spaceRoomName;
-    Space currSpace = VideoCallsUtils.getSpaceByContext();
-    if (currSpace != null) {
-      spacePrettyName = currSpace.getPrettyName();
+    String spaceRoomName;
+    String spacePrettyName = VideoCallsUtils.getSpaceNameByContext();
+    if (spacePrettyName != null) {
       // TODO do we need a room name? what if chat room?
-      spaceRoomName = VideoCallsUtils.spaceRoomName(currSpace);
+      spaceRoomName = VideoCallsUtils.spaceRoomName(spacePrettyName);
     } else {
       spacePrettyName = spaceRoomName = "".intern();
     }

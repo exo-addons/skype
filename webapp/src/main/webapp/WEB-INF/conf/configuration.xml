@@ -131,63 +131,17 @@
         </object-param>
       </init-params>
     </component-plugin>
-    <component-plugin>
-      <!-- 
-        Add VideoCalls and SkypeCall portlets to /portal/intranet/skype page (it is w/o a toolbar, 
-        thus the above add-ons will not be added. 
-      -->
-      <name>addPlugin</name>
-      <set-method>addPlugin</set-method>
-      <type>org.exoplatform.commons.addons.AddOnPluginImpl</type>
-      <description>add application Config</description>
-      <init-params>
-        <value-param>
-          <name>priority</name>
-          <value>10</value>
-        </value-param>
-        <value-param>
-          <name>containerName</name>
-          <value>skype-call-container</value>
-        </value-param>
-        <object-param>
-          <name>VideoCallsPortlet</name>
-          <description>Video Calls portlet</description>
-          <object type="org.exoplatform.portal.config.serialize.PortletApplication">
-            <field name="state">
-              <object type="org.exoplatform.portal.config.model.TransientApplicationState">
-                <field name="contentId">
-                  <string>videocalls/VideoCallsPortlet</string>
-                </field>
-              </object>
-            </field>
-          </object>
-        </object-param>
-        <object-param>
-          <name>SkypeProviderPortlet</name>
-          <description>Skype Provider page</description>
-          <object type="org.exoplatform.portal.config.serialize.PortletApplication">
-            <field name="state">
-              <object type="org.exoplatform.portal.config.model.TransientApplicationState">
-                <field name="contentId">
-                  <string>skype/SkypeProviderPortlet</string>
-                </field>
-              </object>
-            </field>
-          </object>
-        </object-param>
-      </init-params>
-    </component-plugin>
   </external-component-plugins>
   
   <external-component-plugins>
     <target-component>org.exoplatform.web.filter.ExtensibleFilter</target-component>
     <component-plugin>
-      <name>Video Calls add-in filters Plugin</name>
+      <name>Skype Call add-in filters Plugin</name>
       <set-method>addFilterDefinitions</set-method>
       <type>org.exoplatform.web.filter.FilterDefinitionPlugin</type>
       <init-params>
         <object-param>
-          <name>Video Calls Resource Filter</name>
+          <name>Skype Call Resource Filter</name>
           <object type="org.exoplatform.web.filter.FilterDefinition">
             <field name="filter">
               <object type="org.exoplatform.videocalls.server.filter.VideoCallsResourceFilter" />
@@ -225,21 +179,6 @@
             </field>
           </object>
         </object-param>
-        <!-- object-param>
-          <name>Video Calls Context Filter</name>
-          <object type="org.exoplatform.web.filter.FilterDefinition">
-            <field name="filter">
-              <object type="org.exoplatform.videocalls.webui.VideoCallsContextFilter" />
-            </field>
-            <field name="patterns">
-              <collection type="java.util.ArrayList" item-type="java.lang.String">
-                <value>
-                  <string>/intranet/skype.*</string>
-                </value>
-              </collection>
-            </field>
-          </object>
-        </object-param -->
       </init-params>
     </component-plugin>
   </external-component-plugins>

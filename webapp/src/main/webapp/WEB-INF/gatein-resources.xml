@@ -24,12 +24,12 @@
   xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
 
   <!-- CSS for Skype Calls support in Platform -->
-  <portlet-skin>
+  <!-- portlet-skin>
     <application-name>skype</application-name>
     <portlet-name>SkypeProviderPortlet</portlet-name>
     <skin-name>Default</skin-name>
     <css-path>/skin/skype.css</css-path>
-  </portlet-skin>
+  </portlet-skin -->
   
   <module>
     <name>skypeWeb</name>

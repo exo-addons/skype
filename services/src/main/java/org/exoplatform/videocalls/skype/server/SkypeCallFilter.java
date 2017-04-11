@@ -66,26 +66,7 @@ public class SkypeCallFilter extends AbstractFilter implements Filter {
 
     if (httpReq.getRemoteUser() != null) {
       ServletContext skypeContext = httpReq.getSession().getServletContext().getContext(SKYPE_SERVLET_CTX);
-
-      // XXX//
-      // ServletContainer container = ServletContainerFactory.getServletContainer();
-      // container.include(skypeContext, httpReq, httpRes, new RequestDispatchCallback() {
-      // @Override
-      // public Object doCallback(ServletContext dispatchedServletContext,
-      // HttpServletRequest dispatchedRequest,
-      // HttpServletResponse dispatchedResponse,
-      // Object handback) throws ServletException, IOException {
-      // // XXX do nothing for our purpose
-      // // callable.call(dispatchedServletContext, dispatchedRequest, dispatchedResponse);
-      //
-      // // We don't use return value anymore
-      // return null;
-      // }
-      // }, null);
-      ////
-
       skypeContext.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
-      // httpReq.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
     } else {
       // TODO user not authenticated into eXo Platform
       // Redirect to login page?

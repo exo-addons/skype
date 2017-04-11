@@ -116,9 +116,6 @@ public class SkypeService implements Startable {
    */
   public class SpaceInfo extends GroupInfo {
 
-    /** The short name. */
-    protected final String                shortName;
-
     /** The pretty name. */
     protected final String                prettyName;
 
@@ -132,7 +129,6 @@ public class SkypeService implements Startable {
      */
     public SpaceInfo(Space socialSpace) {
       super(socialSpace.getGroupId(), socialSpace.getDisplayName());
-      this.shortName = socialSpace.getShortName();
       this.prettyName = socialSpace.getPrettyName();
     }
 
@@ -151,15 +147,6 @@ public class SkypeService implements Startable {
      */
     protected void addMember(UserInfo user) {
       members.put(user.getName(), user);
-    }
-
-    /**
-     * Gets the short name.
-     *
-     * @return the shortName
-     */
-    public String getShortName() {
-      return shortName;
     }
 
     /**
