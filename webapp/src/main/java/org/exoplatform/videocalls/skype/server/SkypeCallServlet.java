@@ -60,71 +60,81 @@ public class SkypeCallServlet extends AbstractHttpServlet {
 
     HttpServletRequest httpReq = (HttpServletRequest) req;
     HttpServletResponse httpRes = (HttpServletResponse) resp;
-    httpRes.setContentType("text/html; charset=UTF-8");
 
-    String remoteUser = httpReq.getRemoteUser();
-
-    ExoContainer container = getContainer();
-    VideoCallsService videoCalls =
-                                 (VideoCallsService) container.getComponentInstanceOfType(VideoCallsService.class);
-    if (videoCalls != null) {
-      SkypeBusinessProvider provider;
-      try {
-        provider = (SkypeBusinessProvider) videoCalls.getProvider(SkypeBusinessProvider.SFB_TYPE);
-      } catch (ClassCastException e) {
-        LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of "
-            + SkypeBusinessProvider.class.getName(), e);
-        provider = null;
+    Object redirectUri = httpReq.getSession().getServletContext().getAttribute(SkypeCallFilter.SKYPE_CALL_REDIRECT);
+    if (redirectUri != null) {
+      // Home page registered per app in Active Directory - redirect it to the portal default page
+      String ruri = (String) redirectUri;
+      if (ruri.length() > 0) {
+        httpRes.sendRedirect(ruri);
       }
+    } else {
+      httpRes.setContentType("text/html; charset=UTF-8");
 
-      if (provider != null) {
+      String remoteUser = httpReq.getRemoteUser();
+
+      ExoContainer container = getContainer();
+      VideoCallsService videoCalls =
+                                   (VideoCallsService) container.getComponentInstanceOfType(VideoCallsService.class);
+      if (videoCalls != null) {
+        SkypeBusinessProvider provider;
         try {
-          // We set the character encoding now to UTF-8 before obtaining parameters
-          req.setCharacterEncoding("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-          LOG.error("Encoding not supported", e);
+          provider = (SkypeBusinessProvider) videoCalls.getProvider(SkypeBusinessProvider.SFB_TYPE);
+        } catch (ClassCastException e) {
+          LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of "
+              + SkypeBusinessProvider.class.getName(), e);
+          provider = null;
         }
 
-        if (remoteUser != null) {
+        if (provider != null) {
           try {
-            // init page scope with settings for videoCalls and Skype provider
+            // We set the character encoding now to UTF-8 before obtaining parameters
+            req.setCharacterEncoding("UTF-8");
+          } catch (UnsupportedEncodingException e) {
+            LOG.error("Encoding not supported", e);
+          }
 
-            ContextInfo context = getCurrentContext();
-            httpReq.setAttribute("spaceInfo", asJSON(context));
+          if (remoteUser != null) {
+            try {
+              // init page scope with settings for videoCalls and Skype provider
 
-            UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
-            httpReq.setAttribute("userInfo", asJSON(exoUser));
+              ContextInfo context = getCurrentContext();
+              httpReq.setAttribute("spaceInfo", asJSON(context));
 
-            URI redirectURI = new URI(httpReq.getScheme(),
-                                      null,
-                                      httpReq.getServerName(),
-                                      httpReq.getServerPort(),
-                                      "/portal/skype/call",
-                                      null,
-                                      null);
-            SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
-            httpReq.setAttribute("settings", asJSON(settings));
+              UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
+              httpReq.setAttribute("userInfo", asJSON(exoUser));
 
-            // forward to JSP page
-            httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
-          } catch (Exception e) {
-            LOG.error("Error processing Skype call page", e);
-            httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
+              URI redirectURI = new URI(httpReq.getScheme(),
+                                        null,
+                                        httpReq.getServerName(),
+                                        httpReq.getServerPort(),
+                                        "/portal/skype/call",
+                                        null,
+                                        null);
+              SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
+              httpReq.setAttribute("settings", asJSON(settings));
+
+              // forward to JSP page
+              httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
+            } catch (Exception e) {
+              LOG.error("Error processing Skype call page", e);
+              httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+              httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
+            }
+          } else {
+            httpRes.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            httpReq.getRequestDispatcher(UNAUTHORIZED_PAGE).include(httpReq, httpRes);
           }
         } else {
-          httpRes.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-          httpReq.getRequestDispatcher(UNAUTHORIZED_PAGE).include(httpReq, httpRes);
+          LOG.error("Skype provider not found for call page and user " + remoteUser);
+          httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+          httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
         }
       } else {
-        LOG.error("Skype provider not found for call page and user " + remoteUser);
+        LOG.error("Video Calls service not found for call page and user " + remoteUser);
         httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
       }
-    } else {
-      LOG.error("Video Calls service not found for call page and user " + remoteUser);
-      httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-      httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
     }
   }
 

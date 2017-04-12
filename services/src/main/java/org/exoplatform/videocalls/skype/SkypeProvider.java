@@ -33,16 +33,19 @@ import org.exoplatform.videocalls.VideoCallsProviderException;
 public class SkypeProvider extends VideoCallsProvider {
 
   /** The Constant SKYPE_SCHEMA. */
-  public static final String SKYPE_SCHEMA = "skype";
+  public static final String  SKYPE_SCHEMA  = "skype";
 
   /** The Constant SKYPE_TYPE. */
-  public static final String SKYPE_TYPE   = SKYPE_SCHEMA;
+  public static final String  SKYPE_TYPE    = SKYPE_SCHEMA;
 
   /** The Constant SKYPE_TITLE. */
-  public static final String SKYPE_TITLE  = "Skype";
+  public static final String  SKYPE_APPNAME = "eXoURISkype";
+
+  /** The Constant SKYPE_TITLE. */
+  public static final String  SKYPE_TITLE   = "Skype";
 
   /** The Constant VERSION. */
-  public static final String VERSION      = "eXoWebSkype/1.0.0";
+  private static final String VERSION       = SKYPE_APPNAME + "/1.0.0";
 
   /**
    * The Class SettingsBuilder.

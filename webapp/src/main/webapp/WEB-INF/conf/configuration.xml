@@ -61,6 +61,7 @@
         </values-param>
         <properties-param>
           <name>provider-configuration</name>
+          <property name="web-oauth2-appVersion" value="${videocalls.mssfb.web.appVersion:eXoWebSkype/1.0.0}" />
           <property name="web-oauth2-loginUri" value="${videocalls.mssfb.web.oauth2.loginUri:}" />
           <property name="web-oauth2-clientId" value="${videocalls.mssfb.web.oauth2.clientId:}" />
           <property name="web-apiKey" value="${videocalls.mssfb.web.apiKey:}" />
@@ -88,6 +89,9 @@
               <collection type="java.util.ArrayList" item-type="java.lang.String">
                 <value>
                   <string>/skype/call/.*</string>
+                </value>
+                <value>
+                  <string>/skype/home</string>
                 </value>
               </collection>
             </field>

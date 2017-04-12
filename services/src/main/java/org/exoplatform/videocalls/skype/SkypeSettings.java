@@ -92,7 +92,7 @@ public class SkypeSettings {
     this.apiKeyCC = apiKeyCC;
     this.origins = origins;
   }
-
+  
   /**
    * Gets the name.
    *

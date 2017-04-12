@@ -37,6 +37,9 @@ public class SkypeBusinessProvider extends SkypeProvider {
   /** The Constant CONFIG_AUTODISCOVER_ORIGINS. */
   public static final String CONFIG_AUTODISCOVER_ORIGINS      = "autodiscover-origins";
 
+  /** The Constant CONFIG_WEB_APPVERSION. */
+  public static final String CONFIG_WEB_APPVERSION            = "web-oauth2-appVersion";
+
   /** The Constant CONFIG_WEB_OAUTH2_URL. */
   public static final String CONFIG_WEB_OAUTH2_URL            = "web-oauth2-loginUri";
 
@@ -118,7 +121,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
   /** The login url. */
   protected final String   loginUrl;
 
-  /** The client id. */
+  /** The client id (application ID in AD). */
   protected final String   clientId;
 
   /** The api key. */
@@ -130,6 +133,9 @@ public class SkypeBusinessProvider extends SkypeProvider {
   /** The origins. */
   protected final String[] origins;
 
+  /** The version. */
+  protected final String   version;
+
   /**
    * Instantiates a new Skype for Business provider.
    *
@@ -139,6 +145,12 @@ public class SkypeBusinessProvider extends SkypeProvider {
   public SkypeBusinessProvider(/* SkypeService skypeService, */ InitParams params)
       throws ConfigurationException {
     super(/* skypeService, */params);
+
+    String version = this.config.get(CONFIG_WEB_APPVERSION);
+    if (version == null || (version = version.trim()).length() == 0) {
+      throw new ConfigurationException(CONFIG_WEB_APPVERSION + " required and should be non empty.");
+    }
+    this.version = version;
 
     String loginUrl = this.config.get(CONFIG_WEB_OAUTH2_URL);
     if (loginUrl == null || (loginUrl = loginUrl.trim()).length() == 0) {
@@ -181,6 +193,17 @@ public class SkypeBusinessProvider extends SkypeProvider {
    */
   public WebSettingsBuilder getSettings() {
     return new WebSettingsBuilder();
+  }
+
+  /**
+   * Gets the origins.
+   *
+   * @return the origins
+   */
+  public String[] getOrigins() {
+    String[] copy = new String[origins.length];
+    System.arraycopy(origins, 0, copy, 0, origins.length);
+    return copy;
   }
 
   /**
@@ -238,6 +261,14 @@ public class SkypeBusinessProvider extends SkypeProvider {
   @Override
   public String getType() {
     return SFB_TYPE;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String getVersion() {
+    return version;
   }
 
   /**

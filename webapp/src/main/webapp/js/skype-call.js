@@ -13,6 +13,7 @@ if (eXo.videoCalls) {
 			var isStart = /\?call=/.test(location.search);
 			var isCall = /\/_call_/.test(location.pathname);
 			var isLogin = /\/login/.test(location.pathname);
+			var isSignin = /\/signin/.test(location.pathname);
 
 			/** For debug logging. */
 			var objId = Math.floor((Math.random() * 1000) + 1);
@@ -37,6 +38,11 @@ if (eXo.videoCalls) {
 				if (!results[2])
 					return '';
 				return decodeURIComponent(results[2].replace(/\+/g, " "));
+			}
+
+			if (isSignin) {
+				location.assign(location.protocol + "//" + location.hostname + (location.port ? ":" + location.port : "")
+							+ "/portal");
 			}
 
 			$(function() {
@@ -69,16 +75,18 @@ if (eXo.videoCalls) {
 					log("<<< Skype call start");
 				} else if (isLogin) {
 					log(">>> Skype login");
-					// TODO do we need this?
 					if (hasToken) {
+						log(">>>> Skype login token: " + location.hash);
+						// TODO do we need this?
 						// Use Skype Web SDK to start signing in
-						var appInitializer = skype.application(redirectUri);
-						appInitializer.done(function(api, app) {
-							// TODO save token in the server-side for late use
-							log(">>>> Skype login OK, app created OK, token: " + location.hash);
-						});
-						appInitializer.fail(function(err) {
-						});
+						// var appInitializer = skype.application(redirectUri);
+						// appInitializer.done(function(api, app) {
+						// // TODO save token in the server-side for late use
+						// log(">>>> Skype login OK, app created OK, token: " + location.hash);
+						// });
+						// appInitializer.fail(function(err) {
+						// log(">>>> Skype login error: " + err);
+						// });
 					}
 					if (hasError) {
 						log("Skype login error: " + location.hash);
@@ -88,11 +96,9 @@ if (eXo.videoCalls) {
 					log(">>> Skype call " + location.href);
 					// it's call window, user may be already authenticated, but may be not
 					if (hasToken) {
-						// var redirectUri = location.protocol + "//" + location.hostname + (location.port ? ":" + location.port :
-						// "") + location.pathname;
 						var redirectUri = location.protocol + "//" + location.hostname + (location.port ? ":" + location.port : "")
-						// + "/portal/skype/call/login";
-						+ location.pathname;
+									+ "/portal/skype/call/login";
+						// + location.pathname;
 						var uiInitializer = skype.uiApplication(redirectUri);
 						uiInitializer.done(function(api, uiApp) {
 							// render the call CC
@@ -100,7 +106,7 @@ if (eXo.videoCalls) {
 							try {
 								var participants = decodeURIComponent(
 											location.pathname.substring(location.pathname.indexOf("_call_") + 6)).split(";")
-								// TODO was for debug purpose only			
+								// TODO was for debug purpose only
 								// for (var i = 0; i < participants.length; i++) {
 								// var p = participants[i];
 								// var personSearchQuery = uiApp.personsAndGroupsManager.createPersonSearchQuery();
