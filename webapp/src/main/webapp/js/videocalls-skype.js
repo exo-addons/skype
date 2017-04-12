@@ -140,14 +140,16 @@
 				return settings != null;
 			};
 
-			this.application = function() {
+			this.application = function(redirectUri) {
 				var initializer = $.Deferred();
 				if (settings) {
 					if (appInstance) {
+						log("Use app instance: " + appInstance);
 						initializer.resolve(appInstance);
 					} else {
 						var user = videoCalls.getUser();
 						var sessionId = user.name + "_session" + Math.floor((Math.random() * 1000000) + 1);
+						log("app sessionId='" + sessionId + "'");
 						Skype.initialize({
 							"version" : settings.version,
 							"apiKey" : settings.apiKey,
@@ -158,10 +160,15 @@
 						}, function(api) {
 							var app = new api.application();
 							// SignIn SfB Online: the SDK will get its own access token
+							if (!redirectUri) {
+								redirectUri = redirectUri ? redirectUri : settings.redirectUri; 
+							}
+							log("app redirectUri='" + redirectUri + "'");
+							log("app clientId='" + settings.clientId + "'");
 							app.signInManager.signIn({
 								"client_id" : settings.clientId,
 								"cors" : true,
-								"redirect_uri" : settings.redirectUri,
+								"redirect_uri" : redirectUri,
 								"origins" : settings.origins,
 								"version" : settings.version
 							// Necessary for troubleshooting requests; identifies your application in our telemetry
@@ -194,10 +201,12 @@
 				var initializer = $.Deferred();
 				if (settings) {
 					if (uiAppInstance) {
+						log("Use uiApp instance: " + uiAppInstance);
 						initializer.resolve(uiAppInstance);
 					} else {
 						var user = videoCalls.getUser();
 						var sessionId = user.name + "_uisession" + Math.floor((Math.random() * 1000000) + 1);
+						log("uiApp sessionId='" + sessionId + "'");
 						Skype.initialize({
 							"version" : settings.version,
 							"apiKey" : settings.apiKeyCC,
@@ -208,10 +217,15 @@
 						}, function(api) {
 							var app = api.UIApplicationInstance;
 							// SignIn SfB Online: the SDK will get its own access token
+							if (!redirectUri) {
+								redirectUri = redirectUri ? redirectUri : settings.redirectUri; 
+							}
+							log("uiApp redirectUri='" + redirectUri + "'");
+							log("uiApp clientId='" + settings.clientId + "'");
 							app.signInManager.signIn({
 								"client_id" : settings.clientId,
-								cors : true,
-								"redirect_uri" : redirectUri ? redirectUri : settings.redirectUri,
+								"cors" : true,
+								"redirect_uri" : redirectUri,
 								"origins" : settings.origins,
 								"version" : settings.version
 							// Necessary for troubleshooting requests; identifies your application in our telemetry
@@ -267,7 +281,6 @@
 							// TODO use Skype WebSDK for Business users
 							// var useBusiness = context.currentUserSFB; // && (isIOS || isAndroid)
 							var userIMs = callParts.join(";");
-							//<i class='sfbCallIcon'></i>
 							$button = $("<a id='" + linkId + "' title='" + title
 										+ "' href='javascript:void(0);' class='sfbCallIcon'>" + this.getCallTitle() + "</a>");
 							$button.click(function() {
@@ -277,20 +290,10 @@
 							});
 						} else if (context.currentUserSkype) {
 							// use Skype URI for regular Skype user
-							// $button = $("<div id='"
-							// + linkId
-							// + "' style='display: none;' class='startCallButton'><a class='actionIcon startCallAction userCall'
-							// title='Call with "
-							// + context.user.title
-							// + "' style='margin-left:5px;'>"
-							// + "<img src='http://www.skypeassets.com/i/scom/images/skype-buttons/callbutton_24px.png' alt='Skype
-							// call'
-							// role='Button' style='border: 0px; margin: 2px;'>"
-							// + "</a></div>");
 							var userIMs = callParts.join(";");
 							var link = "skype:" + userIMs + "?call&amp;video=true";
 							$button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
-										+ "'><i class='skypeCallIcon'></i>" + this.getCallTitle() + "</a>");
+										+ "' class='skypeCallIcon'>" + this.getCallTitle() + "</a>");
 							$button.click(function() {
 								// TODO what else we could do here? status? fire listeners?
 							});
