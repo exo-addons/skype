@@ -90,9 +90,6 @@
                 <value>
                   <string>/skype/call/.*</string>
                 </value>
-                <value>
-                  <string>/skype/home</string>
-                </value>
               </collection>
             </field>
           </object>

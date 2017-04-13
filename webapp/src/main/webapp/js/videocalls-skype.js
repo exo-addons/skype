@@ -167,9 +167,9 @@
 							log("app clientId='" + settings.clientId + "'");
 							app.signInManager.signIn({
 								"client_id" : settings.clientId,
+								"origins" : settings.origins,
 								"cors" : true,
 								"redirect_uri" : redirectUri,
-								"origins" : settings.origins,
 								"version" : settings.version
 							// Necessary for troubleshooting requests; identifies your application in our telemetry
 							}).then(function() {
@@ -224,9 +224,9 @@
 							log("uiApp clientId='" + settings.clientId + "'");
 							app.signInManager.signIn({
 								"client_id" : settings.clientId,
+								"origins" : settings.origins,
 								"cors" : true,
 								"redirect_uri" : redirectUri,
-								"origins" : settings.origins,
 								"version" : settings.version
 							// Necessary for troubleshooting requests; identifies your application in our telemetry
 							}).then(function() {
@@ -256,7 +256,7 @@
 
 			this.callButton = function(context) {
 				var $button;
-				if (context && context.currentUser) {
+				if (settings && context && context.currentUser) {
 					context.currentUserSkype = imAccount(context.currentUser, "skype");
 					context.currentUserSFB = imAccount(context.currentUser, "mssfb");
 					var callParts = participants(context);
@@ -285,8 +285,16 @@
 										+ "' href='javascript:void(0);' class='sfbCallIcon'>" + this.getCallTitle() + "</a>");
 							$button.click(function() {
 								// TODO check if such window isn't already open by this app
-								var destUrl = videoCalls.getBaseUrl() + "/portal/skype/call";
-								var callWindow = window.open(destUrl + "?call=" + userIMs);
+								var callUri = videoCalls.getBaseUrl() + "/portal/skype/call/_" + userIMs;
+								//var callWindow = window.open(callUri);
+								var loginUri = "https://login.microsoftonline.com/common/oauth2/authorize?response_type=token&client_id="
+																	+ settings.clientId
+																	+ "&redirect_uri="
+																	+ encodeURIComponent(callUri)
+																	+ "&resource="
+																	+ encodeURIComponent("https://webdir.online.lync.com");
+								log("Skype login/call: " + loginUri);
+								var callWindow = window.open(loginUri);
 							});
 						} else if (context.currentUserSkype) {
 							// use Skype URI for regular Skype user
