@@ -61,7 +61,7 @@ public class SkypeCallServlet extends AbstractHttpServlet {
     HttpServletRequest httpReq = (HttpServletRequest) req;
     HttpServletResponse httpRes = (HttpServletResponse) resp;
 
-    Object redirectUri = httpReq.getSession().getServletContext().getAttribute(SkypeCallFilter.SKYPE_CALL_REDIRECT);
+    Object redirectUri = httpReq.getAttribute(SkypeCallFilter.SKYPE_CALL_REDIRECT);
     if (redirectUri != null) {
       // Home page registered per app in Active Directory - redirect it to the portal default page
       String ruri = (String) redirectUri;

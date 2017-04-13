@@ -68,14 +68,13 @@ public class SkypeCallFilter extends AbstractFilter implements Filter {
     HttpServletResponse httpRes = (HttpServletResponse) response;
 
     if (httpReq.getRemoteUser() != null) {
-      ServletContext skypeContext = httpReq.getSession().getServletContext().getContext(SKYPE_SERVLET_CTX);
       String uri = httpReq.getRequestURI();
       if (uri.endsWith("/skype/home")) {
         // Home page should be registered to the portal default page
         //httpRes.sendRedirect("");
-        skypeContext.setAttribute(SKYPE_CALL_REDIRECT, "/portal");
+        httpReq.setAttribute(SKYPE_CALL_REDIRECT, "/portal");
       }
-      
+      ServletContext skypeContext = httpReq.getSession().getServletContext().getContext(SKYPE_SERVLET_CTX);
       skypeContext.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
     } else {
       // TODO user not authenticated into eXo Platform
