@@ -69,10 +69,7 @@ public class SkypeCallFilter extends AbstractFilter implements Filter {
 
     if (httpReq.getRemoteUser() != null) {
       String uri = httpReq.getRequestURI();
-      if (uri.endsWith("/skype/call/login")) {
-        // TODO
-        LOG.info(">>> /skype/call/login : " + uri);
-      } else if (uri.endsWith("/skype/call/home")) {
+      if (uri.endsWith("/skype/call/home")) {
         // Home page should be registered to the portal default page
         httpReq.setAttribute(SKYPE_CALL_REDIRECT, "/portal");
       }

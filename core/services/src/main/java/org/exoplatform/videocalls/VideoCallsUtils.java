@@ -20,8 +20,10 @@ package org.exoplatform.videocalls;
 
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.application.RequestNavigationData;
+import org.exoplatform.portal.mop.SiteType;
 import org.exoplatform.social.common.router.ExoRouter;
 import org.exoplatform.social.common.router.ExoRouter.Route;
+import org.exoplatform.social.core.space.SpaceUtils;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.webui.application.WebuiRequestContext;
@@ -81,7 +83,7 @@ public class VideoCallsUtils {
    * @return the space name in portal context
    */
   public static String getSpaceNameByContext() {
-    //
+    // Idea of this method build on SpaceUtils.getSpaceByContext()
     PortalRequestContext portlalContext;
     WebuiRequestContext webuiContext = WebuiRequestContext.getCurrentInstance();
     if (webuiContext != null) {
@@ -95,7 +97,10 @@ public class VideoCallsUtils {
                                          .getParameter(RequestNavigationData.REQUEST_PATH);
       Route route = ExoRouter.route(requestPath);
       if (route != null) {
-        return route.localArgs.get("spacePrettyName");
+        if (portlalContext.getSiteType().equals(SiteType.GROUP)
+            && portlalContext.getSiteName().startsWith(SpaceUtils.SPACE_GROUP)) {
+          return route.localArgs.get("spacePrettyName");
+        }
       }
     }
     return null;

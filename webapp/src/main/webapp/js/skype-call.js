@@ -83,6 +83,23 @@ if (eXo.videoCalls) {
 				}, this);
 			}
 
+			// // TODO Browser Listener - used for debug purposes (WebSDK sends tonds of messages to itself window)
+			// function listener(event) {
+			// var origin = event.origin || event.originalEvent.origin;
+			// //if (origin.startsWith(videoCalls.getBaseUrl() + "/portal/skype/call")) {
+			// // initializer.resolve(event.data);
+			// //} else {
+			// // log("Ignoring not known message to " + location + " from " + origin + " data: ");
+			// //}
+			// log("Message to " + location + " from " + origin + " data: " + JSON.stringify(event.data));
+			// }
+			// if (window.addEventListener) {
+			// addEventListener("message", listener);
+			// } else {
+			// attachEvent("onmessage", listener);
+			// }
+			// //
+
 			$(function() {
 				var clientId = skype.getClientId();
 				log(">> Skype " + location.href);
@@ -118,7 +135,8 @@ if (eXo.videoCalls) {
 							// render the call CC
 							log(">>>> Skype app created OK, user: " + uiApp.personsAndGroupsManager.mePerson.displayName());
 							try {
-								var participants = decodeURIComponent(location.pathname.substring(location.pathname.indexOf("call/_") + 6)).split(";")
+								var participants = decodeURIComponent(
+											location.pathname.substring(location.pathname.indexOf("call/_") + 6)).split(";")
 								// TODO was for debug purpose only
 								// for (var i = 0; i < participants.length; i++) {
 								// var p = participants[i];

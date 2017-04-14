@@ -610,7 +610,7 @@
 						$breadcumbEntry.data("callbuttoninit", false);
 					});
 				} else {
-					log("<<< initSpaceWeb SKIP " + compId + " " + currentUser.name);
+					log("<<< initSpaceWeb SKIPPED (no breadcumbEntry or already initialized) " + compId + " " + currentUser.name);
 				}
 			}
 		};
