@@ -41,63 +41,6 @@
 				}
 			};
 			
-			/** @Deprecated */
-			var getGroupParticipants = function(group, context) {
-				var participants = [];
-				for ( var uname in group.members) {
-					if (group.members.hasOwnProperty(uname)) {
-						var u = group.members[uname];
-						var uskype = imAccount(u, "skype");
-						var ubusiness = imAccount(u, "mssfb");
-						if (context.currentUserSFB) {
-							if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
-								participants.push(encodeURIComponent(ubusiness.id));
-							} else if (uskype) {
-								participants.push(uskype.id);
-							}
-						} else if (uskype) {
-							// this is a regular Skype, it cannot call business users
-							participants.push(uskype.id);
-						} // else, skip this user
-					}
-				}
-				return participants;
-			};
-
-			/** @Deprecated */
-			var participants = function(context) {
-				var participants;
-				if (context.space) {
-					// it's Space's group call
-					participants = getGroupParticipants(context.space, context);
-				} else if (context.chat) {
-					// it's Chat room call
-					participants = getGroupParticipants(context.chat.room, context);
-				} else {
-					// otherwise assume it's one-on-one call
-					participants = [];
-					var uskype = imAccount(context.user, "skype");
-					var ubusiness = imAccount(context.user, "mssfb");
-					if (context.currentUserSFB) {
-						if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
-							// participants.push(encodeURIComponent(context.currentUserSFB.id));
-							participants.push(encodeURIComponent(ubusiness.id));
-						} else if (uskype) {
-							// participants.push(context.currentUserSFB.id);
-							// Business user can call regular users
-							participants.push(uskype.id);
-						}
-					} else if (uskype) {
-						if (context.currentUserSkype && uskype.id != context.currentUserSkype.id) {
-							// current is regular Skype, it cannot call business users
-							// participants.push(context.currentUserSkype.id); // don't need add a self
-							participants.push(uskype.id);
-						}
-					}
-				}
-				return participants;
-			};
-
 			this.getType = function() {
 				if (settings) {
 					return settings.type;
@@ -297,7 +240,7 @@
 									} else if (uskype) {
 										ims.push(uskype.id);
 									}
-								} else if (uskype) {
+								} else if (uskype && uskype.id != context.currentUserSkype.id) {
 									// this is a regular Skype, it cannot call business users
 									ims.push(uskype.id);
 								} // else, skip this user
@@ -306,14 +249,11 @@
 						if (ims.length > 0) {
 							var userIMs = ims.join(";");
 							if (context.currentUserSFB) {
-								// TODO use Skype WebSDK for Business users
-								// var useBusiness = context.currentUserSFB; // && (isIOS || isAndroid)
 								var $button = $("<a id='" + linkId + "' title='" + title
 											+ "' href='javascript:void(0);' class='sfbCallIcon'>" + self.getCallTitle() + "</a>");
 								$button.click(function() {
 									// TODO check if such window isn't already open by this app
 									var callUri = videoCalls.getBaseUrl() + "/portal/skype/call/_" + userIMs;
-									//var callWindow = window.open(callUri);
 									var loginUri = "https://login.microsoftonline.com/common/oauth2/authorize?response_type=token&client_id="
 																		+ settings.clientId
 																		+ "&redirect_uri="
@@ -326,7 +266,7 @@
 								button.resolve($button);
 							} else if (context.currentUserSkype) {
 								// use Skype URI for regular Skype user
-								// TODO add calling SfB on Android?
+								// TODO add calling SfB on Android? var useBusiness = context.currentUserSFB; // && (isIOS || isAndroid)
 								var link = "skype:" + userIMs + "?call&amp;video=true";
 								var $button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
 											+ "' class='skypeCallIcon'>" + self.getCallTitle() + "</a>");

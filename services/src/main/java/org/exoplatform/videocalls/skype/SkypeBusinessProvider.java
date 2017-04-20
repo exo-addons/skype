@@ -93,11 +93,10 @@ public class SkypeBusinessProvider extends SkypeProvider {
     /**
      * Instantiates a new SfB IM info.
      *
-     * @param provider the provider
      * @param id the id
      */
-    protected SkypeBusinessIMInfo(SkypeBusinessProvider provider, String id) {
-      super(provider.getType(), id);
+    protected SkypeBusinessIMInfo(String id) {
+      super(SFB_TYPE, id);
     }
 
     /**
@@ -179,7 +178,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
     ValuesParam originsParams = params.getValuesParam(CONFIG_AUTODISCOVER_ORIGINS);
     if (originsParams != null) {
       List<String> values = originsParams.getValues();
-      origins = new String[values.size()]; //  + 1
+      origins = new String[values.size()]; // + 1
       for (int i = 0; i < values.size(); i++) {
         origins[i] = values.get(i);
       }
@@ -187,8 +186,8 @@ public class SkypeBusinessProvider extends SkypeProvider {
       // As suggested in
       // http://stackoverflow.com/questions/43345355/skype-web-sdk-only-one-server-https-webdir1e-online-lync-com-is-correctl
       // use exact server URL in autodiscovery until it will be fixed by Microsoft
-      //origins[origins.length
-      //    - 1] = "https://webdir1e.online.lync.com/Autodiscover/AutodiscoverService.svc/root";
+      // origins[origins.length
+      // - 1] = "https://webdir1e.online.lync.com/Autodiscover/AutodiscoverService.svc/root";
     } else {
       origins = new String[] { SFB_AUTODISCOVER_ORIGINS_DEFAULT };
     }
@@ -255,9 +254,9 @@ public class SkypeBusinessProvider extends SkypeProvider {
   public IMInfo getIMInfo(String imId) throws VideoCallsProviderException {
     if (emailTest.matcher(imId).find()) {
       // it looks as email, assume it's SfB account
-      return new SkypeBusinessIMInfo(this, imId);
+      return new SkypeBusinessIMInfo(imId);
     } else {
-      return new SkypeIMInfo(this, imId);
+      return new SkypeIMInfo(imId);
     }
   }
 

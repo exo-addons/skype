@@ -99,13 +99,12 @@ public class SkypeProvider extends VideoCallsProvider {
     /**
      * Instantiates a new skype IM info.
      *
-     * @param provider the provider
      * @param id the id
      */
-    protected SkypeIMInfo(VideoCallsProvider provider, String id) {
-      super(provider.getType(), id);
+    protected SkypeIMInfo(String id) {
+      this(SKYPE_TYPE, id);
     }
-
+    
     /**
      * Instantiates a new skype IM info.
      *
@@ -163,7 +162,7 @@ public class SkypeProvider extends VideoCallsProvider {
     if (emailTest.matcher(imId).find()) {
       throw new SkypeProviderException("Email not supported as a regular Skype IM. Probably you need Business provider. Check the configuration.");
     } else {
-      return new SkypeIMInfo(this, imId);
+      return new SkypeIMInfo(imId);
     }
   }
 
