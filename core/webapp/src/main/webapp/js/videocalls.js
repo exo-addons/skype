@@ -97,7 +97,8 @@
   
   var isIOS = /iPhone|iPod|iPad/.test(navigator.userAgent);
   var isAndroid = /Android/.test(navigator.userAgent);
-	
+  var isWindowsMobile = /IEmobile|WPDesktop|Windows Phone/i.test(navigator.userAgent) || /WM\s*\d.*.Edge\/\d./i.test(navigator.userAgent);
+  
 	/**
 	 * Show notice to user. Options support "icon" class, "hide", "closer" and "nonblock" features.
 	 */
@@ -256,7 +257,7 @@
 		return initRequest(request);
 	};
 	
-	var prepareUser = function(user, isSkypeBusiness) {
+	var prepareUser = function(user) {
 		user.title = user.firstName + " " + user.lastName;
 	};
 	
@@ -268,10 +269,122 @@
 		// ******** Context ********
 		var currentUser, currentSpace;
 		
-		var spaceUpdater;
 		// Registered providers
 		var providers = [];
 
+		/**
+		 * Add call button to given target element.
+		 */
+		var addCallButton = function($target, context) {
+			var initializer = $.Deferred();
+			if ($target.length > 0 && !$target.data("callbuttoninit")) {
+				$target.data("callbuttoninit", true);
+				if (providers.length > 0) {
+					var $container = $target.find(".callButtonContainer");
+					// TODO check precisely that we have an one button for each provider
+					if ($container.find(".startCallButton").length != providers.length) {
+						var contextName = (context.spaceName ? context.spaceName : context.userName);
+						initializer.notify("addCallButton " + contextName + " for " + context.currentUser.name);
+						if ($container.length == 0) {
+							$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
+							$target.append($container);
+						}
+						var actionClasses = "startCallButton"; // actionIcon
+						var $dropdown = $container.find(".dropdown-menu");
+						var buttons = [];
+						for (var i = 0; i < providers.length; i++) {
+							var p = providers[i];
+							var button = p.callButton(context);
+							button.done(function($button) {
+								if ($dropdown.length > 0) {
+									// add others in dropdown
+									$button.addClass(actionClasses);
+									$dropdown.append($button);	
+								} else {
+									// add first & default button
+									$button.addClass("btn " + actionClasses); // btn-primary
+									$container.append($button); 
+									$dropdown = $("<ul class='dropdown-menu'></ul>");
+								}
+							});
+							buttons.push(button);
+						}
+						$.when.apply($, buttons).always(function() {
+							if ($dropdown.children().length > 0) {
+								// btn-primary
+								$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
+								$container.append($dropdown);
+							}
+							if (buttons.length > 0) {
+								$container.show();
+								initializer.resolve($container);
+							} else {
+								initializer.reject("Nothing added");
+							}
+		        });
+					}	else {
+						initializer.reject("Already initialized", $container);
+					}
+				} else {
+					initializer.reject("No providers");
+				}
+				initializer.always(function() {
+					$target.data("callbuttoninit", false);
+				});
+			} else {
+				initializer.reject("Target not found or already initializing");
+			}
+			return initializer.promise();
+		};
+		
+		var userContext = function(userName) {
+			var context = {
+				currentUser : currentUser,
+				userName : userName,
+				isIOS : isIOS,
+				isAndroid : isAndroid,
+				isWindowsMobile : isWindowsMobile,
+				_user : null
+			};
+			Object.defineProperty(context, "user", {
+			  enumerable: true,
+			  configurable: false,
+			  get: function() {
+			  	// We use short-living cache for 5s
+			  	var cached = context._user;
+			  	if (cached) {
+			  		log(">> initUserPopups > get_user CACHED " + userName + " for " + currentUser.name);
+			  		var get = $.Deferred();
+			  		get.resolve(cached);
+			  		return get.promise();
+			  	} else {
+			  		log(">> initUserPopups > get_user " + userName + " for " + currentUser.name);
+			  		var get = getUserInfo(userName);
+				  	get.done(function(user) {
+				  		context._user = user;
+				  		setTimeout(function() {
+				  			context._user = null;
+				  		}, 5000);
+				  	});
+						get.fail(function(e, status) {
+							if (status == 404) {
+								log(">> initUserPopups < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userName + " for " + currentUser.name + ": " + JSON.stringify(e));
+							} else {
+								log(">> initUserPopups < ERROR get_user : " + JSON.stringify(e));
+								// TODO notify the user?
+							}
+						});
+						return get;
+			  	}
+			  },
+			  set: function() {
+			  	log(">> initUserPopups < ERROR set_user not supported " + userName + " for " + currentUser.name);
+			  	throw "Changing 'user' property not supported";
+			  }
+			});
+			return context;
+		};
+		
 		/**
 		 * TODO a placeholder for Chat initialization
 		 */
@@ -302,9 +415,11 @@
 				}
 			}
 
+			/** @Deprecated */
 			function addButton($userAction, userName, userTitle, tuningFunc) {
-				if ($userAction.length > 0 && !$userAction.data("skypebutton")) {
-					$userAction.data("skypebutton", true);
+				if ($userAction.length > 0 && !$userAction.data("callbuttoninit")) {
+					$userAction.data("callbuttoninit", true);
+					
 					var callId = "Call " + currentUser.title + " with " + userTitle;
 					// TODO check if call not already started (by another user)
 					var get = getUserInfo(userName);
@@ -367,11 +482,31 @@
 					});
 				}
 			}
+			
+			var addUserButton = function($userAction, userName) {
+				var initializer = addCallButton($userAction, userContext(userName));
+				initializer.progress(function(message) {
+					log(">> initUserPopups PROGRESS " + message);
+				});
+				initializer.done(function($container) {
+					$container.find(".startCallButton").addClass("userCall");
+					log("<< initUserPopups DONE " + userName + " for " + currentUser.name);
+				});
+				initializer.fail(function(error, $container) {
+					log("Error creating call button for " + userName + ": " + error);
+					if ($container) {
+						log("<< initUserPopups SKIPPED (" + error + ") " + userName + " for " + currentUser.name);
+					} else {
+						log("<< initUserPopups ERROR " + userName + " for " + currentUser.name + ": " + error);
+					}
+				});
+				return initializer;
+			};
 
-			function extractUserName($userLink) {
+			var extractUserName = function($userLink) {
 				var userName = $userLink.attr("href");
 				return userName.substring(userName.lastIndexOf("/") + 1, userName.length);
-			}
+			};
 
 			// user popovers
 			// XXX hardcoded for peopleSuggest as no way found to add Lifecycle
@@ -385,10 +520,11 @@
 						var $td = $tiptip.children("#tipName").children("tbody").children("tr").children("td");
 						if ($td.length > 1) {
 							var $userLink = $("a", $td.get(1));
-							var userTitle = $userLink.text();
+							//var userTitle = $userLink.text();
 							var userName = extractUserName($userLink);
 							var $userAction = $tiptip.find(".uiAction");
-							addButton($userAction, userName, userTitle, function($button) {
+							addUserButton($userAction, userName).done(function($container) {
+								var $button = $container.find(".startCallAction");
 								$button.find("p").css("margin", "0px");
 								$button.find("img").css("margin", "20px");
 							});
@@ -401,10 +537,11 @@
 			$("#" + compId).find(".spaceBox").each(function(i, elem) {
 				var $userLink = $(elem).find(".spaceTitle a:first");
 				if ($userLink.length > 0) {
-					var userTitle = $userLink.text();
+					//var userTitle = $userLink.text();
 					var userName = extractUserName($userLink);
 					var $userAction = $(elem).find(".connectionBtn");
-					addButton($userAction, userName, userTitle, function($button) {
+					addUserButton($userAction, userName).done(function($container) {
+						var $button = $container.find(".startCallAction");
 						$button.css({ "float" : "right", "height" : "28px"});
 						$button.find("p").css("margin", "0px");
 						$button.find("img").css({ "margin" : "5px 0 0 0", "vertical-align" : "0px"});						
@@ -415,10 +552,11 @@
 			// single user profile; TODO it doesn't work in PLF 4.4.1
 			$("#" + compId).find("#socialTopLayout").each(function(i, elem) {
 				var $userStatus = $(elem).find("#UIStatusProfilePortlet .user-status");
-				var userTitle = $userStatus.children("span").text();  
+				//var userTitle = $userStatus.children("span").text();  
 				var userName = $userStatus.data("userid");
 				var $userActions = $(elem).find("#UIRelationshipAction .user-actions");
-				addButton($userActions, userName, userTitle, function($button) {
+				addUserButton($userActions, userName).done(function($container) {
+					var $button = $container.find(".startCallAction");
 					$button.css({ "float" : "left", "height" : "28px"});
 					$button.find("img").css({ "margin" : "5px 5px 0 0", "vertical-align" : "0px"});					
 				});
@@ -444,7 +582,7 @@
 		 * 
 		 * @Deprecated
 		 */
-		var initSpace = function(compId) {
+		var initSpace_old = function(compId) {
 			if (currentUser && currentSpace) {
 				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
 				if ($navigationPortlet.length == 0) {
@@ -540,9 +678,6 @@
 					log(">>> initSpaceWeb " + compId + " " + currentUser.name);
 					var initializer = $.Deferred();
 					$breadcumbEntry.data("callbuttoninit", true);
-					if (spaceUpdater) {
-						spaceUpdater.clearInterval();
-					}
 					// TODO check precisely that we have an one button for each provider
 					if (providers.length > 0) {
 						var $container = $breadcumbEntry.find(".callButtonContainer");
@@ -615,14 +750,89 @@
 			}
 		};
 		
+		var initSpace = function(compId) {
+			if (currentUser && currentSpace) {
+				var $navigationPortlet = $("#" + compId + " #UIBreadCrumbsNavigationPortlet");
+				if ($navigationPortlet.length == 0) {
+					setTimeout($.proxy(initSpace, this), 250, compId);
+					return;
+				}
+				
+				var spaceContext = function() {
+					var context = {
+						currentUser : currentUser,
+						spaceName : currentSpace.spaceName,
+						isIOS : isIOS,
+						isAndroid : isAndroid,
+						isWindowsMobile : isWindowsMobile,
+						_space : null
+					};
+					Object.defineProperty(context, "space", {
+					  enumerable: true,
+					  configurable: false,
+					  get: function() {
+					  	// We use short-living cache for 5s
+					  	var cached = context._space;
+					  	if (cached) {
+					  		log(">> initSpace > get_space CACHED " + currentSpace.spaceName);
+					  		var get = $.Deferred();
+					  		get.resolve(cached);
+					  		return get.promise();
+					  	} else {
+						  	log(">> initSpace > get_space " + currentSpace.spaceName);
+						  	var get = getSpaceInfo(currentSpace.spaceName);
+						  	get.done(function(space) {
+						  		context._space = space;
+						  		setTimeout(function() {
+						  			context._space = null;
+						  		}, 5000);
+						  	});
+								get.fail(function(e, status) {
+									if (status == 404) {
+										log(">> initSpace < ERROR get_space " + currentSpace.spaceName + " for " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
+									} else {
+										log(">> initSpace < ERROR get_space " + currentSpace.spaceName + " for " + currentUser.name + ": " + JSON.stringify(e));
+									}
+								});
+								return get;
+					  	}
+					  },
+					  set: function() {
+					  	log(">> initSpace < ERROR set_space not supported " + currentSpace.spaceName + " for " + currentUser.name);
+					  	throw "Changing 'space' property not supported";
+					  }
+					});
+					return context;
+				};
+				
+				var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
+				
+				var initializer = addCallButton($breadcumbEntry, spaceContext());
+				initializer.progress(function(message) {
+					log(">> initSpace PROGRESS " + message);
+				});
+				initializer.done(function($container) {
+					$container.find(".startCallButton").addClass("spaceCall");
+					log("<< initSpace DONE " + currentSpace.spaceName + " for " + currentUser.name);
+				});
+				initializer.fail(function(error, $container) {
+					if ($container) {
+						log("<< initSpace SKIPPED (" + error + ") in " + currentSpace.spaceName + " for " + currentUser.name);
+					} else {
+						log("<< initSpace ERROR " + currentSpace.spaceName + " for " + currentUser.name + ": " + error);
+					}
+				});
+			}
+		};
+		
 		this.update = function(compId) {
 			if (!compId) {
 				// by default we work with whole portal page
 				compId = "UIPortalApplication";
 			}
 			if (currentUser) { 
-				// initUserPopups(compId);
-				initSpaceWeb(compId);
+				initUserPopups(compId);
+				initSpace(compId);
 			}
 		};
 

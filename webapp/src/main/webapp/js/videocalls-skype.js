@@ -27,6 +27,7 @@
 	if (videoCalls) {
 
 		function SkypeProvider() {
+			var self = this;
 			var settings, currentKey;
 			var appInstance, uiAppInstance;
 
@@ -40,6 +41,7 @@
 				}
 			};
 			
+			/** @Deprecated */
 			var getGroupParticipants = function(group, context) {
 				var participants = [];
 				for ( var uname in group.members) {
@@ -62,6 +64,7 @@
 				return participants;
 			};
 
+			/** @Deprecated */
 			var participants = function(context) {
 				var participants;
 				if (context.space) {
@@ -255,60 +258,95 @@
 			};
 
 			this.callButton = function(context) {
-				var $button;
+				var button = $.Deferred();
 				if (settings && context && context.currentUser) {
 					context.currentUserSkype = imAccount(context.currentUser, "skype");
 					context.currentUserSFB = imAccount(context.currentUser, "mssfb");
-					var callParts = participants(context);
-					var isGroupCall;
-					var linkId, title; // TODO i18n for title
+					var participants = $.Deferred();
 					var rndText = Math.floor((Math.random() * 1000000) + 1);
-					if (context.space) {
-						linkId = "SkypeCall-" + context.space.prettyName + "-" + rndText;
-						title = context.space.title + " meeting";
-						isGroupCall = true;
-					} else if (context.chat && context.chat.room) {
-						linkId = "SkypeCall-" + context.space.prettyName + "-" + rndText;
-						title = context.chat.room.title + " meeting"; // TODO define Chat/Room API
-						isGroupCall = true;
+					if (context.spaceName) {
+						context.space.done(function(space) {
+							var linkId = "SkypeCall-" + space.prettyName + "-" + rndText;
+							var title = space.title + " meeting";
+							participants.resolve(linkId, title, space.members);
+						});
+					} else if (context.roomName) {
+						context.room.done(function(group) {
+							var linkId = "SkypeCall-" + context.roomName + "-" + rndText;
+							var title = context.roomName + " meeting"; // TODO define Chat/Room API
+							participants.resolve(linkId, title, group.members);
+						});
 					} else {
-						linkId = "SkypeCall-" + callParts.join("-") + "-" + rndText;
-						titie = "Call with " + context.user.title;
-						isGroupCall = false;
+						context.user.done(function(user) {
+							var linkId = "SkypeCall-" + user.name + "-" + rndText;
+							var titie = "Call with " + context.user.title;
+							participants.resolve(linkId, title, [ user ]);
+						});
 					}
-					if (callParts.length > 0) {
-						if (context.currentUserSFB) {
-							// TODO use Skype WebSDK for Business users
-							// var useBusiness = context.currentUserSFB; // && (isIOS || isAndroid)
-							var userIMs = callParts.join(";");
-							$button = $("<a id='" + linkId + "' title='" + title
-										+ "' href='javascript:void(0);' class='sfbCallIcon'>" + this.getCallTitle() + "</a>");
-							$button.click(function() {
-								// TODO check if such window isn't already open by this app
-								var callUri = videoCalls.getBaseUrl() + "/portal/skype/call/_" + userIMs;
-								//var callWindow = window.open(callUri);
-								var loginUri = "https://login.microsoftonline.com/common/oauth2/authorize?response_type=token&client_id="
-																	+ settings.clientId
-																	+ "&redirect_uri="
-																	+ encodeURIComponent(callUri)
-																	+ "&resource="
-																	+ encodeURIComponent("https://webdir.online.lync.com");
-								log("Skype login/call: " + loginUri);
-								var callWindow = window.open(loginUri);
-							});
-						} else if (context.currentUserSkype) {
-							// use Skype URI for regular Skype user
-							var userIMs = callParts.join(";");
-							var link = "skype:" + userIMs + "?call&amp;video=true";
-							$button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
-										+ "' class='skypeCallIcon'>" + this.getCallTitle() + "</a>");
-							$button.click(function() {
-								// TODO what else we could do here? status? fire listeners?
-							});
-						} // else, not skype user
-					}
+					participants.done(function(linkId, title, users) {
+						// TODO i18n for title
+						var ims = [];
+						for ( var uname in users) {
+							if (users.hasOwnProperty(uname)) {
+								var u = users[uname];
+								var uskype = imAccount(u, "skype");
+								var ubusiness = imAccount(u, "mssfb");
+								if (context.currentUserSFB) {
+									if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
+										ims.push(encodeURIComponent(ubusiness.id));
+									} else if (uskype) {
+										ims.push(uskype.id);
+									}
+								} else if (uskype) {
+									// this is a regular Skype, it cannot call business users
+									ims.push(uskype.id);
+								} // else, skip this user
+							}
+						}
+						if (ims.length > 0) {
+							var userIMs = ims.join(";");
+							if (context.currentUserSFB) {
+								// TODO use Skype WebSDK for Business users
+								// var useBusiness = context.currentUserSFB; // && (isIOS || isAndroid)
+								var $button = $("<a id='" + linkId + "' title='" + title
+											+ "' href='javascript:void(0);' class='sfbCallIcon'>" + self.getCallTitle() + "</a>");
+								$button.click(function() {
+									// TODO check if such window isn't already open by this app
+									var callUri = videoCalls.getBaseUrl() + "/portal/skype/call/_" + userIMs;
+									//var callWindow = window.open(callUri);
+									var loginUri = "https://login.microsoftonline.com/common/oauth2/authorize?response_type=token&client_id="
+																		+ settings.clientId
+																		+ "&redirect_uri="
+																		+ encodeURIComponent(callUri)
+																		+ "&resource="
+																		+ encodeURIComponent("https://webdir.online.lync.com");
+									log("Skype login/call: " + loginUri);
+									var callWindow = window.open(loginUri);
+								});
+								button.resolve($button);
+							} else if (context.currentUserSkype) {
+								// use Skype URI for regular Skype user
+								// TODO add calling SfB on Android?
+								var link = "skype:" + userIMs + "?call&amp;video=true";
+								var $button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
+											+ "' class='skypeCallIcon'>" + self.getCallTitle() + "</a>");
+								$button.click(function() {
+									// TODO what else we could do here? status? fire listeners?
+								});
+								button.resolve($button);
+							} else {
+								// else, not skype user
+								button.reject("Not Skype user");
+							}
+						} else {
+							// else, no user(s) found
+							button.reject("No users found");
+						}
+					});
+				} else {
+					button.reject("Not configured or empty context");
 				}
-				return $button;
+				return button.promise();
 			}
 		}
 
