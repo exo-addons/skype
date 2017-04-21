@@ -1,41 +1,15 @@
-/*.startCallAction {
-	float: right;
-}
-
-.startCallAction p {
-	margin: 0px !important;
-}
-
-.startCallAction img {
-	margin: 0px !important;
-  vertical-align: 0px !important;	
-}*/
-
+/* Styles for Video Calls core */
 .callButtonContainer {
 	position: relative;
-	top: -22px;
 }
 
-/******** Video Call stuff below ************/
-
-@keyframes blink {  
-    0% { color: red; }
-    100% { color: black; }
+.spaceCall {
+	padding-top: 1px;
+	padding-bottom: 1px;
 }
-@-webkit-keyframes blink {
-    0% { color: red; }
-    100% { color: black; }
-}
-.meetReady>i:before {
-    -webkit-animation: blink 1.5s linear infinite;
-    -moz-animation: blink 1.5s linear infinite;
-    -ms-animation: blink 1.5s linear infinite;
-    -o-animation: blink 1.5s linear infinite;
-    animation: blink 1.5s linear infinite;
-} 
 
-.meetJoined>i:before {
-    color: blue !important;
+.userCall.btn:first-child {
+	background-color: initial;
 }
 
 /******** Pnotify icons ********/

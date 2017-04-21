@@ -277,62 +277,65 @@
 		 */
 		var addCallButton = function($target, context) {
 			var initializer = $.Deferred();
-			if ($target.length > 0 && !$target.data("callbuttoninit")) {
-				$target.data("callbuttoninit", true);
-				if (providers.length > 0) {
-					var $container = $target.find(".callButtonContainer");
-					// TODO check precisely that we have an one button for each provider
-					if ($container.find(".startCallButton").length != providers.length) {
-						var contextName = (context.spaceName ? context.spaceName : context.userName);
-						initializer.notify("addCallButton " + contextName + " for " + context.currentUser.name);
-						if ($container.length == 0) {
-							$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
-							$target.append($container);
-						}
-						var actionClasses = "startCallButton"; // actionIcon
-						var $dropdown = $container.find(".dropdown-menu");
-						var buttons = [];
-						for (var i = 0; i < providers.length; i++) {
-							var p = providers[i];
-							var button = p.callButton(context);
-							button.done(function($button) {
-								if ($dropdown.length > 0) {
-									// add others in dropdown
-									$button.addClass(actionClasses);
-									$dropdown.append($button);	
-								} else {
-									// add first & default button
-									$button.addClass("btn " + actionClasses); // btn-primary
-									$container.append($button); 
-									$dropdown = $("<ul class='dropdown-menu'></ul>");
+			if ($target.length > 0) {
+				if (!$target.data("callbuttoninit")) {
+					$target.data("callbuttoninit", true);
+					if (providers.length > 0) {
+						var $container = $target.find(".callButtonContainer");
+						// TODO check precisely that we have an one button for each provider
+						if ($container.find(".startCallButton").length != providers.length) {
+							var contextName = (context.spaceName ? context.spaceName : context.userName);
+							initializer.notify("addCallButton " + contextName + " for " + context.currentUser.name);
+							if ($container.length == 0) {
+								$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
+								$target.append($container);
+							}
+							var actionClasses = "startCallButton"; // actionIcon
+							var $dropdown = $container.find(".dropdown-menu");
+							var buttons = [];
+							for (var i = 0; i < providers.length; i++) {
+								var p = providers[i];
+								var button = p.callButton(context);
+								button.done(function($button) {
+									if ($dropdown.length > 0) {
+										// add others in dropdown
+										$button.addClass(actionClasses);
+										$dropdown.append($button);	
+									} else {
+										// add first & default button
+										$button.addClass("btn " + actionClasses); // btn-primary
+										$container.append($button); 
+										$dropdown = $("<ul class='dropdown-menu'></ul>");
+									}
+								});
+								buttons.push(button);
+							}
+							$.when.apply($, buttons).always(function() {
+								if ($dropdown.children().length > 0) {
+									$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
+									$container.append($dropdown);
 								}
-							});
-							buttons.push(button);
+								if (buttons.length > 0) {
+									$container.show();
+									initializer.resolve($container);
+								} else {
+									initializer.reject("Nothing added");
+								}
+			        });
+						}	else {
+							initializer.reject("Already initialized", $container);
 						}
-						$.when.apply($, buttons).always(function() {
-							if ($dropdown.children().length > 0) {
-								// btn-primary
-								$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
-								$container.append($dropdown);
-							}
-							if (buttons.length > 0) {
-								$container.show();
-								initializer.resolve($container);
-							} else {
-								initializer.reject("Nothing added");
-							}
-		        });
-					}	else {
-						initializer.reject("Already initialized", $container);
+					} else {
+						initializer.reject("No providers");
 					}
+					initializer.always(function() {
+						$target.data("callbuttoninit", false);
+					});
 				} else {
-					initializer.reject("No providers");
-				}
-				initializer.always(function() {
-					$target.data("callbuttoninit", false);
-				});
+					initializer.reject("Already initializing", true);
+				}	
 			} else {
-				initializer.reject("Target not found or already initializing");
+				initializer.reject("Target not found");
 			}
 			return initializer.promise();
 		};
@@ -415,74 +418,6 @@
 				}
 			}
 
-			/** @Deprecated */
-			function addButton($userAction, userName, userTitle, tuningFunc) {
-				if ($userAction.length > 0 && !$userAction.data("callbuttoninit")) {
-					$userAction.data("callbuttoninit", true);
-					
-					var callId = "Call " + currentUser.title + " with " + userTitle;
-					// TODO check if call not already started (by another user)
-					var get = getUserInfo(userName);
-					get.done(function(user) {
-						if (isSkypeUser(user)) {
-							prepareUser(user); 
-							var linkId = "SkypeButton-" + userName.split(".").join("") + Math.floor((Math.random() * 1000000) + 1);
-							var $button = $("<div id='" + linkId + "' style='display: none;'></div>");
-							$userAction.append($button);
-							var userIM, isBusiness;
-							if (user.imAccounts.mssfb) {
-								userIM = user.imAccounts.mssfb[0].id;
-								isBusiness = true;
-							} else {
-								userIM = user.imAccounts.skype[0].id;
-								isBusiness = false;
-							}
-							var res = Skype.ui({
-								name: "call",
-								topic: callId,
-								element: linkId,
-								participants: [userIM], // currentUser.skypeIM
-								imageSize: 24,
-								imageColor: "skype",
-								useDetection: "false"
-							});
-							if (res) {
-								var currentIsBusiness = currentUser.imAccounts.mssfb;
-								if (currentIsBusiness && isBusiness && (isIOS || isAndroid)) { 
-									// current user is business - use SfB URI
-									// TODO is it for mobile only?
-									var $link = $button.find("a");
-									$link.attr("href", "ms-sfb://call?id=" + encodeURIComponent(userIM) + "&video=true");
-								} // otherwise - use normal Skype, it was just
-									// generated above
-								$button.addClass("startCallAction");
-								$button.show();
-								$button.data("callid", callId);
-								if (tuningFunc) {
-									tuningFunc($button);
-								}
-								log("Created Skype call button for " + userTitle + ". " + $button);
-							} else {
-								$userAction.data("skypebutton", false);
-								log("Cannot create Skype call button for " + userTitle + ". " + $button);
-							}
-						} else {
-							log("Skype IM not found for " + userTitle + ". Call button cannot be created.");
-						}
-					});
-					get.fail(function(e, status) {
-						$userAction.data("skypebutton", false);
-						if (status == 404) {
-							log("ERROR " + (e.message ? e.message + " " : "Not found ") + userTitle + ": " + JSON.stringify(e));
-						} else {
-							log("ERROR reading user: " + JSON.stringify(e));
-							// showWarn("Error reading Skype IM of " +
-							// userTitle, e.message);
-						}
-					});
-				}
-			}
-			
 			var addUserButton = function($userAction, userName) {
 				var initializer = addCallButton($userAction, userContext(userName));
 				initializer.progress(function(message) {
@@ -493,7 +428,6 @@
 					log("<< initUserPopups DONE " + userName + " for " + currentUser.name);
 				});
 				initializer.fail(function(error, $container) {
-					log("Error creating call button for " + userName + ": " + error);
 					if ($container) {
 						log("<< initUserPopups SKIPPED (" + error + ") " + userName + " for " + currentUser.name);
 					} else {
@@ -522,12 +456,15 @@
 							var $userLink = $("a", $td.get(1));
 							//var userTitle = $userLink.text();
 							var userName = extractUserName($userLink);
-							var $userAction = $tiptip.find(".uiAction");
-							addUserButton($userAction, userName).done(function($container) {
-								var $button = $container.find(".startCallAction");
-								$button.find("p").css("margin", "0px");
-								$button.find("img").css("margin", "20px");
-							});
+							if (userName != currentUser.name) {
+								var $userAction = $tiptip.find(".uiAction");
+								addUserButton($userAction, userName).done(function($container) {
+									$container.css("margin", "10px");
+									//var $button = $container.find(".startCallButton");
+									//$button.find("p").css("margin", "0px");
+									//$button.find("img").css("margin", "20px");
+								});
+							}
 						}
 					}, 600);
 				});
@@ -539,27 +476,33 @@
 				if ($userLink.length > 0) {
 					//var userTitle = $userLink.text();
 					var userName = extractUserName($userLink);
-					var $userAction = $(elem).find(".connectionBtn");
-					addUserButton($userAction, userName).done(function($container) {
-						var $button = $container.find(".startCallAction");
-						$button.css({ "float" : "right", "height" : "28px"});
-						$button.find("p").css("margin", "0px");
-						$button.find("img").css({ "margin" : "5px 0 0 0", "vertical-align" : "0px"});						
-					});
+					if (userName != currentUser.name) {
+						var $userAction = $(elem).find(".connectionBtn");
+						addUserButton($userAction, userName).done(function($container) {
+							$container.addClass("pull-right");
+							//var $button = $container.find(".startCallButton");
+							//$button.css({ "float" : "right", "height" : "28px"});
+							//$button.find("p").css("margin", "0px");
+							//$button.find("img").css({ "margin" : "5px 0 0 0", "vertical-align" : "0px"});						
+						});
+					}
 				}
 			});
 
-			// single user profile; TODO it doesn't work in PLF 4.4.1
+			// single user profile;
 			$("#" + compId).find("#socialTopLayout").each(function(i, elem) {
 				var $userStatus = $(elem).find("#UIStatusProfilePortlet .user-status");
 				//var userTitle = $userStatus.children("span").text();  
 				var userName = $userStatus.data("userid");
-				var $userActions = $(elem).find("#UIRelationshipAction .user-actions");
-				addUserButton($userActions, userName).done(function($container) {
-					var $button = $container.find(".startCallAction");
-					$button.css({ "float" : "left", "height" : "28px"});
-					$button.find("img").css({ "margin" : "5px 5px 0 0", "vertical-align" : "0px"});					
-				});
+				if (userName != currentUser.name) {
+					var $userActions = $(elem).find("#UIRelationshipAction .user-actions");
+					addUserButton($userActions, userName).done(function($container) {
+						$container.addClass("pull-left");
+						//var $button = $container.find(".startCallButton");
+						//$button.css({ "float" : "left", "height" : "28px"});
+						//$button.find("img").css({ "margin" : "5px 5px 0 0", "vertical-align" : "0px"});					
+					});
+				}
 				
 				// Copied from Chat app: Fix PLF-6493: Only let hover happens on
 				// connection buttons instead
@@ -575,93 +518,6 @@
 				  $btnConnections.toggle();
 				});
 			});
-		};
-
-		/** @Deprecated */
-		var initSpaceWeb = function(compId) {
-			if (currentUser && currentSpace) {
-				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
-				if ($navigationPortlet.length == 0) {
-					setTimeout($.proxy(initSpace, this), 250, compId);
-					return;
-				}
-				
-				var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
-				// XXX callbuttoninit data used to avoid multithread calls (by DOM observer listeners)
-				if ($breadcumbEntry.length > 0 && !$breadcumbEntry.data("callbuttoninit")) {
-					log(">>> initSpaceWeb " + compId + " " + currentUser.name);
-					var initializer = $.Deferred();
-					$breadcumbEntry.data("callbuttoninit", true);
-					// TODO check precisely that we have an one button for each provider
-					if (providers.length > 0) {
-						var $container = $breadcumbEntry.find(".callButtonContainer");
-						if ($container.find(".startCallButton").length != providers.length) {
-							var get = getSpaceInfo(currentSpace.spaceName);
-							// TODO do we really need call REST, may be it could be injected in env?
-							get.done(function(space) {
-								if ($container.length == 0) {
-									$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
-									$breadcumbEntry.append($container);
-								}
-								var actionClasses = "startCallButton spaceCall"; // actionIcon 
-								var context = {
-									currentUser : currentUser,
-									space : space,
-									isIOS : isIOS,
-									isAndroid : isAndroid
-								};
-								var $dropdown = $container.find(".dropdown-menu");
-								var $button;
-								for (var i = 0; i < providers.length; i++) {
-									var p = providers[i];
-									var $button = p.callButton(context);
-									if ($button) {
-										if ($dropdown.length > 0) {
-											// add others in dropdown
-											$button.addClass(actionClasses);
-											$dropdown.append($button);	
-										} else {
-											// add first & default button
-											$button.addClass("btn " + actionClasses); // btn-primary
-											$container.append($button); 
-											$dropdown = $("<ul class='dropdown-menu'></ul>");
-										}
-									}
-								}
-								if ($dropdown.children().length > 0) {
-									// btn-primary
-									$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
-									$container.append($dropdown);
-								}
-								if ($button) {
-									$container.show();
-								}
-								initializer.resolve();
-								log("<<< initSpaceWeb DONE " + compId + " " + currentUser.name);
-							});
-							get.fail(function(e, status) {
-								initializer.reject();
-								if (status == 404) {
-									log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
-								} else {
-									log("<<< initSpaceWeb ERROR " + compId + " " + currentUser.name + ": reading space users: " + JSON.stringify(e));
-								}
-							});
-						}	else {
-							initializer.reject();
-							log("<<< initSpaceWeb SKIPPED (already initialized) " + compId + " " + currentUser.name);
-						}
-					} else {
-						initializer.reject();
-						log("<<< initSpaceWeb CANCEL (no providers) " + compId + " " + currentUser.name);
-					}
-					initializer.always(function() {
-						$breadcumbEntry.data("callbuttoninit", false);
-					});
-				} else {
-					log("<<< initSpaceWeb SKIPPED (no breadcumbEntry or already initialized) " + compId + " " + currentUser.name);
-				}
-			}
 		};
 		
 		var initSpace = function(compId) {
@@ -726,6 +582,7 @@
 					log(">> initSpace PROGRESS " + message);
 				});
 				initializer.done(function($container) {
+					$container.css("top", "-22px");
 					$container.find(".startCallButton").addClass("spaceCall");
 					log("<< initSpace DONE " + currentSpace.spaceName + " for " + currentUser.name);
 				});
@@ -783,7 +640,8 @@
 			// * getType() - major call type name
 			// * getSupportedTypes() - all supported call types
 			// * getTitle() - human-readable title for UI
-			// * callButton(context) - provider should offer an implementation of a Call button and call invoker in it
+			// * callButton(context) - provider should offer an implementation of a Call button and call invoker in it, 
+			// it returns a promise, when it resolved there will be a JQuery element of a button(s) container. 
 			//
 			// A provider may support following of API methods:
 			// * update(stateObj) - when Video Calls will need update the state and UI, it will call the method

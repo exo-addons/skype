@@ -133,7 +133,7 @@ public class VideoCallsService implements Startable {
   protected SpaceService                          spaceService;
 
   /**
-   * Instantiates a new Skype service.
+   * Instantiates a new VideoCalls service.
    *
    * @param jcrService the jcr service
    * @param sessionProviders the session providers

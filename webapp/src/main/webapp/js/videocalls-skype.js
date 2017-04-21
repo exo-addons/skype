@@ -79,7 +79,6 @@
 				settings = skypeEnv;
 				// TODO do some validation of given settings?
 				// Skype Configuration: apiKey for SDK, apiKeyCC for SDK+UI
-				// initSDK();
 			};
 
 			this.isConfigured = function() {
@@ -222,7 +221,7 @@
 					} else {
 						context.user.done(function(user) {
 							var linkId = "SkypeCall-" + user.name + "-" + rndText;
-							var titie = "Call with " + context.user.title;
+							var title = "Call with " + context.user.title;
 							participants.resolve(linkId, title, [ user ]);
 						});
 					}
