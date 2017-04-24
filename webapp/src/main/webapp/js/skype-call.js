@@ -42,9 +42,9 @@ if (eXo.videoCalls) {
 				var $container = $("div.skype-call-container");
 				if ($container.length == 0) {
 					$container = $("<div class='skype-call-container' style='display: none;'></div>");
-					var newHeight = $(window).height();
+					var newHeight = $(window).height() - 30; // 15px for margins top/bottom
 					var oldHeight = $container.height();
-					if (newHeight > oldHeight) {
+					if (newHeight > 0) {
 						$container.height(newHeight);
 					}
 					$(document.body).append($container);

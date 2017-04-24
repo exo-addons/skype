@@ -460,9 +460,6 @@
 								var $userAction = $tiptip.find(".uiAction");
 								addUserButton($userAction, userName).done(function($container) {
 									$container.css("margin", "10px");
-									//var $button = $container.find(".startCallButton");
-									//$button.find("p").css("margin", "0px");
-									//$button.find("img").css("margin", "20px");
 								});
 							}
 						}
@@ -480,10 +477,6 @@
 						var $userAction = $(elem).find(".connectionBtn");
 						addUserButton($userAction, userName).done(function($container) {
 							$container.addClass("pull-right");
-							//var $button = $container.find(".startCallButton");
-							//$button.css({ "float" : "right", "height" : "28px"});
-							//$button.find("p").css("margin", "0px");
-							//$button.find("img").css({ "margin" : "5px 0 0 0", "vertical-align" : "0px"});						
 						});
 					}
 				}
@@ -498,9 +491,7 @@
 					var $userActions = $(elem).find("#UIRelationshipAction .user-actions");
 					addUserButton($userActions, userName).done(function($container) {
 						$container.addClass("pull-left");
-						//var $button = $container.find(".startCallButton");
 						//$button.css({ "float" : "left", "height" : "28px"});
-						//$button.find("img").css({ "margin" : "5px 5px 0 0", "vertical-align" : "0px"});					
 					});
 				}
 				
@@ -697,6 +688,25 @@
 					// $("head").append($("<link href='" + cssUrl + "' rel='stylesheet' type='text/css' />"));
 				} // else, already added
 			}
+		};
+		
+		/**
+		 * Helper method to show call popup according the Web Conferencing spec.
+		 */
+		this.showCallPopup = function(url, title) {
+			// FYI Core adopted from Video Calls v1 notif.js
+			//var bw = $(window).width();
+			//var bh = $(window).height(); 
+			var aw = window.screen.availWidth; // screen.width
+			var ah = window.screen.availHeight; // screen.height
+		  var w = Math.floor(aw * 0.8);
+		  var h = Math.floor(ah * 0.8);
+		  var left = (aw/2)-(w/2);
+		  var top = (ah/2)-(h/2);
+		  var callWindow = window.open(url, title, "toolbar=no,menubar=no,scrollbars=no,resizable=no,location=no,directories=no,status=no,"
+		  			+ "width=" + w + ",height=" + h + ",top=" + top + ",left=" + left);
+		  callWindow.focus();
+		  return callWindow;
 		};
 	}
 	

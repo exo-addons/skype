@@ -260,7 +260,7 @@
 																		+ "&resource="
 																		+ encodeURIComponent("https://webdir.online.lync.com");
 									log("Skype login/call: " + loginUri);
-									var callWindow = window.open(loginUri);
+									var callWindow = videoCalls.showCallPopup(loginUri, title);
 								});
 								button.resolve($button);
 							} else if (context.currentUserSkype) {
