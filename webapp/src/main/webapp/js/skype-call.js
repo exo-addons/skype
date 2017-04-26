@@ -13,6 +13,8 @@ if (eXo.videoCalls) {
 			var isCall = /\/_/.test(location.pathname);
 			var isLogin = /\/login/.test(location.pathname);
 
+			var isClosed = false;
+
 			/** For debug logging. */
 			var objId = Math.floor((Math.random() * 1000) + 1);
 			var logPrefix = "[skypecall_" + objId + "] ";
@@ -83,7 +85,7 @@ if (eXo.videoCalls) {
 					}
 				}, this);
 			}
-			
+
 			function showError(title, message) {
 				$("#skype-call-conversation").hide();
 				var $error = $("#skype-call-error");
@@ -97,6 +99,39 @@ if (eXo.videoCalls) {
 				var $description = $("<div class='error-description'></div>");
 				$description.text(message);
 				$error.append($description);
+			}
+
+			function onClosePage(conversation, uiApp) {
+				if (!isClosed) {
+					// TODO In WebKIT browsers this stuff doesn't work and outgoing call still may run for the remote party if
+					// simply close the window. It is caused by the browser implementation, in WebKIT it doesn't let asynchronous
+					// requests to work on this stage, but if user will click to stay(!) on the page, then this code will be
+					// proceeded and the call ended.
+					// In IE and FF (but not for video/audio in FF currently, Apr 26 2017), this code will be
+					// executed by the browser and call rejected or stopped.
+					log("<<<< Leave Skype conversation");
+					conversation.leave().then(function() {
+						uiApp.conversationsManager.conversations.remove(conversation);
+						log("<<<< Skype conversation leaved");
+						isClosed = true;
+					});
+					conversation.selfParticipant.reset();
+					// conversation.videoService.stop();
+					// conversation.audioService.stop();
+					// conversation.chatService.stop();
+					// uiApp.signInManager.signOut().then(function() {
+					// log("<<<< Skype signed out");
+					// }, function(error) {
+					// log("<<<< Error signing out Skype:" + error);
+					// });
+					// var currentTime = new Date().getTime();
+					// while (currentTime + 3000 >= new Date().getTime()) {
+					// for (var i = 0; i++; i < 10) {
+					// }
+					// }
+					// log("<<<< Skype signing out");
+					return "You canceled the call";
+				}
 			}
 
 			// // TODO Browser Listener - used for debug purposes (WebSDK sends tonds of messages to itself window)
@@ -176,7 +211,7 @@ if (eXo.videoCalls) {
 								log(">>>> Skype conversation is creating in " + $convo.get(0) + " participants: "
 											+ participants.join(","));
 								api.renderConversation($convo.get(0), {
-									"modalities" : [ "Chat", "Video" ], // 
+									"modalities" : [ "Chat" ], // , "Video"
 									"participants" : participants
 								}).then(function(conversation) {
 									// Conversation Control was rendered successfully
@@ -188,8 +223,32 @@ if (eXo.videoCalls) {
 									// }, function(err) {
 									// log("Skype error starting chatService " + err);
 									// });
-									$(window).on("beforeunload", function() {
-										conversation.leave();
+									// conversation.topic("TODO")
+									conversation.videoService.start().then(function(obj) {
+										// videoService started successfully
+										log(">>>>> Skype video started: " + JSON.stringify(obj));
+									}, function(error) {
+										// error starting chatService, cancel (by this user) also will go here
+										log("<<<<< Error starting Skype video: " + JSON.stringify(error));
+										if (error) {
+											if (error.reason && error.reason.subcode && error.reason.message) {
+												showError(error.reason.subcode, error.reason.message);
+											} else {
+												if (error.code && error.code == "Canceled") {
+													// Do nothing
+												} else {
+													showError("Error starting video call", error);
+												}
+											}
+										}
+									});
+									window.addEventListener("beforeunload", function(e) {
+										var msg = onClosePage(conversation, uiApp);
+										e.returnValue = msg; // Gecko, Trident, Chrome 34+
+										return msg; // Gecko, WebKit, Chrome <34
+									});
+									window.addEventListener("unload", function(e) {
+										onClosePage(conversation, uiApp);
 									});
 								}, function(err) {
 									// error rendering Conversation Control
