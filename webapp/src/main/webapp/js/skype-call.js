@@ -59,6 +59,7 @@ if (eXo.videoCalls) {
 			}
 
 			function handleError() {
+				$("#skype-call-conversation").hide();
 				var $error = $("#skype-call-error");
 				if ($error.length == 0) {
 					$error = $("<div id='skype-call-error'></div>");
@@ -81,6 +82,21 @@ if (eXo.videoCalls) {
 						$error.append($extrainfo);
 					}
 				}, this);
+			}
+			
+			function showError(title, message) {
+				$("#skype-call-conversation").hide();
+				var $error = $("#skype-call-error");
+				if ($error.length == 0) {
+					$error = $("<div id='skype-call-error'></div>");
+					addToContainer($error);
+				}
+				var $title = $("<h1 class='error-title'></h1>");
+				$title.text(title);
+				$error.append($title);
+				var $description = $("<div class='error-description'></div>");
+				$description.text(message);
+				$error.append($description);
 			}
 
 			// // TODO Browser Listener - used for debug purposes (WebSDK sends tonds of messages to itself window)
@@ -172,10 +188,14 @@ if (eXo.videoCalls) {
 									// }, function(err) {
 									// log("Skype error starting chatService " + err);
 									// });
+									$(window).on("beforeunload", function() {
+										conversation.leave();
+									});
 								}, function(err) {
 									// error rendering Conversation Control
 									if (err.name && err.message) {
 										log(">>>> Skype conversation rendering error: " + err.name + " " + err.message, err);
+										showError(err.name, err.message);
 									} else {
 										log(">>>> Skype conversation rendering error: " + JSON.stringify(err));
 									}
@@ -183,11 +203,13 @@ if (eXo.videoCalls) {
 								// });
 							} catch (err) {
 								log(">>>> Skype call error:", err);
+								showError("Call Error", err);
 							}
 						});
 						uiInitializer.fail(function(err) {
 							// TODO we have an error, check if it's auth problem, then force to login
 							log(">>>> Skype app error: " + err);
+							showError("Appplication Error", err);
 						});
 					}
 					if (hasError) {

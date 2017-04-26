@@ -493,21 +493,20 @@
 						$container.addClass("pull-left");
 						//$button.css({ "float" : "left", "height" : "28px"});
 					});
+					// Copied from Chat app: Fix PLF-6493: Only let hover happens on
+					// connection buttons instead
+					// of all in .user-actions
+					var $btnConnections = $userActions.find(".show-default, .hide-default");
+					var $btnShowConnection = $userActions.find(".show-default");
+					var $btnHideConnection = $userActions.find(".hide-default");
+					$btnShowConnection.show();
+					$btnConnections.css("font-style", "italic");
+					$btnHideConnection.hide();
+					$btnConnections.removeClass("show-default hide-default");
+					$btnConnections.hover(function(e) {
+					  $btnConnections.toggle();
+					});
 				}
-				
-				// Copied from Chat app: Fix PLF-6493: Only let hover happens on
-				// connection buttons instead
-				// of all in .user-actions
-				var $btnConnections = $userActions.find(".show-default, .hide-default");
-				var $btnShowConnection = $userActions.find(".show-default");
-				var $btnHideConnection = $userActions.find(".hide-default");
-				$btnShowConnection.show();
-				$btnConnections.css("font-style", "italic");
-				$btnHideConnection.hide();
-				$btnConnections.removeClass("show-default hide-default");
-				$btnConnections.hover(function(e) {
-				  $btnConnections.toggle();
-				});
 			});
 		};
 		
