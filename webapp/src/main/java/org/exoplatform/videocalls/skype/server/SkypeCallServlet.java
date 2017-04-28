@@ -114,7 +114,7 @@ public class SkypeCallServlet extends AbstractHttpServlet {
               SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
               httpReq.setAttribute("settings", asJSON(settings));
 
-              // forward to JSP page
+              // to JSP page
               httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
             } catch (Exception e) {
               LOG.error("Error processing Skype call page", e);

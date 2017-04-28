@@ -29,7 +29,7 @@
   </component -->
   
   <!-- Skype provider plugin -->
-  <!-- external-component-plugins>
+  <external-component-plugins>
     <target-component>org.exoplatform.videocalls.VideoCallsService</target-component>
     <component-plugin>
       <name>add.clouddriveprovider</name>
@@ -38,13 +38,11 @@
       <init-params>
         <properties-param>
           <name>provider-configuration</name>
-          <property name="type" value="skype" />
-          <property name="name" value="Skype" />
           <property name="disable" value="${videocalls.skype.disable:false}" />
         </properties-param>
       </init-params>
     </component-plugin>
-  </external-component-plugins -->
+  </external-component-plugins>
   
   <!-- Skype provider plugin -->
   <external-component-plugins>
@@ -66,7 +64,7 @@
           <property name="web-oauth2-clientId" value="${videocalls.mssfb.web.oauth2.clientId:}" />
           <property name="web-apiKey" value="${videocalls.mssfb.web.apiKey:}" />
           <property name="web-apiKeyCC" value="${videocalls.mssfb.web.apiKeyCC:}" />
-          <property name="disable" value="${videocalls.skype.disable:false}" />
+          <property name="disable" value="${videocalls.mssfb.disable:false}" />
         </properties-param>
       </init-params>
     </component-plugin>

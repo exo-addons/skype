@@ -23,8 +23,10 @@ import java.util.List;
 import org.exoplatform.container.configuration.ConfigurationException;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.ValuesParam;
+import org.exoplatform.social.core.profile.settings.UserProfileSettingsService;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.exoplatform.videocalls.VideoCallsProviderException;
+import org.exoplatform.videocalls.skype.profile.SkypeBusinessIMTypePlugin;
 
 /**
  * Created by The eXo Platform SAS.
@@ -57,6 +59,9 @@ public class SkypeBusinessProvider extends SkypeProvider {
 
   /** The Constant SFB_TYPE. */
   public static final String SFB_TYPE                         = "mssfb";
+
+  /** The Constant SFB_TITLE. */
+  public static final String SFB_TITLE                        = "Skype for Business";
 
   /** The Constant SFB_AUTODISCOVER_ORIGINS_DEFAULT. */
   public static final String SFB_AUTODISCOVER_ORIGINS_DEFAULT =
@@ -143,6 +148,18 @@ public class SkypeBusinessProvider extends SkypeProvider {
    */
   public SkypeBusinessProvider(/* SkypeService skypeService, */ InitParams params)
       throws ConfigurationException {
+    this(null, params);
+  }
+
+  /**
+   * Instantiates a new Skype for Business provider.
+   *
+   * @param params the params
+   * @throws ConfigurationException the configuration exception
+   */
+  public SkypeBusinessProvider(UserProfileSettingsService profileSettings,
+                               /* SkypeService skypeService, */ InitParams params)
+      throws ConfigurationException {
     super(/* skypeService, */params);
 
     String version = this.config.get(CONFIG_WEB_APPVERSION);
@@ -190,6 +207,10 @@ public class SkypeBusinessProvider extends SkypeProvider {
       // - 1] = "https://webdir1e.online.lync.com/Autodiscover/AutodiscoverService.svc/root";
     } else {
       origins = new String[] { SFB_AUTODISCOVER_ORIGINS_DEFAULT };
+    }
+
+    if (profileSettings != null) {
+      profileSettings.addIMTypePlugin(new SkypeBusinessIMTypePlugin());
     }
   }
 
@@ -252,12 +273,12 @@ public class SkypeBusinessProvider extends SkypeProvider {
    */
   @Override
   public IMInfo getIMInfo(String imId) throws VideoCallsProviderException {
-    if (emailTest.matcher(imId).find()) {
-      // it looks as email, assume it's SfB account
-      return new SkypeBusinessIMInfo(imId);
-    } else {
-      return new SkypeIMInfo(imId);
-    }
+    // if (emailTest.matcher(imId).find()) {
+    // it looks as email, assume it's SfB account
+    return new SkypeBusinessIMInfo(imId);
+    // } else {
+    // return new SkypeIMInfo(imId);
+    // }
   }
 
   /**
@@ -272,26 +293,34 @@ public class SkypeBusinessProvider extends SkypeProvider {
    * {@inheritDoc}
    */
   @Override
+  public String getTitle() {
+    return SFB_TITLE;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public String getVersion() {
     return version;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public boolean isSupportedType(String type) {
-    // TODO regular Skype support temporal, remove it when introduce SFB support in eXo user profile
-    return super.isSupportedType(type) || SkypeProvider.SKYPE_TYPE.equals(type);
-  }
+  // /**
+  // * {@inheritDoc}
+  // */
+  // @Override
+  // public boolean isSupportedType(String type) {
+  // // TODO regular Skype support temporal, remove it when introduce SFB support in eXo user profile
+  // return super.isSupportedType(type) || SkypeProvider.SKYPE_TYPE.equals(type);
+  // }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public String[] getSupportedTypes() {
-    // TODO regular Skype support temporal, remove it when introduce SFB support in eXo user profile
-    return new String[] { getType(), SkypeProvider.SKYPE_TYPE };
-  }
+  // /**
+  // * {@inheritDoc}
+  // */
+  // @Override
+  // public String[] getSupportedTypes() {
+  // // TODO regular Skype support temporal, remove it when introduce SFB support in eXo user profile
+  // return new String[] { getType(), SkypeProvider.SKYPE_TYPE };
+  // }
 
 }

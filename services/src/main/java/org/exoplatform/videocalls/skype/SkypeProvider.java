@@ -20,9 +20,11 @@ package org.exoplatform.videocalls.skype;
 
 import org.exoplatform.container.configuration.ConfigurationException;
 import org.exoplatform.container.xml.InitParams;
+import org.exoplatform.social.core.profile.settings.UserProfileSettingsService;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.exoplatform.videocalls.VideoCallsProvider;
 import org.exoplatform.videocalls.VideoCallsProviderException;
+import org.exoplatform.videocalls.skype.profile.SkypeIMTypePlugin;
 
 /**
  * Created by The eXo Platform SAS.
@@ -62,12 +64,6 @@ public class SkypeProvider extends VideoCallsProvider {
      * @return the settings builder
      */
     public SettingsBuilder redirectURI(String redirectURI) {
-      // TODO cleanup
-      // StringBuilder uri = new StringBuilder(redirectURIBase);
-      // if (uri.charAt(uri.length() - 1) != '/') {
-      // uri.append('/');
-      // }
-      // this.redirectURI = uri.append("portal/skype").toString();
       this.redirectURI = redirectURI;
       return this;
     }
@@ -104,7 +100,7 @@ public class SkypeProvider extends VideoCallsProvider {
     protected SkypeIMInfo(String id) {
       this(SKYPE_TYPE, id);
     }
-    
+
     /**
      * Instantiates a new skype IM info.
      *
@@ -146,6 +142,20 @@ public class SkypeProvider extends VideoCallsProvider {
   }
 
   /**
+   * Instantiates a new skype provider.
+   *
+   * @param params the params
+   * @throws ConfigurationException the configuration exception
+   */
+  public SkypeProvider(UserProfileSettingsService profileSettings,
+                       /* SkypeService skypeService, */ InitParams params)
+      throws ConfigurationException {
+    super(params);
+    // this.skypeService = skypeService;
+    profileSettings.addIMTypePlugin(new SkypeIMTypePlugin());
+  }
+
+  /**
    * Gets the settings.
    *
    * @return the settings
@@ -159,11 +169,12 @@ public class SkypeProvider extends VideoCallsProvider {
    */
   @Override
   public IMInfo getIMInfo(String imId) throws VideoCallsProviderException {
-    if (emailTest.matcher(imId).find()) {
-      throw new SkypeProviderException("Email not supported as a regular Skype IM. Probably you need Business provider. Check the configuration.");
-    } else {
-      return new SkypeIMInfo(imId);
-    }
+    // if (emailTest.matcher(imId).find()) {
+    // throw new SkypeProviderException("Email not supported as a regular Skype IM. Probably you need Business
+    // provider. Check the configuration.");
+    // } else {
+    return new SkypeIMInfo(imId);
+    // }
   }
 
   /**

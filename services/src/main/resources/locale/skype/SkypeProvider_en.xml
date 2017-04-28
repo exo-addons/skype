@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bundle>
-  
+  <UIBasicProfile>
+    <label>
+      <mssfb>Skype for Business</mssfb>
+    </label>
+  </UIBasicProfile>
+  <UIEditUserProfileForm>
+    <label>
+      <mssfb>Skype for Business</mssfb>
+    </label>
+  </UIEditUserProfileForm>
 </bundle>

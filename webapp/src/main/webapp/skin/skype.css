@@ -1,4 +1,12 @@
 /* Styles for Skype provider */
+.uiIconSocMssfb:before {
+    content: url("/skype/skin/icons/sfbicon_16px.png");
+}
+
+.uiIconSocSkype:before {
+    content: url("/skype/skin/icons/skypeicon_16px.png");
+}
+
 .sfbCallIcon:before {
 	content: url("/skype/skin/icons/sfbicon_16px.png");
 	position: relative;

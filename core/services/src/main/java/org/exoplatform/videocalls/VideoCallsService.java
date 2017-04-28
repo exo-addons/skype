@@ -185,7 +185,11 @@ public class VideoCallsService implements Startable {
           if (imId != null && imId.length() > 0) {
             VideoCallsProvider provider = providers.get(imType);
             if (provider != null && provider.isSupportedType(imType)) {
-              info.addImAccount(provider.getIMInfo(imId));
+              try {
+                info.addImAccount(provider.getIMInfo(imId));
+              } catch (VideoCallsProviderException e) {
+                LOG.warn(e.getMessage());
+              }
             }
           }
         }
@@ -239,7 +243,7 @@ public class VideoCallsService implements Startable {
       if (existing != null) {
         LOG.warn("Video Calls provider type '" + existing.getType() + "' already registered. Skipped plugin: "
             + provider);
-      } 
+      }
     }
   }
 
