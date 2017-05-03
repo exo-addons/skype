@@ -32,8 +32,9 @@ import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
+import org.exoplatform.social.core.space.spi.SpaceService;
 import org.exoplatform.videocalls.VideoCallsService;
-import org.exoplatform.videocalls.skype.SkypeProvider;
+import org.exoplatform.videocalls.skype.SkypeBusinessProvider;
 import org.exoplatform.videocalls.skype.SkypeSettings;
 import org.exoplatform.web.application.JavascriptManager;
 import org.exoplatform.webui.application.WebuiRequestContext;
@@ -44,16 +45,19 @@ import org.exoplatform.webui.application.WebuiRequestContext;
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeProviderPortlet.java 00000 Mar 29, 2017 pnedonosko $
  */
-public class SkypeProviderPortlet extends GenericPortlet {
+public class SkypeBusinessProviderPortlet extends GenericPortlet {
 
   /** The Constant LOG. */
-  private static final Log  LOG = ExoLogger.getLogger(SkypeProviderPortlet.class);
+  private static final Log      LOG = ExoLogger.getLogger(SkypeBusinessProviderPortlet.class);
+
+  /** The space service. */
+  private SpaceService          spaceService;
 
   /** The video calls. */
-  private VideoCallsService videoCalls;
+  private VideoCallsService     videoCalls;
 
   /** The provider. */
-  private SkypeProvider     provider;
+  private SkypeBusinessProvider provider;
 
   /**
    * {@inheritDoc}
@@ -65,13 +69,14 @@ public class SkypeProviderPortlet extends GenericPortlet {
     //
     ExoContainer container = ExoContainerContext.getCurrentContainer();
 
+    this.spaceService = container.getComponentInstanceOfType(SpaceService.class);
     this.videoCalls = container.getComponentInstanceOfType(VideoCallsService.class);
 
     try {
-      this.provider = (SkypeProvider) videoCalls.getProvider(SkypeProvider.SKYPE_TYPE);
+      this.provider = (SkypeBusinessProvider) videoCalls.getProvider(SkypeBusinessProvider.SFB_TYPE);
     } catch (ClassCastException e) {
-      LOG.error("Provider " + SkypeProvider.SKYPE_TYPE + " isn't an instance of "
-          + SkypeProvider.class.getName(), e);
+      LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of "
+          + SkypeBusinessProvider.class.getName(), e);
     }
   }
 
@@ -83,15 +88,29 @@ public class SkypeProviderPortlet extends GenericPortlet {
                                                                                     IOException {
     if (this.provider != null) {
       try {
-        SkypeSettings settings = provider.getSettings().build();
+        // So far we don't need any server-side markup for this portlet.
+        // PortletRequestDispatcher prd =
+        // getPortletContext().getRequestDispatcher("/WEB-INF/pages/provider.jsp");
+        // prd.include(request, response);
+
+        // PortalRequestContext requestContext = Util.getPortalRequestContext();
+        // TODO here we may want redirect URI to the current portal page, don't we?
+        URI redirectURI = new URI(request.getScheme(),
+                                  null,
+                                  request.getServerName(),
+                                  request.getServerPort(),
+                                  "/portal/skype/call",
+                                  null,
+                                  null);
+        SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
         String settingsJson = asJSON(settings);
 
         JavascriptManager js =
                              ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
         js.require("SHARED/videoCalls", "videoCalls")
-          .require("SHARED/videoCalls_skype", "skypeProvider")
-          .addScripts("skypeProvider.configure(" + settingsJson
-              + "); videoCalls.addProvider(skypeProvider); videoCalls.update();");
+          .require("SHARED/videoCalls_mssfb", "mssfbProvider")
+          .addScripts("mssfbProvider.configure(" + settingsJson
+              + "); videoCalls.addProvider(mssfbProvider); videoCalls.update();");
       } catch (Exception e) {
         LOG.error("Error processing Skype Calls portlet for user " + request.getRemoteUser(), e);
       }

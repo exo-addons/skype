@@ -57,6 +57,18 @@
     <depends>
       <module>videoCalls</module>
     </depends>
+  </module>
+  <module>
+    <name>videoCalls_mssfb</name>
+    <script>
+      <path>/js/videocalls-mssfb.js</path>
+    </script>
+    <depends>
+      <module>jquery</module>
+    </depends>
+    <depends>
+      <module>videoCalls</module>
+    </depends>
     <depends>
       <module>skypeWeb</module>
     </depends>
@@ -70,6 +82,17 @@
       </depends>
       <depends>
         <module>videoCalls_skype</module>
+      </depends>
+    </module>
+  </portlet>
+  <portlet>
+    <name>SkypeBusinessProviderPortlet</name>
+    <module>
+      <depends>
+        <module>jquery</module>
+      </depends>
+      <depends>
+        <module>videoCalls_mssfb</module>
       </depends>
     </module>
   </portlet>

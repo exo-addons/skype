@@ -56,6 +56,7 @@ public class SkypeBusinessIMTypePlugin extends BaseComponentPlugin implements IM
     @Override
     public void initUI(WebuiRequestContext context, String imId) {
       // TODO add JS to the context?
+      
     }
   }
 

@@ -100,7 +100,7 @@
     <target-component>org.exoplatform.commons.addons.AddOnService</target-component>
     <component-plugin>
       <!-- 
-        Add VideoCalls and SkypeCall portlets to portal pages with a toolbar
+        Add Skype/SfB portlets to portal pages with a toolbar
       -->
       <name>addPlugin</name>
       <set-method>addPlugin</set-method>
@@ -116,13 +116,26 @@
           <value>middle-topNavigation-container</value>
         </value-param>
         <object-param>
-          <name>SkypeCallPortlet</name>
-          <description>Skype Status portlet</description>
+          <name>SkypeProviderPortlet</name>
+          <description>Skype portlet</description>
           <object type="org.exoplatform.portal.config.serialize.PortletApplication">
             <field name="state">
               <object type="org.exoplatform.portal.config.model.TransientApplicationState">
                 <field name="contentId">
                   <string>skype/SkypeProviderPortlet</string>
+                </field>
+              </object>
+            </field>
+          </object>
+        </object-param>
+        <object-param>
+          <name>SkypeBusinessProviderPortlet</name>
+          <description>Skype for Business portlet</description>
+          <object type="org.exoplatform.portal.config.serialize.PortletApplication">
+            <field name="state">
+              <object type="org.exoplatform.portal.config.model.TransientApplicationState">
+                <field name="contentId">
+                  <string>skype/SkypeBusinessProviderPortlet</string>
                 </field>
               </object>
             </field>
