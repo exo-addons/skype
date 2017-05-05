@@ -18,6 +18,30 @@
 	margin-left: 3px;	
 }
 
+#mssfb-call-starting {
+	position: relative;
+	top: 30%;
+	width: 100%;
+	height: 300px;
+	vertical-align: middle;
+	margin-right: auto;
+	margin-left: auto;
+	text-align: center;
+}
+
+.waitThrobber {
+	display: inline-block;
+	width: 35px;
+	height: 35px;
+	margin-right: auto;
+	margin-left: auto;
+	pointer-events: none;
+	background: url('/skype/skin/icons/oxygen/32/animations/throbber.gif')
+		no-repeat left center !important; /* orientation=lt */
+	background: url('/skype/skin/icons/oxygen/32/animations/throbber.gif')
+		no-repeat right center !important; /* orientation=rt */
+}
+
 .mssfb-call-container {
 	margin: 15px;
 	height: 400px;

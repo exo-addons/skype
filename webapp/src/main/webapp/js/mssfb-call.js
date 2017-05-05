@@ -181,7 +181,7 @@ if (eXo.videoCalls) {
 					if (hasToken) {
 						var redirectUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
 						// + location.pathname;
-						var uiInitializer = skype.uiApplication(redirectUri);
+						var uiInitializer = mssfb.uiApplication(redirectUri);
 						uiInitializer.done(function(api, uiApp) {
 							// render the call CC
 							log(">>>> MSSFB app created OK, user: " + uiApp.personsAndGroupsManager.mePerson.displayName());
@@ -203,6 +203,7 @@ if (eXo.videoCalls) {
 								// });
 								// });
 								// }
+								$("#mssfb-call-starting").hide();
 								var $convo = $("#mssfb-call-conversation");
 								if ($convo.length == 0) {
 									$convo = $("<div id='mssfb-call-conversation'></div>");
@@ -224,32 +225,73 @@ if (eXo.videoCalls) {
 									// log("Skype error starting chatService " + err);
 									// });
 									// conversation.topic("TODO")
-									conversation.videoService.start().then(function(obj) {
-										// videoService started successfully
-										log(">>>>> MSSFB video started: " + JSON.stringify(obj));
-									}, function(error) {
-										// error starting chatService, cancel (by this user) also will go here
-										log("<<<<< Error starting MSSFB video: " + JSON.stringify(error));
-										if (error) {
-											if (error.reason && error.reason.subcode && error.reason.message) {
-												showError(error.reason.subcode, error.reason.message);
-											} else {
-												if (error.code && error.code == "Canceled") {
-													// Do nothing
-												} else {
-													showError("Error starting video call", error);
-												}
-											}
-										}
-									});
-									window.addEventListener("beforeunload", function(e) {
+									// TODO in case of video error, but audio or chat success - show a hind message to an user and autohide it
+									var beforeunloadListener = function(e) {
 										var msg = onClosePage(conversation, uiApp);
 										e.returnValue = msg; // Gecko, Trident, Chrome 34+
 										return msg; // Gecko, WebKit, Chrome <34
-									});
-									window.addEventListener("unload", function(e) {
+									};
+									var unloadListener = function(e) {
 										onClosePage(conversation, uiApp);
+									};
+									conversation.videoService.start().then(function(obj) {
+										log(">>>>> MSSFB video started: " + JSON.stringify(obj));
+									}, function(videoError) {
+										// error starting videoService, cancel (by this user) also will go here
+										log("<<<<< Error starting MSSFB video: " + JSON.stringify(videoError));
+										function finisWithError(error) {
+											if (error) {
+												if (error.reason && error.reason.subcode && error.reason.message) {
+													showError(error.reason.subcode, error.reason.message);
+												} else {
+													if (error.code && error.code == "Canceled") {
+														// Do nothing
+													} else {
+														showError("Error starting video call", error);
+													}
+												}
+											}
+											window.removeEventListener("beforeunload", beforeunloadListener);
+											window.removeEventListener("unload", unloadListener);
+										}
+										// TODO code == InvitationFailed and subcode == UnsupportedMediaType - when other user in FF (no video/audion)
+										// then try what is possible: audio then chat
+										function isModalityUnsupported(error) {
+											if (error.code == "CommandDisabled" || (error.code == "InvitationFailed" && error.reason.subcode == "UnsupportedMediaType")) {
+												return true;
+											}
+											return false;
+										}
+										if (isModalityUnsupported(videoError)) {
+											// ok, try audio
+											conversation.audioService.start().then(function(obj) {
+												log(">>>>> MSSFB audio started: " + JSON.stringify(obj));
+											}, function(audioError) {
+												log("<<<<< Error starting MSSFB audio: " + JSON.stringify(audioError));
+												if (isModalityUnsupported(audioError)) {
+													// well, it will be chat (it should work everywhere)
+													conversation.chatService.start().then(function(obj) {
+														log(">>>>> MSSFB chat started: " + JSON.stringify(obj));
+													}, function(chatError) {
+														log("<<<<< Error starting MSSFB chat: " + JSON.stringify(chatError));
+														if (chatError.code == "Canceled") {
+															window.removeEventListener("beforeunload", beforeunloadListener);
+															window.removeEventListener("unload", unloadListener);
+														} else {
+															// we show original error
+															finisWithError(videoError);
+														}
+													});
+												} else {
+													finisWithError(videoError);
+												}
+											});
+										} else {
+											finisWithError(videoError);
+										}
 									});
+									window.addEventListener("beforeunload", beforeunloadListener);
+									window.addEventListener("unload", unloadListener);
 								}, function(err) {
 									// error rendering Conversation Control
 									if (err.name && err.message) {

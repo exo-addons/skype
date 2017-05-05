@@ -190,42 +190,42 @@
 				if (settings && context && context.currentUser) {
 					// TODO temporarily we don't support calling regular Skype users
 					//context.currentUserSkype = videoCalls.imAccount(context.currentUser, "skype");
-					context.currentUserSFB = videoCalls.imAccount(context.currentUser, "mssfb");
-					context.participants().done(function(users, convName, convTitle) {
-						var rndText = Math.floor((Math.random() * 1000000) + 1);
-						var linkId = "SkypeCall-" + convName + "-" + rndText;
-						// TODO i18n for title
-						var title;
-						if (context.userName) {
-							title = "Call with " + convTitle;
-						} else {
-							title = convTitle + " meeting";
-						}
-						// TODO i18n for title
-						var ims = [];
-						for ( var uname in users) {
-							if (users.hasOwnProperty(uname)) {
-								var u = users[uname];
-								//var uskype = videoCalls.imAccount(u, "skype");
-								var ubusiness = videoCalls.imAccount(u, "mssfb");
-								if (context.currentUserSFB) {
+					var currentUserSFB = videoCalls.imAccount(context.currentUser, "mssfb");
+					if (currentUserSFB) {
+						context.currentUserSFB = currentUserSFB;
+						context.participants().done(function(users, convName, convTitle) {
+							var rndText = Math.floor((Math.random() * 1000000) + 1);
+							var linkId = "SkypeCall-" + convName + "-" + rndText;
+							// TODO i18n for title
+							var title;
+							if (context.userName) {
+								title = "Call with " + convTitle;
+							} else {
+								title = convTitle + " meeting";
+							}
+							// TODO i18n for title
+							var ims = [];
+							for ( var uname in users) {
+								if (users.hasOwnProperty(uname)) {
+									var u = users[uname];
+									//var uskype = videoCalls.imAccount(u, "skype");
+									var ubusiness = videoCalls.imAccount(u, "mssfb");
 									if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
 										ims.push(encodeURIComponent(ubusiness.id));
 									}
+									// TODO cleanup
 									// else if (uskype) {
 									// ims.push(uskype.id);
 									//									}
-								} 
-								//else if (uskype && uskype.id != context.currentUserSkype.id) {
-								//	// this is a regular Skype user, business users may call it (if allowed by admin)
-								//	ims.push(uskype.id);
-								//} 
-								// else, skip this user
+									//else if (uskype && uskype.id != context.currentUserSkype.id) {
+									//	// this is a regular Skype user, business users may call it (if allowed by admin)
+									//	ims.push(uskype.id);
+									//} 
+									// else, skip this user
+								}
 							}
-						}
-						if (ims.length > 0) {
-							var userIMs = ims.join(";");
-							if (context.currentUserSFB) {
+							if (ims.length > 0) {
+								var userIMs = ims.join(";");
 								var $button = $("<a id='" + linkId + "' title='" + title
 											+ "' href='javascript:void(0);' class='mssfbCallIcon'>" + self.getCallTitle() + "</a>");
 								$button.click(function() {
@@ -242,16 +242,14 @@
 								});
 								button.resolve($button);
 							} else {
-								// else, not skype user
-								button.reject("Not SfB user");
+								button.reject("No " + self.getTitle() + " users found");
 							}
-						} else {
-							// else, no user(s) found
-							button.reject("No users found");
-						}
-					});
+						});
+					} else {
+						button.reject("Not SfB user");
+					}
 				} else {
-					button.reject("Not configured or empty context");
+					button.reject("Not configured or empty context for " + self.getTitle());
 				}
 				return button.promise();
 			};

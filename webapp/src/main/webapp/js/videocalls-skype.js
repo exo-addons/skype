@@ -73,31 +73,32 @@
 			this.callButton = function(context) {
 				var button = $.Deferred();
 				if (settings && context && context.currentUser) {
-					context.currentUserSkype = videoCalls.imAccount(context.currentUser, "skype");
-					context.participants().done(function(users, convName, convTitle) {
-						var rndText = Math.floor((Math.random() * 1000000) + 1);
-						var linkId = "SkypeCall-" + convName + "-" + rndText;
-						// TODO i18n for title
-						var title;
-						if (context.userName) {
-							title = "Call with " + convTitle;
-						} else {
-							title = convTitle + " meeting";
-						}
-						var ims = [];
-						for ( var uname in users) {
-							if (users.hasOwnProperty(uname)) {
-								var u = users[uname];
-								var uskype = videoCalls.imAccount(u, "skype");
-								if (uskype && uskype.id != context.currentUserSkype.id) {
-									// this is a regular Skype, it cannot call business users
-									ims.push(uskype.id);
-								} // else, skip this user
+					var currentUserSkype = videoCalls.imAccount(context.currentUser, "skype");
+					if (currentUserSkype) {
+						context.currentUserSkype = currentUserSkype; 
+						context.participants().done(function(users, convName, convTitle) {
+							var rndText = Math.floor((Math.random() * 1000000) + 1);
+							var linkId = "SkypeCall-" + convName + "-" + rndText;
+							// TODO i18n for title
+							var title;
+							if (context.userName) {
+								title = "Call with " + convTitle;
+							} else {
+								title = convTitle + " meeting";
 							}
-						}
-						if (ims.length > 0) {
-							var userIMs = ims.join(";");
-							if (context.currentUserSkype) {
+							var ims = [];
+							for ( var uname in users) {
+								if (users.hasOwnProperty(uname)) {
+									var u = users[uname];
+									var uskype = videoCalls.imAccount(u, "skype");
+									if (uskype && uskype.id != context.currentUserSkype.id) {
+										// this is a regular Skype, it cannot call business users
+										ims.push(uskype.id);
+									} // else, skip this user
+								}
+							}
+							if (ims.length > 0) {
+								var userIMs = ims.join(";");
 								// use Skype URI for regular Skype user
 								var link = "skype:" + userIMs + "?call&amp;video=true";
 								var $button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
@@ -107,16 +108,14 @@
 								});
 								button.resolve($button);
 							} else {
-								// else, not skype user
-								button.reject("Not Skype user");
+								button.reject("No " + self.getTitle() + " users found");
 							}
-						} else {
-							// else, no user(s) found
-							button.reject("No users found");
-						}
-					});
+						});
+					} else {
+						button.reject("Not Skype user");
+					}
 				} else {
-					button.reject("Not configured or empty context");
+					button.reject("Not configured or empty context for " + self.getTitle());
 				}
 				return button.promise();
 			}

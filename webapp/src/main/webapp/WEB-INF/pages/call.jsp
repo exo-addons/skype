@@ -6,7 +6,7 @@
 	<meta charset="UTF-8">
 	<title>Skype for Business Call</title>
 	<link href="/skype/skin/skype.css" rel="stylesheet" type="text/css"/>
-    <script type="text/javascript" src="/skype/js/jquery-3.2.1.js"></script>
+    <script type="text/javascript" src="/videocalls/js/jquery-3.2.1.js"></script>
     <script type="text/javascript" src="/videocalls/js/jquery-ui.min.js"></script>
     <script type="text/javascript" src="/videocalls/js/jquery.pnotify.min.js"></script>
     <script type="text/javascript" src="https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js"></script>
@@ -27,6 +27,8 @@
 	<script type="text/javascript" src="/skype/js/mssfb-call.js"></script>
 </head>
 <body>
-	
+	<div id="mssfb-call-starting">
+		<div class="waitThrobber"></div>
+	</div>	
 </body>
 </html>

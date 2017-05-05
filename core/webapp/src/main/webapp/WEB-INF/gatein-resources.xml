@@ -35,13 +35,26 @@
 
   <!-- Javascript for Video Calls support in Platform -->
   <module>
+    <name>videoCallsJquery</name>
+    <as>$</as>
+    <load-group>videoCallsGRP</load-group>
+    <script>
+      <adapter>
+        (function() {
+        <include>/js/jquery-3.2.1.js</include>
+          return jQuery.noConflict(true);
+        })();
+      </adapter>
+    </script>
+  </module>
+  <module>
     <name>videoCallsJqueryPnotify</name>
     <load-group>videoCallsGRP</load-group>
     <script>
       <path>/js/jquery.pnotify.min.js</path>
     </script>
     <depends>
-      <module>jquery</module>
+      <module>videoCallsJquery</module>
       <as>jQuery</as>
     </depends>
   </module>
@@ -53,7 +66,7 @@
       <path>/js/jquery-ui.min.js</path>
     </script>
     <depends>
-      <module>jquery</module>
+      <module>videoCallsJquery</module>
       <as>jQuery</as>
     </depends>
   </module>
@@ -64,7 +77,7 @@
       <path>/js/videocalls.js</path>
     </script>
     <depends>
-      <module>jquery</module>
+      <module>videoCallsJquery</module>
     </depends>
     <depends>
       <module>videoCallsJqueryUI</module>
@@ -80,7 +93,7 @@
       <path>/js/videocalls-portlet.js</path>
     </script>
     <depends>
-      <module>jquery</module>
+      <module>videoCallsJquery</module>
     </depends>
     <depends>
       <module>videoCalls</module>
@@ -91,7 +104,7 @@
     <name>VideoCallsPortlet</name>
     <module>
       <depends>
-        <module>jquery</module>
+        <module>videoCallsJquery</module>
       </depends>
       <depends>
         <module>videoCalls</module>
@@ -101,5 +114,4 @@
       </depends>
     </module>
   </portlet>
-
 </gatein-resources>

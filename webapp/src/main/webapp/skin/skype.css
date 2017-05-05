@@ -1,4 +1,5 @@
 /* Styles for Skype provider */
+
 .uiIconSocSkype:before {
     content: url("/skype/skin/icons/skypeicon_16px.png");
 }

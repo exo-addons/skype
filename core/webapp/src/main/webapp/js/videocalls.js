@@ -283,36 +283,71 @@
 					if (providers.length > 0) {
 						var $container = $target.find(".callButtonContainer");
 						// TODO check precisely that we have an one button for each provider
-						if ($container.find(".startCallButton").length != providers.length) {
+						var buttonClass = "startCallButton";
+						var providerFlag = "hasProvider_";
+						var $buttons = $container.find("." + buttonClass);
+						if ($buttons.length != providers.length) { // TODO this check is not efficient and even can be dangerous
 							var contextName = (context.spaceName ? context.spaceName : context.userName);
 							initializer.notify("addCallButton " + contextName + " for " + context.currentUser.name);
 							if ($container.length == 0) {
 								$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
 								$target.append($container);
 							}
-							var actionClasses = "startCallButton"; // actionIcon
 							var $dropdown = $container.find(".dropdown-menu");
+							var workers = [];
 							var buttons = [];
-							for (var i = 0; i < providers.length; i++) {
-								var p = providers[i];
-								var button = p.callButton(context);
+							function addProviderButton(provider, button) {
+								// need do this in a function to keep worker variable in the scope of given button when it will be done 
+								var bworker = $.Deferred();
 								button.done(function($button) {
 									if ($dropdown.length > 0) {
+//										if ($dropdown.children().length == 0) {
+//											// Move first button here
+//											var $first = $container.find(".btn." + buttonClass);
+//											$first.removeClass("btn");
+//											var $li = $("<li></li>");
+//											$li.append($first);
+//											$dropdown.append($li);
+//										}
 										// add others in dropdown
-										$button.addClass(actionClasses);
-										$dropdown.append($button);	
+										$button.addClass(buttonClass);
+										var $li = $("<li></li>");
+										$li.append($button)
+										$dropdown.append($li);	
 									} else {
 										// add first & default button
-										$button.addClass("btn " + actionClasses); // btn-primary
+										$button.addClass("btn " + buttonClass); // btn-primary
 										$container.append($button); 
 										$dropdown = $("<ul class='dropdown-menu'></ul>");
 									}
+									buttons.push($button);
 								});
-								buttons.push(button);
+								button.fail(function(msg) {
+									log("<<< addCallButton CANCELED " + msg);
+								});
+								button.always(function() {
+									// even if was fail, we treat it as canceled and mark the provider
+									$container.data(providerFlag + provider.getType(), true);
+									// for the below $.when's always callback we need resolve all workers independently succeeded or failed 
+									bworker.resolve();
+								});
+								workers.push(bworker.promise());
 							}
-							$.when.apply($, buttons).always(function() {
+							for (var i = 0; i < providers.length; i++) {
+								var p = providers[i];
+								if ($container.data(providerFlag + p.getType())) {
+									log(">>> addCallButton already added " + p.getTitle());
+								} else {
+									var b = p.callButton(context);
+									addProviderButton(p, b);
+								}
+							}
+							$.when.apply($, workers).always(function() {
 								if ($dropdown.children().length > 0) {
-									$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
+									var $toggle = $("<button class='btn dropdown-toggle' data-toggle='dropdown'>" + 
+											"<i class='uiIconMiniArrowDown uiIconLightGray'></i></span></button>");
+									$container.append($toggle);
+									//$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
 									$container.append($dropdown);
 								}
 								if (buttons.length > 0) {
@@ -454,7 +489,7 @@
 			// user popovers
 			// XXX hardcoded for peopleSuggest as no way found to add Lifecycle
 			// to its portlet (juzu)
-			$("#" + compId + ", #peopleSuggest").find(".owner, .author").find("a:[href*='/profile/']").each(function() {
+			$("#" + compId + ", #peopleSuggest").find(".owner, .author").find("a[href*='\\/profile\\/']").each(function() {
 				// attach action to
 				$(this).mouseenter(function() {
 					// need wait for popover initialization
