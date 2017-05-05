@@ -22,7 +22,6 @@ import org.exoplatform.container.component.BaseComponentPlugin;
 import org.exoplatform.social.core.profile.settings.IMType;
 import org.exoplatform.social.core.profile.settings.IMTypePlugin;
 import org.exoplatform.videocalls.skype.SkypeProvider;
-import org.exoplatform.webui.application.WebuiRequestContext;
 
 /**
  * Created by The eXo Platform SAS.
@@ -51,11 +50,6 @@ public class SkypeIMTypePlugin extends BaseComponentPlugin implements IMTypePlug
     @Override
     public String getName() {
       return SkypeProvider.SKYPE_TITLE;
-    }
-
-    @Override
-    public void initUI(WebuiRequestContext context, String imId) {
-      // TODO add JS to the context?
     }
   }
 

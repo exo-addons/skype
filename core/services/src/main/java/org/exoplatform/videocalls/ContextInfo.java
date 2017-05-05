@@ -29,7 +29,7 @@ package org.exoplatform.videocalls;
  */
 public class ContextInfo {
 
-  /** The space name. */
+  /** The space pretty name. */
   private final String spaceName;
 
   /** The room name. */
@@ -48,7 +48,7 @@ public class ContextInfo {
   }
 
   /**
-   * Gets the space name.
+   * Gets the space pretty name.
    *
    * @return the space name
    */

@@ -1,17 +1,6 @@
-/* Styles for Skype/SfB providers */
-.uiIconSocMssfb:before {
-    content: url("/skype/skin/icons/sfbicon_16px.png");
-}
-
+/* Styles for Skype provider */
 .uiIconSocSkype:before {
     content: url("/skype/skin/icons/skypeicon_16px.png");
-}
-
-.sfbCallIcon:before {
-	content: url("/skype/skin/icons/sfbicon_16px.png");
-	position: relative;
-	top: 3px;
-	margin-right: 3px;
 }
 
 .skypeCallIcon:before {
@@ -21,16 +10,6 @@
 	margin-right: 3px;
 }
 
-.userCall.skypeCallIcon, .userCall.sfbCallIcon {
+.userCall.skypeCallIcon {
 	line-height: 17px;
-}
-
-.skype-call-container {
-	margin: 15px;
-	height: 400px;
-}
-
-#skype-call-conversation {
-	width: 100%;
-	height: 100%;
 }

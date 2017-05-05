@@ -29,16 +29,6 @@
 		function SkypeProvider() {
 			var self = this;
 			var settings, currentKey;
-
-			var imAccount = function(user, type) {
-				var ims = user.imAccounts[type];
-				if (ims && ims.length > 0) {
-					// TODO work with multiple IMs of same type
-					return ims[0]; 
-				} else {
-					return null;
-				}
-			};
 			
 			this.getType = function() {
 				if (settings) {
@@ -70,10 +60,6 @@
 				}
 			};
 
-			this.isSkypeUser = function(user) {
-				return user && (user.imAccounts.skype || user.imAccounts.mssfb);
-			};
-
 			this.configure = function(skypeEnv) {
 				settings = skypeEnv;
 				// TODO do some validation of given settings?
@@ -87,35 +73,22 @@
 			this.callButton = function(context) {
 				var button = $.Deferred();
 				if (settings && context && context.currentUser) {
-					context.currentUserSkype = imAccount(context.currentUser, "skype");
-					var participants = $.Deferred();
-					var rndText = Math.floor((Math.random() * 1000000) + 1);
-					if (context.spaceName) {
-						context.space.done(function(space) {
-							var linkId = "SkypeCall-" + space.prettyName + "-" + rndText;
-							var title = space.title + " meeting";
-							participants.resolve(linkId, title, space.members);
-						});
-					} else if (context.roomName) {
-						context.room.done(function(group) {
-							var linkId = "SkypeCall-" + context.roomName + "-" + rndText;
-							var title = context.roomName + " meeting"; // TODO define Chat/Room API
-							participants.resolve(linkId, title, group.members);
-						});
-					} else {
-						context.user.done(function(user) {
-							var linkId = "SkypeCall-" + user.name + "-" + rndText;
-							var title = "Call with " + context.user.title;
-							participants.resolve(linkId, title, [ user ]);
-						});
-					}
-					participants.done(function(linkId, title, users) {
+					context.currentUserSkype = videoCalls.imAccount(context.currentUser, "skype");
+					context.participants().done(function(users, convName, convTitle) {
+						var rndText = Math.floor((Math.random() * 1000000) + 1);
+						var linkId = "SkypeCall-" + convName + "-" + rndText;
 						// TODO i18n for title
+						var title;
+						if (context.userName) {
+							title = "Call with " + convTitle;
+						} else {
+							title = convTitle + " meeting";
+						}
 						var ims = [];
 						for ( var uname in users) {
 							if (users.hasOwnProperty(uname)) {
 								var u = users[uname];
-								var uskype = imAccount(u, "skype");
+								var uskype = videoCalls.imAccount(u, "skype");
 								if (uskype && uskype.id != context.currentUserSkype.id) {
 									// this is a regular Skype, it cannot call business users
 									ims.push(uskype.id);

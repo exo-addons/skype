@@ -26,20 +26,10 @@
 
 	if (videoCalls) {
 
-		function SkypeProvider() {
+		function SfBProvider() {
 			var self = this;
 			var settings, currentKey;
 			var appInstance, uiAppInstance;
-
-			var imAccount = function(user, type) {
-				var ims = user.imAccounts[type];
-				if (ims && ims.length > 0) {
-					// TODO work with multiple IMs of same type
-					return ims[0]; 
-				} else {
-					return null;
-				}
-			};
 			
 			this.getType = function() {
 				if (settings) {
@@ -69,10 +59,6 @@
 				if (settings) {
 					return settings.clientId;
 				}
-			};
-
-			this.isSkypeUser = function(user) {
-				return user && (user.imAccounts.skype || user.imAccounts.mssfb);
 			};
 
 			this.configure = function(skypeEnv) {
@@ -202,54 +188,46 @@
 			this.callButton = function(context) {
 				var button = $.Deferred();
 				if (settings && context && context.currentUser) {
-					context.currentUserSkype = imAccount(context.currentUser, "skype");
-					context.currentUserSFB = imAccount(context.currentUser, "mssfb");
-					var participants = $.Deferred();
-					var rndText = Math.floor((Math.random() * 1000000) + 1);
-					if (context.spaceName) {
-						context.space.done(function(space) {
-							var linkId = "SfBCall-" + space.prettyName + "-" + rndText;
-							var title = space.title + " meeting";
-							participants.resolve(linkId, title, space.members);
-						});
-					} else if (context.roomName) {
-						context.room.done(function(group) {
-							var linkId = "SfBCall-" + context.roomName + "-" + rndText;
-							var title = context.roomName + " meeting"; // TODO define Chat/Room API
-							participants.resolve(linkId, title, group.members);
-						});
-					} else {
-						context.user.done(function(user) {
-							var linkId = "SfBCall-" + user.name + "-" + rndText;
-							var title = "Call with " + context.user.title;
-							participants.resolve(linkId, title, [ user ]);
-						});
-					}
-					participants.done(function(linkId, title, users) {
+					// TODO temporarily we don't support calling regular Skype users
+					//context.currentUserSkype = videoCalls.imAccount(context.currentUser, "skype");
+					context.currentUserSFB = videoCalls.imAccount(context.currentUser, "mssfb");
+					context.participants().done(function(users, convName, convTitle) {
+						var rndText = Math.floor((Math.random() * 1000000) + 1);
+						var linkId = "SkypeCall-" + convName + "-" + rndText;
+						// TODO i18n for title
+						var title;
+						if (context.userName) {
+							title = "Call with " + convTitle;
+						} else {
+							title = convTitle + " meeting";
+						}
 						// TODO i18n for title
 						var ims = [];
 						for ( var uname in users) {
 							if (users.hasOwnProperty(uname)) {
 								var u = users[uname];
-								var uskype = imAccount(u, "skype");
-								var ubusiness = imAccount(u, "mssfb");
+								//var uskype = videoCalls.imAccount(u, "skype");
+								var ubusiness = videoCalls.imAccount(u, "mssfb");
 								if (context.currentUserSFB) {
 									if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
 										ims.push(encodeURIComponent(ubusiness.id));
-									} else if (uskype) {
-										ims.push(uskype.id);
 									}
-								} else if (uskype && uskype.id != context.currentUserSkype.id) {
-									// this is a regular Skype user, business users may call it (if allowed by admin)
-									ims.push(uskype.id);
-								} // else, skip this user
+									// else if (uskype) {
+									// ims.push(uskype.id);
+									//									}
+								} 
+								//else if (uskype && uskype.id != context.currentUserSkype.id) {
+								//	// this is a regular Skype user, business users may call it (if allowed by admin)
+								//	ims.push(uskype.id);
+								//} 
+								// else, skip this user
 							}
 						}
 						if (ims.length > 0) {
 							var userIMs = ims.join(";");
 							if (context.currentUserSFB) {
 								var $button = $("<a id='" + linkId + "' title='" + title
-											+ "' href='javascript:void(0);' class='sfbCallIcon'>" + self.getCallTitle() + "</a>");
+											+ "' href='javascript:void(0);' class='mssfbCallIcon'>" + self.getCallTitle() + "</a>");
 								$button.click(function() {
 									// TODO check if such window isn't already open by this app
 									var callUri = videoCalls.getBaseUrl() + "/portal/skype/call/_" + userIMs;
@@ -276,14 +254,19 @@
 					button.reject("Not configured or empty context");
 				}
 				return button.promise();
-			}
+			};
+			
+			this.initUser = function() {
+				// TODO init user profile UI control
+				var $control = $(".uiMssfbControl");
+			};
 		}
 
-		var provider = new SkypeProvider();
+		var provider = new SfBProvider();
 
-		// Add Skype provider into videoCalls object of global eXo namespace (for non AMD uses)
+		// Add SfB provider into videoCalls object of global eXo namespace (for non AMD uses)
 		if (globalVideoCalls) {
-			globalVideoCalls.skype = provider;
+			globalVideoCalls.mssfb = provider;
 		} else {
 			log("eXo.videoCalls not defined");
 		}
@@ -292,7 +275,7 @@
 			try {
 				// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will work as expected
 				// for Dynamic Containers
-				videoCalls.loadStyle("/skype/skin/skype.css");
+				videoCalls.loadStyle("/skype/skin/mssfb.css");
 			} catch(e) {
 				log("Error loading Skype Call styles (for SfB).", e);
 			}

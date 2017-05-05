@@ -347,7 +347,16 @@
 				isIOS : isIOS,
 				isAndroid : isAndroid,
 				isWindowsMobile : isWindowsMobile,
-				_user : null
+				_user : null,
+				participants : function() {
+					var data = $.Deferred();
+					// access user via property defined below
+					context.user.done(function(user) {
+						// resolve with array of participants, id for DOM elements, title for UI
+						data.resolve([ user ], user.name, user.title);
+					});
+					return data.promise();
+				}
 			};
 			Object.defineProperty(context, "user", {
 			  enumerable: true,
@@ -525,7 +534,16 @@
 						isIOS : isIOS,
 						isAndroid : isAndroid,
 						isWindowsMobile : isWindowsMobile,
-						_space : null
+						_space : null,
+						participants : function() {
+							var data = $.Deferred();
+							// access space via property defined below
+							context.space.done(function(space) {
+								// resolve with array of participants, id for DOM elements, title for UI
+								data.resolve(space.members, space.prettyName, space.title);								
+							});
+							return data.promise();
+						}
 					};
 					Object.defineProperty(context, "space", {
 					  enumerable: true,
@@ -706,6 +724,19 @@
 		  			+ "width=" + w + ",height=" + h + ",top=" + top + ",left=" + left);
 		  callWindow.focus();
 		  return callWindow;
+		};
+		
+		/** 
+		 * Helper method to obtain the user IM account of given type.
+		 */
+		this.imAccount = function(user, type) {
+			var ims = user.imAccounts[type];
+			if (ims && ims.length > 0) {
+				// TODO work with multiple IMs of same type
+				return ims[0]; 
+			} else {
+				return null;
+			}
 		};
 	}
 	

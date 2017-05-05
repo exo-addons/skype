@@ -210,6 +210,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
     }
 
     if (profileSettings != null) {
+      // add plugin programmatically as it's an integral part of the provider
       profileSettings.addIMTypePlugin(new SkypeBusinessIMTypePlugin());
     }
   }

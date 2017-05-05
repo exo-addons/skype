@@ -1,12 +1,12 @@
 /**
- * Skype Call application (web page). This script initializes an UI of a page that will handle a particular Skype call.
+ * Microsoft Skype for Business call application (web page). This script initializes an UI of a page that will handle a particular call.
  */
 if (eXo.videoCalls) {
 	(function(videoCalls) {
 		"use strict";
 
-		var skype = videoCalls.getProvider("skype");
-		if (skype) {
+		var mssfb = videoCalls.getProvider("mssfb");
+		if (mssfb) {
 			// 
 			var hasToken = /#access_token=/.test(location.hash);
 			var hasError = /#error=/.test(location.hash);
@@ -17,7 +17,7 @@ if (eXo.videoCalls) {
 
 			/** For debug logging. */
 			var objId = Math.floor((Math.random() * 1000) + 1);
-			var logPrefix = "[skypecall_" + objId + "] ";
+			var logPrefix = "[mssfbcall_" + objId + "] ";
 			function log(msg, e) {
 				if (typeof console != "undefined" && typeof console.log != "undefined") {
 					console.log(logPrefix + msg);
@@ -41,9 +41,9 @@ if (eXo.videoCalls) {
 			}
 
 			function addToContainer($content) {
-				var $container = $("div.skype-call-container");
+				var $container = $("div.mssfb-call-container");
 				if ($container.length == 0) {
-					$container = $("<div class='skype-call-container' style='display: none;'></div>");
+					$container = $("<div class='mssfb-call-container' style='display: none;'></div>");
 					var newHeight = $(window).height() - 30; // 15px for margins top/bottom
 					var oldHeight = $container.height();
 					if (newHeight > 0) {
@@ -61,10 +61,10 @@ if (eXo.videoCalls) {
 			}
 
 			function handleError() {
-				$("#skype-call-conversation").hide();
-				var $error = $("#skype-call-error");
+				$("#mssfb-call-conversation").hide();
+				var $error = $("#mssfb-call-error");
 				if ($error.length == 0) {
-					$error = $("<div id='skype-call-error'></div>");
+					$error = $("<div id='mssfb-call-error'></div>");
 					addToContainer($error);
 				}
 				var hasharr = location.hash.substr(1).split("&");
@@ -87,10 +87,10 @@ if (eXo.videoCalls) {
 			}
 
 			function showError(title, message) {
-				$("#skype-call-conversation").hide();
-				var $error = $("#skype-call-error");
+				$("#mssfb-call-conversation").hide();
+				var $error = $("#mssfb-call-error");
 				if ($error.length == 0) {
-					$error = $("<div id='skype-call-error'></div>");
+					$error = $("<div id='mssfb-call-error'></div>");
 					addToContainer($error);
 				}
 				var $title = $("<h1 class='error-title'></h1>");
@@ -152,13 +152,13 @@ if (eXo.videoCalls) {
 			// //
 
 			$(function() {
-				var clientId = skype.getClientId();
-				log(">> Skype " + location.href);
+				var clientId = mssfb.getClientId();
+				log(">> MSSFB " + location.href);
 				if (isLogin) {
 					// FYI it's what WebSDK calls an "empty page"
-					log(">>> Skype login");
+					log(">>> MSSFB login");
 					if (hasToken) {
-						log(">>>> Skype login token: " + location.hash);
+						log(">>>> MSSFB login token: " + location.hash);
 						// TODO do we need this?
 						// Use Skype Web SDK to start signing in
 						// var appInitializer = skype.application(redirectUri);
@@ -171,12 +171,12 @@ if (eXo.videoCalls) {
 						// });
 					}
 					if (hasError) {
-						log("Skype login error: " + location.hash);
+						log("MSSFB login error: " + location.hash);
 						handleError();
 					}
-					log("<<< Skype login");
+					log("<<< MSSFB login");
 				} else if (isCall) {
-					log(">>> Skype call " + location.href);
+					log(">>> MSSFB call " + location.href);
 					// it's call window, user may be already authenticated, but may be not
 					if (hasToken) {
 						var redirectUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
@@ -184,7 +184,7 @@ if (eXo.videoCalls) {
 						var uiInitializer = skype.uiApplication(redirectUri);
 						uiInitializer.done(function(api, uiApp) {
 							// render the call CC
-							log(">>>> Skype app created OK, user: " + uiApp.personsAndGroupsManager.mePerson.displayName());
+							log(">>>> MSSFB app created OK, user: " + uiApp.personsAndGroupsManager.mePerson.displayName());
 							try {
 								var participants = decodeURIComponent(
 											location.pathname.substring(location.pathname.indexOf("call/_") + 6)).split(";")
@@ -203,19 +203,19 @@ if (eXo.videoCalls) {
 								// });
 								// });
 								// }
-								var $convo = $("#skype-call-conversation");
+								var $convo = $("#mssfb-call-conversation");
 								if ($convo.length == 0) {
-									$convo = $("<div id='skype-call-conversation'></div>");
+									$convo = $("<div id='mssfb-call-conversation'></div>");
 									addToContainer($convo);
 								}
-								log(">>>> Skype conversation is creating in " + $convo.get(0) + " participants: "
+								log(">>>> MSSFB conversation is creating in " + $convo.get(0) + " participants: "
 											+ participants.join(","));
 								api.renderConversation($convo.get(0), {
 									"modalities" : [ "Chat" ], // , "Video"
 									"participants" : participants
 								}).then(function(conversation) {
 									// Conversation Control was rendered successfully
-									log(">>>> Skype conversation rendered successfully: " + JSON.stringify(conversation));
+									log(">>>> MSSFB conversation rendered successfully: " + JSON.stringify(conversation));
 									// Add additional listeners for changes to conversation state here (see below section)
 									// conversation.chatService.start().then(function() {
 									// // chatService started successfully
@@ -226,10 +226,10 @@ if (eXo.videoCalls) {
 									// conversation.topic("TODO")
 									conversation.videoService.start().then(function(obj) {
 										// videoService started successfully
-										log(">>>>> Skype video started: " + JSON.stringify(obj));
+										log(">>>>> MSSFB video started: " + JSON.stringify(obj));
 									}, function(error) {
 										// error starting chatService, cancel (by this user) also will go here
-										log("<<<<< Error starting Skype video: " + JSON.stringify(error));
+										log("<<<<< Error starting MSSFB video: " + JSON.stringify(error));
 										if (error) {
 											if (error.reason && error.reason.subcode && error.reason.message) {
 												showError(error.reason.subcode, error.reason.message);
@@ -253,37 +253,37 @@ if (eXo.videoCalls) {
 								}, function(err) {
 									// error rendering Conversation Control
 									if (err.name && err.message) {
-										log(">>>> Skype conversation rendering error: " + err.name + " " + err.message, err);
+										log(">>>> MSSFB conversation rendering error: " + err.name + " " + err.message, err);
 										showError(err.name, err.message);
 									} else {
-										log(">>>> Skype conversation rendering error: " + JSON.stringify(err));
+										log(">>>> MSSFB conversation rendering error: " + JSON.stringify(err));
 									}
 								});
 								// });
 							} catch (err) {
-								log(">>>> Skype call error:", err);
+								log(">>>> MSSFB call error:", err);
 								showError("Call Error", err);
 							}
 						});
 						uiInitializer.fail(function(err) {
 							// TODO we have an error, check if it's auth problem, then force to login
-							log(">>>> Skype app error: " + err);
+							log(">>>> MSSFB app error: " + err);
 							showError("Appplication Error", err);
 						});
 					}
 					if (hasError) {
-						log(">>>> Skype call error: " + location.hash);
+						log(">>>> MSSFB call error: " + location.hash);
 						handleError();
 					}
-					log("<<< Skype call");
+					log("<<< MSSFB call");
 				} else {
-					log(">>> Skype default page " + location.href);
+					log(">>> MSSFB default page " + location.href);
 					var hasIdToken = /#id_token=/.test(location.hash);
 					if (hasIdToken && location.hash.indexOf("admin_consent=True") >= 0) {
-						log(">>>> Skype admin consent: " + location.hash);
-						var $root = $("#skype-call-root");
+						log(">>>> MSSFB admin consent: " + location.hash);
+						var $root = $("#mssfb-call-root");
 						if ($root.length == 0) {
-							$root = $("<div id='skype-call-root'></div>");
+							$root = $("<div id='mssfb-call-root'></div>");
 							addToContainer($root);
 						}
 						var $title = $("<h1 class='consent-success'></h1>");
@@ -302,26 +302,26 @@ if (eXo.videoCalls) {
 						addToContainer($("<p><a href='/portal'>Home</a></p>"));
 					}
 					if (hasToken) {
-						log(">>>> Skype token: " + location.hash);
-						var $root = $("#skype-call-root");
+						log(">>>> MSSFB token: " + location.hash);
+						var $root = $("#mssfb-call-root");
 						if ($root.length == 0) {
-							$root = $("<div id='skype-call-root'></div>");
+							$root = $("<div id='mssfb-call-root'></div>");
 							addToContainer($root);
 						}
 						$root.text("Skype Calls default page. Please go to Portal Home and start a call from there.");
 						addToContainer($("<div><a href='/portal'>Home</a></div>"));
 					}
 					if (hasError) {
-						log(">>>> Skype error: " + location.hash);
+						log(">>>> MSSFB error: " + location.hash);
 						handleError();
 					}
-					log("<<< Skype default page");
+					log("<<< MSSFB default page");
 				}
 			});
 		} else {
-			console.log("Skype provider not found for skype-call.js");
+			console.log("MSSFB provider not found for mssfb-call.js");
 		}
 	})(eXo.videoCalls);
 } else {
-	console.log("eXo.videoCalls not defined for skype-call.js");
+	console.log("eXo.videoCalls not defined for mssfb-call.js");
 }
