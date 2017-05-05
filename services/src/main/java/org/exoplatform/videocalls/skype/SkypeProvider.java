@@ -137,8 +137,7 @@ public class SkypeProvider extends VideoCallsProvider {
    * @throws ConfigurationException the configuration exception
    */
   public SkypeProvider(/* SkypeService skypeService, */ InitParams params) throws ConfigurationException {
-    super(params);
-    // this.skypeService = skypeService;
+    this(null, params);
   }
 
   /**
@@ -152,7 +151,10 @@ public class SkypeProvider extends VideoCallsProvider {
       throws ConfigurationException {
     super(params);
     // this.skypeService = skypeService;
-    profileSettings.addIMTypePlugin(new SkypeIMTypePlugin());
+    if (profileSettings != null) {
+      // add plugin programmatically as it's an integral part of the provider
+      profileSettings.addIMTypePlugin(new SkypeIMTypePlugin());
+    }
   }
 
   /**
