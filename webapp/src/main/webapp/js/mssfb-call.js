@@ -40,6 +40,17 @@ if (eXo.videoCalls) {
 				return decodeURIComponent(results[2].replace(/\+/g, " "));
 			}
 
+			function alignLoader() {
+				var $throber = $("#mssfb-call-starting>.waitThrobber");
+				if ($throber.length > 0) {
+					var newHeight = $(window).height() - 30; // 15px for margins top/bottom
+					var oldHeight = $throber.height();
+					if (newHeight > 0) {
+						$throber.height(newHeight);
+					}
+				}
+			}
+			
 			function addToContainer($content) {
 				var $container = $("div.mssfb-call-container");
 				if ($container.length == 0) {
@@ -134,24 +145,9 @@ if (eXo.videoCalls) {
 				}
 			}
 
-			// // TODO Browser Listener - used for debug purposes (WebSDK sends tonds of messages to itself window)
-			// function listener(event) {
-			// var origin = event.origin || event.originalEvent.origin;
-			// //if (origin.startsWith(videoCalls.getBaseUrl() + "/portal/skype/call")) {
-			// // initializer.resolve(event.data);
-			// //} else {
-			// // log("Ignoring not known message to " + location + " from " + origin + " data: ");
-			// //}
-			// log("Message to " + location + " from " + origin + " data: " + JSON.stringify(event.data));
-			// }
-			// if (window.addEventListener) {
-			// addEventListener("message", listener);
-			// } else {
-			// attachEvent("onmessage", listener);
-			// }
-			// //
-
 			$(function() {
+				alignLoader();
+
 				var clientId = mssfb.getClientId();
 				log(">> MSSFB " + location.href);
 				if (isLogin) {
