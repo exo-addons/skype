@@ -31,6 +31,18 @@
 			var settings, currentKey;
 			var appInstance, uiAppInstance;
 			
+			var authRedirectWindow = function(title, clientId, redirectUri, resource) {
+				var loginUri = "https://login.microsoftonline.com/common/oauth2/authorize?response_type=token&client_id="
+					+ clientId
+					+ "&redirect_uri="
+					+ encodeURIComponent(redirectUri)
+					+ "&resource="
+					+ encodeURIComponent(resource);
+				log("SfB login/call: " + loginUri);
+				var theWindow = videoCalls.showCallPopup(loginUri, title);
+				return theWindow;
+			};
+			
 			this.getType = function() {
 				if (settings) {
 					return settings.type;
@@ -71,7 +83,7 @@
 				return settings != null;
 			};
 
-			this.application = function(redirectUri) {
+			this.application = function(redirectUri, getOAuthToken) {
 				var initializer = $.Deferred();
 				if (settings) {
 					if (appInstance) {
@@ -96,15 +108,20 @@
 							}
 							log("app redirectUri='" + redirectUri + "'");
 							log("app clientId='" + settings.clientId + "'");
-							app.signInManager.signIn({
+							var args = {
 								"client_id" : settings.clientId,
 								"origins" : settings.origins,
 								"cors" : true,
-								"redirect_uri" : redirectUri,
 								"version" : settings.version
 							// Necessary for troubleshooting requests; identifies your application in our telemetry
-							}).then(function() {
-								log("Skype signed in as", app.personsAndGroupsManager.mePerson.displayName());
+							};
+							if (getOAuthToken && typeof(getOAuthToken) === "function") {
+								args.get_oauth_token = getOAuthToken;
+							} else {
+								args.redirect_uri = redirectUri;
+							}
+							app.signInManager.signIn(args).then(function() {
+								log("Skype signed in as " + app.personsAndGroupsManager.mePerson.displayName());
 								appInstance = app;
 								initializer.resolve(api, app);
 							}, function(err) {
@@ -213,15 +230,6 @@
 									if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
 										ims.push(encodeURIComponent(ubusiness.id));
 									}
-									// TODO cleanup
-									// else if (uskype) {
-									// ims.push(uskype.id);
-									//									}
-									//else if (uskype && uskype.id != context.currentUserSkype.id) {
-									//	// this is a regular Skype user, business users may call it (if allowed by admin)
-									//	ims.push(uskype.id);
-									//} 
-									// else, skip this user
 								}
 							}
 							if (ims.length > 0) {
@@ -231,14 +239,7 @@
 								$button.click(function() {
 									// TODO check if such window isn't already open by this app
 									var callUri = videoCalls.getBaseUrl() + "/portal/skype/call/_" + userIMs;
-									var loginUri = "https://login.microsoftonline.com/common/oauth2/authorize?response_type=token&client_id="
-																		+ settings.clientId
-																		+ "&redirect_uri="
-																		+ encodeURIComponent(callUri)
-																		+ "&resource="
-																		+ encodeURIComponent("https://webdir.online.lync.com");
-									log("SfB login/call: " + loginUri);
-									var callWindow = videoCalls.showCallPopup(loginUri, title);
+									var callWindow = authRedirectWindow(title, settings.clientId, callUri, "https://webdir.online.lync.com");
 								});
 								button.resolve($button);
 							} else {
@@ -255,8 +256,94 @@
 			};
 			
 			this.initUser = function() {
-				// TODO init user profile UI control
-				var $control = $(".uiMssfbControl");
+				var loginUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
+				var $control = $(".mssfbControl");
+				if ($control.length > 0) {
+					if (globalVideoCalls) {
+						$control.click(function() {
+							var $settings = $("<div class='uiMssfbSettings' title='Skype for Business settings'></div>");
+							var $message = $("<p><span class='ui-icon ui-icon-gear' style='float:left; margin:12px 12px 20px 0;'></span><div class='messageText'>Login in to your Skype for Business account.</div></p>");
+							$settings.append($message);
+							$(document.body).append($settings);
+							$settings.dialog({
+					      resizable: false,
+					      height: "auto",
+					      width: 400,
+					      modal: true,
+					      buttons: {
+					        "Login": function() {
+										var loginWindow = authRedirectWindow("Skype for Business Login", settings.clientId, loginUri, "https://webdir.online.lync.com");
+										var loginTokenCallback = function(token) {
+											//log("Login token: " + JSON.stringify(token));
+											var process = $.Deferred();
+											try {
+												var prevHash = location.hash;
+												location.hash = token.hash_line;
+												var appInitializer = provider.application(loginUri);
+												appInitializer.done(function(api, app) {
+													// TODO save token in the server-side for late use
+												  log("Login OK, app created OK, token: " + location.hash);
+												  // Save the token hash in local storage for later use
+												  if (typeof(Storage) !== "undefined") {
+												    // Code for localStorage/sessionStorage.
+												  	localStorage.setItem("mssfb_token_hash", location.hash);
+													} else {
+													  // Sorry! No Web Storage support..
+														log("Error saving access token: local storage not supported.");
+													}
+												  delete globalVideoCalls.mssfb.loginToken;
+												  location.hash = prevHash;
+												  process.resolve();
+												});
+												appInitializer.fail(function(err) {
+													log("Login error: " + JSON.stringify(err));
+												  messageText.replaceWith($("<p><span class='ui-icon ui-icon-alert' style='float:left; margin:12px 12px 20px 0;'></span><div class='messageText'>" 
+												   + err + ".</div></p>"));
+												  delete globalVideoCalls.mssfb.loginToken;
+												  location.hash = prevHash;
+												  process.reject();
+												});
+											} catch(e) {
+												log("Error parsing even message", e);
+											}
+											return process.promise();
+										};
+										globalVideoCalls.mssfb.loginToken = loginTokenCallback;
+										$( this ).dialog( "close" );
+					        },
+					        "Cancel": function() {
+					          $( this ).dialog( "close" );
+					        }
+					      }
+					    });
+						});
+					} else {
+						log("Error initializing MSSFB settings control: eXo.videoCalls not defined");
+						$control.hide();
+					}
+				} else {
+					// we somewhere else in the portal, try login using saved token
+					if (typeof(Storage) !== "undefined") {
+						var savedToken = localStorage.getItem("mssfb_token_hash");
+						if (savedToken) {
+							location.hash = savedToken; 
+							var appInitializer = provider.application(loginUri);
+							appInitializer.done(function(api, app) {
+								// TODO re-save token?
+							  log("Login OK, app created OK, token: " + location.hash);
+							});
+							appInitializer.fail(function(err) {
+								log("Login error: " + JSON.stringify(err));
+								localStorage.removeItem("mssfb_token_hash");
+							});
+						} else {
+							log("Login not possible: access token not found in local storage.");
+						}
+					} else {
+					  // Sorry! No Web Storage support..
+						log("Error saving access token: local storage not supported.");
+					}
+				}
 			};
 		}
 

@@ -14,8 +14,8 @@
 	line-height: 17px;
 }
 
-.uiMssfbControl {
-	margin-left: 3px;	
+.uiMssfbSettings, .uiMssfbSettings>p, .uiMssfbSettings .ui-icon, .uiMssfbSettings .messageText {
+	position: relative;
 }
 
 #mssfb-call-starting {

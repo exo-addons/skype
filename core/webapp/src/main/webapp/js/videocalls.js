@@ -797,6 +797,11 @@
 			
 			// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will work as expected
 			// for Dynamic Containers
+			videoCalls.loadStyle("/videocalls/skin/jquery-ui.min.css");
+			videoCalls.loadStyle("/videocalls/skin/jquery-ui.structure.min.css");
+			videoCalls.loadStyle("/videocalls/skin/jquery-ui.theme.min.css");
+			videoCalls.loadStyle("/videocalls/skin/jquery.pnotify.default.css");
+			videoCalls.loadStyle("/videocalls/skin/jquery.pnotify.default.icons.css");
 			videoCalls.loadStyle("/videocalls/skin/videocalls.css");
 		} catch(e) {
 			log("Error configuring Video Calls notifications.", e);

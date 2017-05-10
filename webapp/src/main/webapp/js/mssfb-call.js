@@ -32,11 +32,11 @@ if (eXo.videoCalls) {
 					url = window.location.href;
 				}
 				name = name.replace(/[\[\]]/g, "\\$&");
-				var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"), results = regex.exec(url);
+				var regex = new RegExp("[?&#]" + name + "(=([^&#]*)|&|#|$)"), results = regex.exec(url);
 				if (!results)
 					return null;
 				if (!results[2])
-					return '';
+					return "";
 				return decodeURIComponent(results[2].replace(/\+/g, " "));
 			}
 
@@ -155,16 +155,25 @@ if (eXo.videoCalls) {
 					log(">>> MSSFB login");
 					if (hasToken) {
 						log(">>>> MSSFB login token: " + location.hash);
-						// TODO do we need this?
-						// Use Skype Web SDK to start signing in
-						// var appInitializer = skype.application(redirectUri);
-						// appInitializer.done(function(api, app) {
-						// // TODO save token in the server-side for late use
-						// log(">>>> Skype login OK, app created OK, token: " + location.hash);
-						// });
-						// appInitializer.fail(function(err) {
-						// log(">>>> Skype login error: " + err);
-						// });
+						if (window.opener && window.opener.eXo && window.opener.eXo.videoCalls && window.opener.eXo.videoCalls.mssfb && window.opener.eXo.videoCalls.mssfb.loginToken) {
+							var openerUri = window.opener.location.href;
+							log(">>>> MSSFB login opener: " + openerUri);
+							var hline = location.hash;
+							var token = {
+								"access_token" : getParameterByName("access_token", hline),
+								"token_type" : getParameterByName("token_type", hline),
+								"expires_in" : getParameterByName("expires_in", hline),
+								"session_state" : getParameterByName("session_state", hline),
+								"hash_line" : hline
+							};
+							window.opener.eXo.videoCalls.mssfb.loginToken(token).always(function() {
+								setTimeout(function() {
+									window.close();
+								}, 500);								
+							});
+						} else {
+							log(">>>> MSSFB login has no opener");
+						}
 					}
 					if (hasError) {
 						log("MSSFB login error: " + location.hash);
@@ -213,13 +222,6 @@ if (eXo.videoCalls) {
 								}).then(function(conversation) {
 									// Conversation Control was rendered successfully
 									log(">>>> MSSFB conversation rendered successfully: " + JSON.stringify(conversation));
-									// Add additional listeners for changes to conversation state here (see below section)
-									// conversation.chatService.start().then(function() {
-									// // chatService started successfully
-									// log("Skype chatService started successfully");
-									// }, function(err) {
-									// log("Skype error starting chatService " + err);
-									// });
 									// conversation.topic("TODO")
 									// TODO in case of video error, but audio or chat success - show a hind message to an user and autohide it
 									var beforeunloadListener = function(e) {

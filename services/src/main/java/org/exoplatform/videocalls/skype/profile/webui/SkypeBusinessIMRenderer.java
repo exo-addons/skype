@@ -53,8 +53,7 @@ public class SkypeBusinessIMRenderer extends UIIMControlRenderer {
    * @param settingsService the settings service
    * @throws ConfigurationException the configuration exception
    */
-  public SkypeBusinessIMRenderer(UserProfileSettingsService settingsService)
-      throws ConfigurationException {
+  public SkypeBusinessIMRenderer(UserProfileSettingsService settingsService) throws ConfigurationException {
     super(findIMType(SkypeBusinessProvider.SFB_TYPE, settingsService));
   }
 
@@ -64,7 +63,10 @@ public class SkypeBusinessIMRenderer extends UIIMControlRenderer {
   @Override
   public void render(String imValue, WebuiRequestContext context) throws IOException, Exception {
     // add Javascript/markup here
-    context.getWriter().append("<span class='uiMssfbControl'></span>");
+    StringBuffer elem = new StringBuffer();
+    elem.append("<a class='actionIcon mssfbControl' data-placement='bottom' rel='tooltip' title='' data-original-title='Settings' href='javascript:void(0)'>")
+        .append("<i class='uiIconSetting uiIconLightGray'></i></a>");
+    context.getWriter().append(elem.toString());
     context.getJavascriptManager()
            .require("SHARED/videoCalls_mssfb", "mssfbProvider")
            .addScripts("mssfbProvider.initUser();");
