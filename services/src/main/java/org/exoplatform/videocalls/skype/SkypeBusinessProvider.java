@@ -23,10 +23,10 @@ import java.util.List;
 import org.exoplatform.container.configuration.ConfigurationException;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.container.xml.ValuesParam;
+import org.exoplatform.social.core.profile.settings.IMType;
 import org.exoplatform.social.core.profile.settings.UserProfileSettingsService;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.exoplatform.videocalls.VideoCallsProviderException;
-import org.exoplatform.videocalls.skype.profile.SkypeBusinessIMTypePlugin;
 
 /**
  * Created by The eXo Platform SAS.
@@ -211,7 +211,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
 
     if (profileSettings != null) {
       // add plugin programmatically as it's an integral part of the provider
-      profileSettings.addIMTypePlugin(new SkypeBusinessIMTypePlugin());
+      profileSettings.addIMType(new IMType(SFB_TYPE, SFB_TITLE));
     }
   }
 

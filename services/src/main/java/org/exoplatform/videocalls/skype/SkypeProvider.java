@@ -20,11 +20,11 @@ package org.exoplatform.videocalls.skype;
 
 import org.exoplatform.container.configuration.ConfigurationException;
 import org.exoplatform.container.xml.InitParams;
+import org.exoplatform.social.core.profile.settings.IMType;
 import org.exoplatform.social.core.profile.settings.UserProfileSettingsService;
 import org.exoplatform.videocalls.UserInfo.IMInfo;
 import org.exoplatform.videocalls.VideoCallsProvider;
 import org.exoplatform.videocalls.VideoCallsProviderException;
-import org.exoplatform.videocalls.skype.profile.SkypeIMTypePlugin;
 
 /**
  * Created by The eXo Platform SAS.
@@ -153,7 +153,7 @@ public class SkypeProvider extends VideoCallsProvider {
     // this.skypeService = skypeService;
     if (profileSettings != null) {
       // add plugin programmatically as it's an integral part of the provider
-      profileSettings.addIMTypePlugin(new SkypeIMTypePlugin());
+      profileSettings.addIMType(new IMType(SKYPE_TYPE, SKYPE_TITLE));
     }
   }
 
