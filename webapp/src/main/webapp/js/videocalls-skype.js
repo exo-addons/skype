@@ -103,9 +103,9 @@
 								var link = "skype:" + userIMs + "?call&amp;video=true";
 								var $button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
 											+ "' class='skypeCallIcon'>" + self.getCallTitle() + "</a>");
-								$button.click(function() {
+								//$button.click(function() {
 									// TODO what else we could do here? status? fire listeners?
-								});
+								//});
 								button.resolve($button);
 							} else {
 								button.reject("No " + self.getTitle() + " users found");

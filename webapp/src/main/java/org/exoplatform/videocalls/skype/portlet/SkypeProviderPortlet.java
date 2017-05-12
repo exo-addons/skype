@@ -21,7 +21,6 @@ package org.exoplatform.videocalls.skype.portlet;
 import static org.exoplatform.videocalls.VideoCallsUtils.asJSON;
 
 import java.io.IOException;
-import java.net.URI;
 
 import javax.portlet.GenericPortlet;
 import javax.portlet.PortletException;
@@ -62,11 +61,8 @@ public class SkypeProviderPortlet extends GenericPortlet {
   public void init() throws PortletException {
     super.init();
 
-    //
     ExoContainer container = ExoContainerContext.getCurrentContainer();
-
     this.videoCalls = container.getComponentInstanceOfType(VideoCallsService.class);
-
     try {
       this.provider = (SkypeProvider) videoCalls.getProvider(SkypeProvider.SKYPE_TYPE);
     } catch (ClassCastException e) {

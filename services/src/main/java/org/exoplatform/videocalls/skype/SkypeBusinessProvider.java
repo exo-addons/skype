@@ -154,13 +154,13 @@ public class SkypeBusinessProvider extends SkypeProvider {
   /**
    * Instantiates a new Skype for Business provider.
    *
+   * @param profileSettings the profile settings
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
-  public SkypeBusinessProvider(UserProfileSettingsService profileSettings,
-                               /* SkypeService skypeService, */ InitParams params)
+  public SkypeBusinessProvider(UserProfileSettingsService profileSettings, InitParams params)
       throws ConfigurationException {
-    super(/* skypeService, */params);
+    super(params);
 
     String version = this.config.get(CONFIG_WEB_APPVERSION);
     if (version == null || (version = version.trim()).length() == 0) {
@@ -274,12 +274,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
    */
   @Override
   public IMInfo getIMInfo(String imId) throws VideoCallsProviderException {
-    // if (emailTest.matcher(imId).find()) {
-    // it looks as email, assume it's SfB account
     return new SkypeBusinessIMInfo(imId);
-    // } else {
-    // return new SkypeIMInfo(imId);
-    // }
   }
 
   /**
@@ -305,23 +300,5 @@ public class SkypeBusinessProvider extends SkypeProvider {
   public String getVersion() {
     return version;
   }
-
-  // /**
-  // * {@inheritDoc}
-  // */
-  // @Override
-  // public boolean isSupportedType(String type) {
-  // // TODO regular Skype support temporal, remove it when introduce SFB support in eXo user profile
-  // return super.isSupportedType(type) || SkypeProvider.SKYPE_TYPE.equals(type);
-  // }
-
-  // /**
-  // * {@inheritDoc}
-  // */
-  // @Override
-  // public String[] getSupportedTypes() {
-  // // TODO regular Skype support temporal, remove it when introduce SFB support in eXo user profile
-  // return new String[] { getType(), SkypeProvider.SKYPE_TYPE };
-  // }
 
 }

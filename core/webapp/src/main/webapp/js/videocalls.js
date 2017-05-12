@@ -301,14 +301,6 @@
 								var bworker = $.Deferred();
 								button.done(function($button) {
 									if ($dropdown.length > 0) {
-//										if ($dropdown.children().length == 0) {
-//											// Move first button here
-//											var $first = $container.find(".btn." + buttonClass);
-//											$first.removeClass("btn");
-//											var $li = $("<li></li>");
-//											$li.append($first);
-//											$dropdown.append($li);
-//										}
 										// add others in dropdown
 										$button.addClass(buttonClass);
 										var $li = $("<li></li>");
@@ -347,7 +339,6 @@
 									var $toggle = $("<button class='btn dropdown-toggle' data-toggle='dropdown'>" + 
 											"<i class='uiIconMiniArrowDown uiIconLightGray'></i></span></button>");
 									$container.append($toggle);
-									//$container.append($("<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'><span class='caret'></span></a>"));
 									$container.append($dropdown);
 								}
 								if (buttons.length > 0) {
@@ -664,6 +655,14 @@
 				} else {
 					currentSpace = null;
 				}
+				// also init registered providers
+				for (var i = 0; i < providers.length; i++) {
+					var p = providers[i];
+					if (!p.isInitialized && p.init && p.hasOwnProperty("init")) {
+						p.init();
+						p.isInitialized = true;
+					}
+				}
 			}
 		};
 		
@@ -688,22 +687,23 @@
 			//
 			// A provider may support following of API methods:
 			// * update(stateObj) - when Video Calls will need update the state and UI, it will call the method
+			// * init() - will be called when Video Calls user will be initialized in init()
 			//
-			// WARN Provider may be added before the app initialization with user context and settings.
 			
 			// TODO avoid duplicates, use map like?
 			if (provider.getSupportedTypes && provider.hasOwnProperty("getSupportedTypes") && provider.getTitle && provider.hasOwnProperty("getTitle")) {
-				if (provider.update && provider.hasOwnProperty("update")) {
-					provider.useUpdate = true;
-				}
 				if (provider.callButton && provider.hasOwnProperty("callButton")) {
 					providers.push(provider);
-					// this.update(); // XXX don't update explicitly, let the caller care about this
+					// care about providers added after Video Calls initialization
+					if (currentUser && !provider.isInitialized && provider.init && provider.hasOwnProperty("init")) {
+						provider.init();
+						provider.isInitialized = true;
+					};
 				} else {
 					log("Not compartible provider object: " + provider.getName());
 				}
 			} else {
-				log("Not a provider object: " + provider);
+				log("Not a provider object: " + JSON.stringify(provider));
 			}
 		};
 		
@@ -747,8 +747,6 @@
 		 */
 		this.showCallPopup = function(url, title) {
 			// FYI Core adopted from Video Calls v1 notif.js
-			//var bw = $(window).width();
-			//var bh = $(window).height(); 
 			var aw = window.screen.availWidth; // screen.width
 			var ah = window.screen.availHeight; // screen.height
 		  var w = Math.floor(aw * 0.8);

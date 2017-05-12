@@ -7,7 +7,6 @@ if (eXo.videoCalls) {
 
 		var mssfb = videoCalls.getProvider("mssfb");
 		if (mssfb) {
-			// 
 			var hasToken = /#access_token=/.test(location.hash);
 			var hasError = /#error=/.test(location.hash);
 			var isCall = /\/_/.test(location.pathname);
@@ -127,6 +126,7 @@ if (eXo.videoCalls) {
 						isClosed = true;
 					});
 					conversation.selfParticipant.reset();
+					// TODO what a right approach to leave the convo? 
 					// conversation.videoService.stop();
 					// conversation.audioService.stop();
 					// conversation.chatService.stop();
@@ -155,8 +155,27 @@ if (eXo.videoCalls) {
 					log(">>> MSSFB login");
 					if (hasToken) {
 						log(">>>> MSSFB login token: " + location.hash);
+						// FYI window.opener.eXo.videoCalls.mssfb.loginToken will exist only within provider.init() execution and short time
+						// thus this if-block should not execute for call authentication
 						if (window.opener && window.opener.eXo && window.opener.eXo.videoCalls && window.opener.eXo.videoCalls.mssfb && window.opener.eXo.videoCalls.mssfb.loginToken) {
 							var openerUri = window.opener.location.href;
+							
+							// **** experiments with ADSL to obtain auth token for SDK calls later
+							/*var settings = {
+										clientId : clientId,
+										cacheLocation: "localStorage"
+									};
+							var msOnlineContext = new AuthenticationContext(settings);
+							msOnlineContext.login();
+							msOnlineContext.acquireToken("https://login.microsoftonline.com/common", function(res) {
+			        	log("msOnlineContext.acquireTokenSilentAsync: " + JSON.stringify(res));
+			        });
+							var winGraphContext = new AuthenticationContext(settings);
+							winGraphContext.acquireToken("https://graph.windows.net", function(res) {
+			        	log("winGraphContext.acquireTokenSilentAsync: " + JSON.stringify(res));
+			        });*/
+							//
+							
 							log(">>>> MSSFB login opener: " + openerUri);
 							var hline = location.hash;
 							var token = {

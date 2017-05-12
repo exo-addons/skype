@@ -31,12 +31,12 @@ import org.exoplatform.web.application.RequireJS;
 import org.exoplatform.webui.application.WebuiRequestContext;
 
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: VideoCallsContext.java 00000 Apr 28, 2017 pnedonosko $
- * 
  */
+@Deprecated // TODO not used
 public class VideoCallsContext {
 
   /** The Constant JAVASCRIPT. */
@@ -64,6 +64,7 @@ public class VideoCallsContext {
    *
    * @param requestContext {@link RequestContext}
    * @param provider the provider
+   * @return the video calls context
    * @throws VideoCallsException the video calls exception
    */
   public static VideoCallsContext init(WebuiRequestContext requestContext,
@@ -94,7 +95,9 @@ public class VideoCallsContext {
   private final RequireJS   require;
 
   /**
-   * 
+   * Instantiates a new video calls context.
+   *
+   * @param requestContext the request context
    */
   private VideoCallsContext(WebuiRequestContext requestContext) {
     JavascriptManager js = requestContext.getJavascriptManager();

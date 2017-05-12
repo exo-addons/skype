@@ -120,7 +120,7 @@
 							} else {
 								args.redirect_uri = redirectUri;
 							}
-							app.signInManager.signIn(args).then(function() {
+							app.signInManager.signIn(args).then(function(res) {
 								log("Skype signed in as " + app.personsAndGroupsManager.mePerson.displayName());
 								appInstance = app;
 								initializer.resolve(api, app);
@@ -254,11 +254,13 @@
 				}
 				return button.promise();
 			};
-			
-			this.initUser = function() {
+						
+			this.init = function() {
+				log("Init at " + window.location.href);
 				var loginUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
 				var $control = $(".mssfbControl");
 				if ($control.length > 0) {
+					// in user profile edit page 
 					if (globalVideoCalls) {
 						$control.click(function() {
 							var $settings = $("<div class='uiMssfbSettings' title='Skype for Business settings'></div>");
@@ -274,7 +276,6 @@
 					        "Login": function() {
 										var loginWindow = authRedirectWindow("Skype for Business Login", settings.clientId, loginUri, "https://webdir.online.lync.com");
 										var loginTokenCallback = function(token) {
-											//log("Login token: " + JSON.stringify(token));
 											var process = $.Deferred();
 											try {
 												var prevHash = location.hash;
@@ -286,7 +287,7 @@
 												  // Save the token hash in local storage for later use
 												  if (typeof(Storage) !== "undefined") {
 												    // Code for localStorage/sessionStorage.
-												  	localStorage.setItem("mssfb_token_hash", location.hash);
+												  	localStorage.setItem("mssfb_token_hash", token.hash_line);
 													} else {
 													  // Sorry! No Web Storage support..
 														log("Error saving access token: local storage not supported.");
@@ -321,7 +322,8 @@
 						log("Error initializing MSSFB settings control: eXo.videoCalls not defined");
 						$control.hide();
 					}
-				} else {
+				} else if (false && window.location.pathname.startsWith("/portal/")) {
+					// TODO this else-block disabled for first release 
 					// we somewhere else in the portal, try login using saved token
 					if (typeof(Storage) !== "undefined") {
 						var savedToken = localStorage.getItem("mssfb_token_hash");
@@ -330,20 +332,20 @@
 							var appInitializer = provider.application(loginUri);
 							appInitializer.done(function(api, app) {
 								// TODO re-save token?
-							  log("Login OK, app created OK, token: " + location.hash);
+							  log("Login OK (saved), app created OK, token: " + location.hash);
 							});
 							appInitializer.fail(function(err) {
-								log("Login error: " + JSON.stringify(err));
+								log("Login (saved) error: " + JSON.stringify(err));
 								localStorage.removeItem("mssfb_token_hash");
 							});
 						} else {
-							log("Login not possible: access token not found in local storage.");
+							log("Login (saved) not possible: access token not found in local storage.");
 						}
 					} else {
 					  // Sorry! No Web Storage support..
-						log("Error saving access token: local storage not supported.");
+						log("Error reading access token: local storage not supported.");
 					}
-				}
+				} // else, it's also may be a call page - do we need something here?
 			};
 		}
 

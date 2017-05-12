@@ -34,17 +34,6 @@
   <module>
     <name>skypeWeb</name>
     <url>https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js</url>
-    <!-- We cannot hide Skype global variable in this script, thus no sense to keep it local -->
-    <!-- script>
-      <adapter>
-        (function() {
-        <include>/js/SkypeBootstrap.min.js</include>
-        var skype = window.Skype;
-        window.Skype = undefined;
-        return skype;
-        })();
-      </adapter>
-    </script -->
   </module>
   <module>
     <name>videoCalls_skype</name>

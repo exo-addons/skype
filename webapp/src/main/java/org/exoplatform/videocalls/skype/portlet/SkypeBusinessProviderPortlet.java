@@ -88,13 +88,13 @@ public class SkypeBusinessProviderPortlet extends GenericPortlet {
                                                                                     IOException {
     if (this.provider != null) {
       try {
+        // TODO
         // So far we don't need any server-side markup for this portlet.
         // PortletRequestDispatcher prd =
         // getPortletContext().getRequestDispatcher("/WEB-INF/pages/provider.jsp");
         // prd.include(request, response);
-
         // PortalRequestContext requestContext = Util.getPortalRequestContext();
-        // TODO here we may want redirect URI to the current portal page, don't we?
+
         URI redirectURI = new URI(request.getScheme(),
                                   null,
                                   request.getServerName(),

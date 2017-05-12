@@ -21,7 +21,6 @@ package org.exoplatform.videocalls.skype.profile.webui;
 import java.io.IOException;
 
 import org.exoplatform.container.configuration.ConfigurationException;
-import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.social.core.profile.settings.IMType;
 import org.exoplatform.social.core.profile.settings.UserProfileSettingsService;
 import org.exoplatform.social.webui.profile.settings.UIIMControlRenderer;
@@ -62,14 +61,16 @@ public class SkypeBusinessIMRenderer extends UIIMControlRenderer {
    */
   @Override
   public void render(String imValue, WebuiRequestContext context) throws IOException, Exception {
+    // TODO disabled for first release
     // add Javascript/markup here
-    StringBuffer elem = new StringBuffer();
-    elem.append("<a class='actionIcon mssfbControl' data-placement='bottom' rel='tooltip' title='' data-original-title='Settings' href='javascript:void(0)'>")
-        .append("<i class='uiIconSetting uiIconLightGray'></i></a>");
-    context.getWriter().append(elem.toString());
-    context.getJavascriptManager()
-           .require("SHARED/videoCalls_mssfb", "mssfbProvider")
-           .addScripts("mssfbProvider.initUser();");
+    // StringBuffer elem = new StringBuffer();
+    // elem.append("<a class='actionIcon mssfbControl' data-placement='bottom' rel='tooltip' title=''
+    // data-original-title='Settings' href='javascript:void(0)'>")
+    // .append("<i class='uiIconSetting uiIconLightGray'></i></a>");
+    // context.getWriter().append(elem.toString());
+    // context.getJavascriptManager()
+    // .require("SHARED/videoCalls_mssfb", "mssfbProvider");
+    // //.addScripts("mssfbProvider.initUser();");
   }
 
 }

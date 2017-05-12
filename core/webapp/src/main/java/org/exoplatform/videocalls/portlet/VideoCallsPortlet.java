@@ -59,9 +59,7 @@ public class VideoCallsPortlet extends GenericPortlet {
   public void init() throws PortletException {
     super.init();
 
-    //
     ExoContainer container = ExoContainerContext.getCurrentContainer();
-
     this.videocalls = container.getComponentInstanceOfType(VideoCallsService.class);
   }
 
@@ -78,7 +76,6 @@ public class VideoCallsPortlet extends GenericPortlet {
       // PortletRequestDispatcher prd =
       // getPortletContext().getRequestDispatcher("/WEB-INF/pages/videocalls.jsp");
       // prd.include(request, response);
-
       // TODO Get bundle messages for status/error texts
       // Locale locale = userContext.getLocale();
       // ResourceBundle bundle = applicationContext.resolveBundle(locale);

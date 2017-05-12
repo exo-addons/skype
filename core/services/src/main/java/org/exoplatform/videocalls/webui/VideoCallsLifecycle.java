@@ -42,6 +42,7 @@ import org.exoplatform.webui.core.UIComponentDecorator;
  * @version $Id: VideoCallsLifecycle.java 00000 Mar 14, 2017 pnedonosko $
  * 
  */
+@Deprecated // TODO not required
 public class VideoCallsLifecycle implements ApplicationLifecycle<WebuiRequestContext> {
 
 	/** The Constant LOG. */

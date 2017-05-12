@@ -136,18 +136,18 @@ public class SkypeProvider extends VideoCallsProvider {
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
-  public SkypeProvider(/* SkypeService skypeService, */ InitParams params) throws ConfigurationException {
+  public SkypeProvider(InitParams params) throws ConfigurationException {
     this(null, params);
   }
 
   /**
    * Instantiates a new skype provider.
    *
+   * @param profileSettings the profile settings
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
-  public SkypeProvider(UserProfileSettingsService profileSettings,
-                       /* SkypeService skypeService, */ InitParams params)
+  public SkypeProvider(UserProfileSettingsService profileSettings, InitParams params)
       throws ConfigurationException {
     super(params);
     // this.skypeService = skypeService;
@@ -171,12 +171,7 @@ public class SkypeProvider extends VideoCallsProvider {
    */
   @Override
   public IMInfo getIMInfo(String imId) throws VideoCallsProviderException {
-    // if (emailTest.matcher(imId).find()) {
-    // throw new SkypeProviderException("Email not supported as a regular Skype IM. Probably you need Business
-    // provider. Check the configuration.");
-    // } else {
     return new SkypeIMInfo(imId);
-    // }
   }
 
   /**
