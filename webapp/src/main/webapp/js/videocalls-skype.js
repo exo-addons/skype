@@ -82,9 +82,9 @@
 							// TODO i18n for title
 							var title;
 							if (context.userName) {
-								title = "Call with " + convTitle;
+								title = "Call with " + self.getTitle();
 							} else {
-								title = convTitle + " meeting";
+								title = self.getTitle() + " Call";
 							}
 							var ims = [];
 							for ( var uname in users) {
@@ -102,7 +102,13 @@
 								// use Skype URI for regular Skype user
 								var link = "skype:" + userIMs + "?call&amp;video=true";
 								var $button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
-											+ "' class='skypeCallIcon'>" + self.getCallTitle() + "</a>");
+											+ "' class='skypeCallAction'><span class='callTitle'>" + self.getCallTitle() + "</span></a>");
+								setTimeout(function() {
+									if (!$button.hasClass("btn")) {
+										// in dropdown show longer description
+										$button.find(".callTitle").text(self.getTitle() + " " + self.getCallTitle());
+									}
+								}, 1000);
 								//$button.click(function() {
 									// TODO what else we could do here? status? fire listeners?
 								//});

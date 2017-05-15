@@ -4,13 +4,13 @@
     content: url("/skype/skin/icons/skypeicon_16px.png");
 }
 
-.skypeCallIcon:before {
+.skypeCallAction:before {
 	content: url("/skype/skin/icons/skypeicon_16px.png");
 	position: relative;
 	top: 3px;
 	margin-right: 3px;
 }
 
-.userCall.skypeCallIcon {
+.userCall.skypeCallAction {
 	line-height: 17px;
 }

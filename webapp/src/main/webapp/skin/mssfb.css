@@ -3,14 +3,14 @@
     content: url("/skype/skin/icons/sfbicon_16px.png");
 }
 
-.mssfbCallIcon:before {
+.mssfbCallAction:before {
 	content: url("/skype/skin/icons/sfbicon_16px.png");
 	position: relative;
 	top: 3px;
 	margin-right: 3px;
 }
 
-.userCall.mssfbCallIcon {
+.userCall.mssfbCallAction {
 	line-height: 17px;
 }
 

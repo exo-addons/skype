@@ -4,8 +4,12 @@
 }
 
 .spaceCall {
-	padding-top: 2px;
-    padding-bottom: 2px;
+	padding: 2px 5px 2px 5px;
+}
+
+.callButtonContainer .dropdown-toggle {
+	padding-left: 5px !important;
+    padding-right: 5px !important;
 }
 
 .userCall.btn:first-child {

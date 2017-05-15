@@ -243,10 +243,11 @@
 							var linkId = "SkypeCall-" + convName + "-" + rndText;
 							// TODO i18n for title
 							var title;
+							// TODO do we need differentiation for one-on-one and group titles?
 							if (context.userName) {
-								title = "Call with " + convTitle;
+								title = "Call with " + self.getTitle();
 							} else {
-								title = convTitle + " meeting";
+								title = self.getTitle() + " Call";
 							}
 							// TODO i18n for title
 							var ims = [];
@@ -263,7 +264,13 @@
 							if (ims.length > 0) {
 								var userIMs = ims.join(";");
 								var $button = $("<a id='" + linkId + "' title='" + title
-											+ "' href='javascript:void(0);' class='mssfbCallIcon'>" + self.getCallTitle() + "</a>");
+											+ "' href='javascript:void(0);' class='mssfbCallAction'><span class='callTitle'>" + self.getCallTitle() + "</span></a>");
+								setTimeout(function() {
+									if (!$button.hasClass("btn")) {
+										// in dropdown show longer description
+										$button.find(".callTitle").text(self.getTitle() + " " + self.getCallTitle());
+									}
+								}, 1000);
 								$button.click(function() {
 									// TODO check if such window isn't already open by this app
 									var callUri = videoCalls.getBaseUrl() + "/portal/skype/call/_" + userIMs;

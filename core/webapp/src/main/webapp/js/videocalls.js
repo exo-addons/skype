@@ -308,7 +308,7 @@
 										$dropdown.append($li);	
 									} else {
 										// add first & default button
-										$button.addClass("btn " + buttonClass); // btn-primary
+										$button.addClass("btn " + buttonClass); // btn btn-primary actionIcon 
 										$container.append($button); 
 										$dropdown = $("<ul class='dropdown-menu'></ul>");
 									}
