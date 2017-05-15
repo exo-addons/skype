@@ -122,8 +122,22 @@
 							}
 							app.signInManager.signIn(args).then(function(res) {
 								log("Skype signed in as " + app.personsAndGroupsManager.mePerson.displayName());
-								appInstance = app;
-								initializer.resolve(api, app);
+								// ensure local and remote users are of the same account in MS
+								var exoUserSFB = videoCalls.imAccount(user, "mssfb");
+								var mssfbUserId = app.personsAndGroupsManager.mePerson.id(); // sip:email...
+								if (mssfbUserId.startsWith("sip:")) {
+									mssfbUserId = mssfbUserId.slice(4);
+								}
+								if (exoUserSFB && exoUserSFB.id != mssfbUserId) {
+									// bad, we cannot proceed - need ask local user login with his account in MS
+									log("Skype user and local eXo user have different Microsoft IDs: " + mssfbUserId + " vs " + exoUserSFB.id);
+									initializer.reject("Skype user signed in under different account: " + mssfbUserId +
+											". Please login as " + exoUserSFB.id);
+								} else {
+									// else, we don't care here if it is SfB user on eXo side
+									appInstance = app;
+									initializer.resolve(api, app);
+								}
 							}, function(err) {
 								log("Cannot sign in Skype", err);
 								initializer.reject(err);
@@ -179,8 +193,22 @@
 							// Necessary for troubleshooting requests; identifies your application in our telemetry
 							}).then(function() {
 								log("SkypeCC signed in as " + app.personsAndGroupsManager.mePerson.displayName());
-								uiAppInstance = app;
-								initializer.resolve(api, app);
+								// ensure local and remote users are of the same account in MS
+								var exoUserSFB = videoCalls.imAccount(user, "mssfb");
+								var mssfbUserId = app.personsAndGroupsManager.mePerson.id(); // sip:email...
+								if (mssfbUserId.startsWith("sip:")) {
+									mssfbUserId = mssfbUserId.slice(4);
+								}
+								if (exoUserSFB && exoUserSFB.id != mssfbUserId) {
+									// bad, we cannot proceed - need ask local user login with his account in MS
+									log("Skype user and local eXo user have different Microsoft IDs: " + mssfbUserId + " vs " + exoUserSFB.id);
+									initializer.reject("Skype user signed in under different account: " + mssfbUserId +
+											". Please login as " + exoUserSFB.id);
+								} else {
+									// else, we don't care here if it is SfB user on eXo side
+									uiAppInstance = app;
+									initializer.resolve(api, app);
+								}
 							}, function(err) {
 								log("Cannot sign in SkypeCC", err);
 								initializer.reject(err);
@@ -263,10 +291,15 @@
 					// in user profile edit page 
 					if (globalVideoCalls) {
 						$control.click(function() {
-							var $settings = $("<div class='uiMssfbSettings' title='Skype for Business settings'></div>");
-							var $message = $("<p><span class='ui-icon ui-icon-gear' style='float:left; margin:12px 12px 20px 0;'></span><div class='messageText'>Login in to your Skype for Business account.</div></p>");
-							$settings.append($message);
-							$(document.body).append($settings);
+							var $settings = $("div.uiMssfbSettings");
+							if ($settings.length == 0) {
+								$settings = $("<div class='uiMssfbSettings' title='Skype for Business settings'></div>");
+								$(document.body).append($settings);
+							} else {
+								$settings.empty();
+							}
+							$settings.append($("<p><span class='ui-icon messageIcon ui-icon-gear' style='float:left; margin:12px 12px 20px 0;'></span>" +
+								"<div class='messageText'>Login in to your Skype for Business account.</div></p>"));
 							$settings.dialog({
 					      resizable: false,
 					      height: "auto",
@@ -298,8 +331,19 @@
 												});
 												appInitializer.fail(function(err) {
 													log("Login error: " + JSON.stringify(err));
-												  messageText.replaceWith($("<p><span class='ui-icon ui-icon-alert' style='float:left; margin:12px 12px 20px 0;'></span><div class='messageText'>" 
-												   + err + ".</div></p>"));
+													$settings.find(".messageIcon").removeClass("ui-icon-gear").addClass("ui-icon-alert");
+													$settings.find(".messageText").html("Error! " + err);
+													$settings.dialog({
+														resizable: false,
+											      height: "auto",
+											      width: 400,
+											      modal: true,
+											      buttons: {
+											        Ok: function() {
+											        	$settings.dialog( "close" );
+											        }
+											      }
+											    });
 												  delete globalVideoCalls.mssfb.loginToken;
 												  location.hash = prevHash;
 												  process.reject();
@@ -310,10 +354,10 @@
 											return process.promise();
 										};
 										globalVideoCalls.mssfb.loginToken = loginTokenCallback;
-										$( this ).dialog( "close" );
+										$settings.dialog( "close" );
 					        },
 					        "Cancel": function() {
-					          $( this ).dialog( "close" );
+					        	$settings.dialog( "close" );
 					        }
 					      }
 					    });

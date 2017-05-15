@@ -18,6 +18,10 @@
 	position: relative;
 }
 
+.uiMssfbSettings .messageIcon {
+	margin-bottom: 30px !important;
+}
+
 #mssfb-call-starting {
 	position: relative;
 	width: 100%;

@@ -97,7 +97,7 @@ if (eXo.videoCalls) {
 			}
 
 			function showError(title, message) {
-				$("#mssfb-call-conversation").hide();
+				$("#mssfb-call-conversation, #mssfb-call-starting").hide();
 				var $error = $("#mssfb-call-error");
 				if ($error.length == 0) {
 					$error = $("<div id='mssfb-call-error'></div>");
@@ -327,7 +327,7 @@ if (eXo.videoCalls) {
 						uiInitializer.fail(function(err) {
 							// TODO we have an error, check if it's auth problem, then force to login
 							log(">>>> MSSFB app error: " + err);
-							showError("Appplication Error", err);
+							showError("Application Error", err);
 						});
 					}
 					if (hasError) {
