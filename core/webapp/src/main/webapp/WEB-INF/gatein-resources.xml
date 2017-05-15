@@ -41,7 +41,7 @@
     <script>
       <adapter>
         (function() {
-        <include>/js/jquery-3.2.1.js</include>
+        <include>/js/jquery-3.2.1.min.js</include>
           return jQuery.noConflict(true);
         })();
       </adapter>

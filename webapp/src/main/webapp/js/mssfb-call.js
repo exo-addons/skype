@@ -204,7 +204,6 @@ if (eXo.videoCalls) {
 					// it's call window, user may be already authenticated, but may be not
 					if (hasToken) {
 						var redirectUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
-						// + location.pathname;
 						var uiInitializer = mssfb.uiApplication(redirectUri);
 						uiInitializer.done(function(api, uiApp) {
 							// render the call CC
@@ -318,7 +317,6 @@ if (eXo.videoCalls) {
 										log(">>>> MSSFB conversation rendering error: " + JSON.stringify(err));
 									}
 								});
-								// });
 							} catch (err) {
 								log(">>>> MSSFB call error:", err);
 								showError("Call Error", err);
