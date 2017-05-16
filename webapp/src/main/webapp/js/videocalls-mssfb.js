@@ -16,6 +16,16 @@
 			}
 		}
 	}
+	
+	/** 
+	 * Polyfill ECMAScript 2015's String.startsWith().
+	 * */
+	if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position){
+      position = position || 0;
+      return this.substr(position, searchString.length) === searchString;
+	  };
+	}
 
 	var globalVideoCalls = typeof eXo != "undefined" && eXo && eXo.videoCalls ? eXo.videoCalls : null;
 	

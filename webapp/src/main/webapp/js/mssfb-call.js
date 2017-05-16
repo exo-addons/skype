@@ -239,7 +239,7 @@ if (eXo.videoCalls) {
 									"participants" : participants
 								}).then(function(conversation) {
 									// Conversation Control was rendered successfully
-									log(">>>> MSSFB conversation rendered successfully: " + JSON.stringify(conversation));
+									log(">>>> MSSFB conversation rendered successfully: " + conversation);
 									// conversation.topic("TODO")
 									// TODO in case of video error, but audio or chat success - show a hind message to an user and autohide it
 									var beforeunloadListener = function(e) {
@@ -251,7 +251,7 @@ if (eXo.videoCalls) {
 										onClosePage(conversation, uiApp);
 									};
 									conversation.videoService.start().then(function(obj) {
-										log(">>>>> MSSFB video started: " + JSON.stringify(obj));
+										log(">>>>> MSSFB video started: " + obj);
 									}, function(videoError) {
 										// error starting videoService, cancel (by this user) also will go here
 										log("<<<<< Error starting MSSFB video: " + JSON.stringify(videoError));
@@ -281,13 +281,13 @@ if (eXo.videoCalls) {
 										if (isModalityUnsupported(videoError)) {
 											// ok, try audio
 											conversation.audioService.start().then(function(obj) {
-												log(">>>>> MSSFB audio started: " + JSON.stringify(obj));
+												log(">>>>> MSSFB audio started: " + obj);
 											}, function(audioError) {
 												log("<<<<< Error starting MSSFB audio: " + JSON.stringify(audioError));
 												if (isModalityUnsupported(audioError)) {
 													// well, it will be chat (it should work everywhere)
 													conversation.chatService.start().then(function(obj) {
-														log(">>>>> MSSFB chat started: " + JSON.stringify(obj));
+														log(">>>>> MSSFB chat started: " + obj);
 													}, function(chatError) {
 														log("<<<<< Error starting MSSFB chat: " + JSON.stringify(chatError));
 														if (chatError.code == "Canceled") {
