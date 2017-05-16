@@ -494,6 +494,8 @@
 							if (userName != currentUser.name) {
 								var $userAction = $tiptip.find(".uiAction");
 								addUserButton($userAction, userName).done(function($container) {
+									// XXX workaround to avoid first-child happen on call button in the popover
+									$container.prepend($("<div class='btn' style='display: none;'></div>"));
 									$container.css("margin", "10px");
 								});
 							}
