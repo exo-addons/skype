@@ -128,7 +128,12 @@ public class RESTVideoCallsService implements ResourceContainer {
 				try {
 					GroupInfo space = videoCalls.getSpaceInfo(spaceName);
 					if (space != null) {
-						return Response.ok().entity(space).build();
+					  if (space.getMembers().containsKey(currentUserName)) {
+					    return Response.ok().entity(space).build();
+					  } else {
+					    return Response.status(Status.FORBIDDEN)
+	                .entity(ErrorInfo.accessError("Not space member")).build();
+					  }
 					} else {
 						return Response.status(Status.NOT_FOUND)
 								.entity(ErrorInfo.notFoundError("Space not found or not accessible")).build();
