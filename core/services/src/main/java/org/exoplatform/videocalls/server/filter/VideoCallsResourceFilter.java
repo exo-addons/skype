@@ -48,7 +48,8 @@ import javax.servlet.http.HttpServletResponseWrapper;
 public class VideoCallsResourceFilter extends AbstractFilter implements Filter {
 
   /** The Constant LOG. */
-  protected static final Logger          LOG           = LoggerFactory.getLogger(VideoCallsResourceFilter.class);
+  protected static final Logger          LOG           =
+                                             LoggerFactory.getLogger(VideoCallsResourceFilter.class);
 
   /** The Constant METHOD_GET. */
   protected static final String          METHOD_GET    = "GET";
@@ -101,8 +102,9 @@ public class VideoCallsResourceFilter extends AbstractFilter implements Filter {
    * {@inheritDoc}
    */
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
-                                                                                            ServletException {
+  public void doFilter(ServletRequest request,
+                       ServletResponse response,
+                       FilterChain chain) throws IOException, ServletException {
 
     if (!PropertyManager.isDevelopping()) {
       HttpServletRequest httpReq = (HttpServletRequest) request;

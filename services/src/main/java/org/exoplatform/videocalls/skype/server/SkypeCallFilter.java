@@ -46,16 +46,16 @@ import org.gatein.common.logging.LoggerFactory;
 public class SkypeCallFilter extends AbstractFilter implements Filter {
 
   /** The Constant LOG. */
-  protected static final Logger LOG               = LoggerFactory.getLogger(SkypeCallFilter.class);
+  protected static final Logger LOG                 = LoggerFactory.getLogger(SkypeCallFilter.class);
 
   /** The Constant SKYPE_CALL_REDIRECT. */
   public static final String    SKYPE_CALL_REDIRECT = "skypecall_redirect";
-  
+
   /** The Constant SKYPE_SERVLET_CTX. */
-  public static final String    SKYPE_SERVLET_CTX = "/skype";
+  public static final String    SKYPE_SERVLET_CTX   = "/skype";
 
   /** The Constant CALL_SERVLET. */
-  public static final String    CALL_SERVLET      = "/skypecallservlet".intern();
+  public static final String    CALL_SERVLET        = "/skypecallservlet".intern();
 
   /**
    * {@inheritDoc}

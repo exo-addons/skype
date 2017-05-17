@@ -66,7 +66,7 @@ public abstract class GroupInfo {
   public String getTitle() {
     return title;
   }
-  
+
   /**
    * Gets the members.
    *

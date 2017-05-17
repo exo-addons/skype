@@ -138,7 +138,8 @@ public class UserInfo {
   /**
    * Gets the im accounts.
    *
-   * @return the map of user instant messaging accounts: key is a type, value is a collection of {@link IMInfo}
+   * @return the map of user instant messaging accounts: key is a type, value is a collection of
+   *         {@link IMInfo}
    */
   public Map<String, Collection<IMInfo>> getImAccounts() {
     return Collections.unmodifiableMap(imAccounts);

@@ -54,11 +54,13 @@ public class VideoCallsContextFilter implements Filter {
    * {@inheritDoc}
    */
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
-                                                                                            ServletException {
+  public void doFilter(ServletRequest request,
+                       ServletResponse response,
+                       FilterChain chain) throws IOException, ServletException {
 
     PortalContainer container = PortalContainer.getInstance();
-    WebAppController controller = (WebAppController) container.getComponentInstanceOfType(WebAppController.class);
+    WebAppController controller =
+                                (WebAppController) container.getComponentInstanceOfType(WebAppController.class);
     PortalApplication app = controller.getApplication(PortalApplication.PORTAL_APPLICATION_ID);
 
     final VideoCallsLifecycle lifecycle = new VideoCallsLifecycle();

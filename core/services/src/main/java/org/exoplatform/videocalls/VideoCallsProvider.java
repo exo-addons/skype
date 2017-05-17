@@ -80,7 +80,7 @@ public abstract class VideoCallsProvider extends BaseComponentPlugin {
    * @return the name
    */
   public abstract String getTitle();
-  
+
   /**
    * Gets the version.
    *
@@ -89,14 +89,15 @@ public abstract class VideoCallsProvider extends BaseComponentPlugin {
   public abstract String getVersion();
 
   /**
-   * Gets the main type name of this provider (e.g. 'skype'). Provider type should be in lower case and without
-   * white spaces. A provider may support several types as well, to observe all supported types use {@link #getSupportedTypes()}.
+   * Gets the main type name of this provider (e.g. 'skype'). Provider type should be in lower case and
+   * without
+   * white spaces. A provider may support several types as well, to observe all supported types use
+   * {@link #getSupportedTypes()}.
    *
    * @return the type
    */
   public abstract String getType();
 
-  
   /**
    * Checks if it is a supported type by this provider.
    *
@@ -106,7 +107,6 @@ public abstract class VideoCallsProvider extends BaseComponentPlugin {
   public boolean isSupportedType(String type) {
     return getType().equals(type);
   }
-  
 
   /**
    * Gets all types supported by this provider. Provider type should be in lower case and without

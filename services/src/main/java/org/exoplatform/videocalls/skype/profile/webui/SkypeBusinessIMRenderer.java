@@ -63,11 +63,15 @@ public class SkypeBusinessIMRenderer extends UIIMControlRenderer {
   public void render(String imValue, WebuiRequestContext context) throws IOException, Exception {
     // TODO disabled for first release
     // add Javascript/markup here
-    /*StringBuffer elem = new StringBuffer();
-    elem.append("<a class='actionIcon mssfbControl' data-placement='bottom' rel='tooltip' title='' data-original-title='Settings' href='javascript:void(0)'>")
-        .append("<i class='uiIconSetting uiIconLightGray'></i></a>");
-    context.getWriter().append(elem.toString());
-    context.getJavascriptManager().require("SHARED/videoCalls_mssfb", "mssfbProvider");*/
+    /*
+     * StringBuffer elem = new StringBuffer();
+     * elem.
+     * append("<a class='actionIcon mssfbControl' data-placement='bottom' rel='tooltip' title='' data-original-title='Settings' href='javascript:void(0)'>"
+     * )
+     * .append("<i class='uiIconSetting uiIconLightGray'></i></a>");
+     * context.getWriter().append(elem.toString());
+     * context.getJavascriptManager().require("SHARED/videoCalls_mssfb", "mssfbProvider");
+     */
     // .addScripts("mssfbProvider.initUser();");
   }
 

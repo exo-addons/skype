@@ -45,121 +45,121 @@ import org.exoplatform.webui.core.UIComponentDecorator;
 @Deprecated // TODO not required
 public class VideoCallsLifecycle implements ApplicationLifecycle<WebuiRequestContext> {
 
-	/** The Constant LOG. */
-	protected static final Log LOG = ExoLogger.getLogger(VideoCallsLifecycle.class);
+  /** The Constant LOG. */
+  protected static final Log           LOG             = ExoLogger.getLogger(VideoCallsLifecycle.class);
 
-	/** The toolbar rendered. */
-	protected final ThreadLocal<Boolean> toolbarRendered = new ThreadLocal<Boolean>();
+  /** The toolbar rendered. */
+  protected final ThreadLocal<Boolean> toolbarRendered = new ThreadLocal<Boolean>();
 
-	/**
-	 * Instantiates a new Video Calls lifecycle.
-	 */
-	public VideoCallsLifecycle() {
-		//
-	}
+  /**
+   * Instantiates a new Video Calls lifecycle.
+   */
+  public VideoCallsLifecycle() {
+    //
+  }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void onInit(Application app) throws Exception {
-		// nothing
-	}
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void onInit(Application app) throws Exception {
+    // nothing
+  }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void onStartRequest(Application app, WebuiRequestContext context) throws Exception {
-		UIComponent toolbar = findToolbarComponent(app, context);
-		if (toolbar != null && toolbar.isRendered()) {
-			toolbarRendered.set(true);
-			toolbar.setRendered(false);
-		}
-		// TODO do we need this in PLF 5.x?
-		// XXX add WCMUtils and Bootsrap-Dropdown Javascript which is required
-		// by UnifiedSearch portlet (it
-		// doesn't depend on WCMUtils as QuicksearchPortlet does)
-		// if (context.<HttpServletRequest>
-		// getRequest().getRequestURI().indexOf("/outlook/search") > 0) {
-		// context.getJavascriptManager().require("SHARED/bts_dropdown");
-		// context.getJavascriptManager().require("SHARED/wcm-utils",
-		// "wcm_utils");
-		// }
-	}
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void onStartRequest(Application app, WebuiRequestContext context) throws Exception {
+    UIComponent toolbar = findToolbarComponent(app, context);
+    if (toolbar != null && toolbar.isRendered()) {
+      toolbarRendered.set(true);
+      toolbar.setRendered(false);
+    }
+    // TODO do we need this in PLF 5.x?
+    // XXX add WCMUtils and Bootsrap-Dropdown Javascript which is required
+    // by UnifiedSearch portlet (it
+    // doesn't depend on WCMUtils as QuicksearchPortlet does)
+    // if (context.<HttpServletRequest>
+    // getRequest().getRequestURI().indexOf("/outlook/search") > 0) {
+    // context.getJavascriptManager().require("SHARED/bts_dropdown");
+    // context.getJavascriptManager().require("SHARED/wcm-utils",
+    // "wcm_utils");
+    // }
+  }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void onEndRequest(Application app, WebuiRequestContext context) throws Exception {
-		UIComponent toolbar = findToolbarComponent(app, context);
-		if (toolbar != null) {
-			Boolean render = toolbarRendered.get();
-			if (render != null && render.booleanValue()) {
-				// restore rendered if was rendered and set hidden explicitly
-				toolbar.setRendered(true);
-			}
-		}
-	}
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void onEndRequest(Application app, WebuiRequestContext context) throws Exception {
+    UIComponent toolbar = findToolbarComponent(app, context);
+    if (toolbar != null) {
+      Boolean render = toolbarRendered.get();
+      if (render != null && render.booleanValue()) {
+        // restore rendered if was rendered and set hidden explicitly
+        toolbar.setRendered(true);
+      }
+    }
+  }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void onFailRequest(Application app, WebuiRequestContext context, RequestFailure failureType) {
-		// nothing
-	}
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void onFailRequest(Application app, WebuiRequestContext context, RequestFailure failureType) {
+    // nothing
+  }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void onDestroy(Application app) throws Exception {
-		// nothing
-	}
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void onDestroy(Application app) throws Exception {
+    // nothing
+  }
 
-	// ******* internals ******
+  // ******* internals ******
 
-	/**
-	 * Find toolbar component.
-	 *
-	 * @param app
-	 *            the app
-	 * @param context
-	 *            the context
-	 * @return the UI component
-	 * @throws Exception
-	 *             the exception
-	 */
-	protected UIComponent findToolbarComponent(Application app, WebuiRequestContext context) throws Exception {
-		ExoContainer container = app.getApplicationServiceContainer();
-		if (container != null) {
-			UIApplication uiApp = context.getUIApplication();
-			UIComponentDecorator uiViewWS = uiApp.findComponentById(UIPortalApplication.UI_VIEWING_WS_ID);
-			if (uiViewWS != null) {
-				UIContainer viewContainer = (UIContainer) uiViewWS.getUIComponent();
-				if (viewContainer != null) {
-					UIContainer navContainer = viewContainer.getChildById("NavigationPortlet");
-					if (navContainer == null) {
-						navContainer = viewContainer;
-					}
-					for (UIComponent child : navContainer.getChildren()) {
-						if (UIContainer.class.isAssignableFrom(child.getClass())) {
-							UIContainer childContainer = UIContainer.class.cast(child);
-							UIComponent toolbar = childContainer.getChildById("UIToolbarContainer");
-							if (toolbar != null) {
-								// attempt #1
-								return toolbar;
-							}
-						}
-					}
-					// attempt #2
-					return navContainer.findComponentById("UIToolbarContainer");
-				}
-			}
-		}
-		return null;
-	}
+  /**
+   * Find toolbar component.
+   *
+   * @param app
+   *          the app
+   * @param context
+   *          the context
+   * @return the UI component
+   * @throws Exception
+   *           the exception
+   */
+  protected UIComponent findToolbarComponent(Application app, WebuiRequestContext context) throws Exception {
+    ExoContainer container = app.getApplicationServiceContainer();
+    if (container != null) {
+      UIApplication uiApp = context.getUIApplication();
+      UIComponentDecorator uiViewWS = uiApp.findComponentById(UIPortalApplication.UI_VIEWING_WS_ID);
+      if (uiViewWS != null) {
+        UIContainer viewContainer = (UIContainer) uiViewWS.getUIComponent();
+        if (viewContainer != null) {
+          UIContainer navContainer = viewContainer.getChildById("NavigationPortlet");
+          if (navContainer == null) {
+            navContainer = viewContainer;
+          }
+          for (UIComponent child : navContainer.getChildren()) {
+            if (UIContainer.class.isAssignableFrom(child.getClass())) {
+              UIContainer childContainer = UIContainer.class.cast(child);
+              UIComponent toolbar = childContainer.getChildById("UIToolbarContainer");
+              if (toolbar != null) {
+                // attempt #1
+                return toolbar;
+              }
+            }
+          }
+          // attempt #2
+          return navContainer.findComponentById("UIToolbarContainer");
+        }
+      }
+    }
+    return null;
+  }
 
 }

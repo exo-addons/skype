@@ -47,108 +47,115 @@ import org.exoplatform.videocalls.VideoCallsService;
 @Produces(MediaType.APPLICATION_JSON)
 public class RESTVideoCallsService implements ResourceContainer {
 
-	/** The Constant ME. */
-	public static final String ME = "me";
+  /** The Constant ME. */
+  public static final String        ME  = "me";
 
-	/** The Constant LOG. */
-	protected static final Log LOG = ExoLogger.getLogger(RESTVideoCallsService.class);
+  /** The Constant LOG. */
+  protected static final Log        LOG = ExoLogger.getLogger(RESTVideoCallsService.class);
 
-	/** The video calls. */
-	protected final VideoCallsService videoCalls;
+  /** The video calls. */
+  protected final VideoCallsService videoCalls;
 
-	/**
-	 * Instantiates a new REST video calls service.
-	 *
-	 * @param skype
-	 *            the skype
-	 */
-	public RESTVideoCallsService(VideoCallsService skype) {
-		this.videoCalls = skype;
-	}
+  /**
+   * Instantiates a new REST video calls service.
+   *
+   * @param skype
+   *          the skype
+   */
+  public RESTVideoCallsService(VideoCallsService skype) {
+    this.videoCalls = skype;
+  }
 
-	/**
-	 * Gets the user info.
-	 *
-	 * @param uriInfo
-	 *            the uri info
-	 * @param userName
-	 *            the id
-	 * @return the user info response
-	 */
-	@GET
-	@RolesAllowed("users")
-	@Path("/user/{name}")
-	public Response getUserInfo(@Context UriInfo uriInfo, @PathParam("name") String userName) {
-		ConversationState convo = ConversationState.getCurrent();
-		if (convo != null) {
-			String currentUserName = convo.getIdentity().getUserId();
-			if (userName != null) {
-				if (ME.equals(userName)) {
-					userName = currentUserName;
-				}
-				try {
-					UserInfo user = videoCalls.getUserInfo(userName);
-					if (user != null) {
-						return Response.ok().entity(user).build();
-					} else {
-						return Response.status(Status.NOT_FOUND)
-								.entity(ErrorInfo.notFoundError("User not found or not accessible")).build();
-					}
-				} catch (Throwable e) {
-					LOG.error("Error reading user info of '" + userName + "' by '" + currentUserName + "'", e);
-					return Response.serverError().entity(ErrorInfo.serverError("Error reading user " + userName))
-							.build();
-				}
-			} else {
-				return Response.status(Status.BAD_REQUEST)
-						.entity(ErrorInfo.clientError("Wrong request parameters: name")).build();
-			}
-		} else {
-			return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
-		}
-	}
+  /**
+   * Gets the user info.
+   *
+   * @param uriInfo
+   *          the uri info
+   * @param userName
+   *          the id
+   * @return the user info response
+   */
+  @GET
+  @RolesAllowed("users")
+  @Path("/user/{name}")
+  public Response getUserInfo(@Context UriInfo uriInfo, @PathParam("name") String userName) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      if (userName != null) {
+        if (ME.equals(userName)) {
+          userName = currentUserName;
+        }
+        try {
+          UserInfo user = videoCalls.getUserInfo(userName);
+          if (user != null) {
+            return Response.ok().entity(user).build();
+          } else {
+            return Response.status(Status.NOT_FOUND)
+                           .entity(ErrorInfo.notFoundError("User not found or not accessible"))
+                           .build();
+          }
+        } catch (Throwable e) {
+          LOG.error("Error reading user info of '" + userName + "' by '" + currentUserName + "'", e);
+          return Response.serverError()
+                         .entity(ErrorInfo.serverError("Error reading user " + userName))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
 
-	/**
-	 * Gets the space info.
-	 *
-	 * @param uriInfo
-	 *            the uri info
-	 * @param spaceName
-	 *            the space name
-	 * @return the space info response
-	 */
-	@GET
-	@RolesAllowed("users")
-	@Path("/space/{spaceName}")
-	public Response getSpaceInfo(@Context UriInfo uriInfo, @PathParam("spaceName") String spaceName) {
-		ConversationState convo = ConversationState.getCurrent();
-		if (convo != null) {
-			String currentUserName = convo.getIdentity().getUserId();
-			if (spaceName != null && spaceName.length() > 0) {
-				try {
-					GroupInfo space = videoCalls.getSpaceInfo(spaceName);
-					if (space != null) {
-					  if (space.getMembers().containsKey(currentUserName)) {
-					    return Response.ok().entity(space).build();
-					  } else {
-					    return Response.status(Status.FORBIDDEN)
-	                .entity(ErrorInfo.accessError("Not space member")).build();
-					  }
-					} else {
-						return Response.status(Status.NOT_FOUND)
-								.entity(ErrorInfo.notFoundError("Space not found or not accessible")).build();
-					}
-				} catch (Throwable e) {
-					LOG.error("Error reading space info of '" + spaceName + "' by '" + currentUserName + "'", e);
-					return Response.serverError().entity(ErrorInfo.serverError("Error reading space " + spaceName))
-							.build();
-				}
-			} else {
-				return Response.status(Status.BAD_REQUEST)
-						.entity(ErrorInfo.clientError("Wrong request parameters: name")).build();
-			}
-		} else {
-			return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
-		}
-	}
+  /**
+   * Gets the space info.
+   *
+   * @param uriInfo
+   *          the uri info
+   * @param spaceName
+   *          the space name
+   * @return the space info response
+   */
+  @GET
+  @RolesAllowed("users")
+  @Path("/space/{spaceName}")
+  public Response getSpaceInfo(@Context UriInfo uriInfo, @PathParam("spaceName") String spaceName) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      if (spaceName != null && spaceName.length() > 0) {
+        try {
+          GroupInfo space = videoCalls.getSpaceInfo(spaceName);
+          if (space != null) {
+            if (space.getMembers().containsKey(currentUserName)) {
+              return Response.ok().entity(space).build();
+            } else {
+              return Response.status(Status.FORBIDDEN)
+                             .entity(ErrorInfo.accessError("Not space member"))
+                             .build();
+            }
+          } else {
+            return Response.status(Status.NOT_FOUND)
+                           .entity(ErrorInfo.notFoundError("Space not found or not accessible"))
+                           .build();
+          }
+        } catch (Throwable e) {
+          LOG.error("Error reading space info of '" + spaceName + "' by '" + currentUserName + "'", e);
+          return Response.serverError()
+                         .entity(ErrorInfo.serverError("Error reading space " + spaceName))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
 }
