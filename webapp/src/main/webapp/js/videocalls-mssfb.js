@@ -155,7 +155,7 @@
 
 							// whenever client.state changes, display its value
 							app.signInManager.state.changed(function(state) {
-								// TODO
+								// TODO update user state and UI in PLF page
 								log("State change:" + JSON.stringify(state));
 							});
 						}, function(err) {
@@ -226,7 +226,7 @@
 
 							// whenever client.state changes, display its value
 							app.signInManager.state.changed(function(state) {
-								// TODO
+								// TODO update user state and UI in PLF page
 								log("StateCC change:" + JSON.stringify(state));
 							});
 						}, function(err) {
@@ -253,13 +253,11 @@
 							var linkId = "SkypeCall-" + convName + "-" + rndText;
 							// TODO i18n for title
 							var title;
-							// TODO do we need differentiation for one-on-one and group titles?
 							if (context.userName) {
 								title = "Call with " + self.getTitle();
 							} else {
 								title = self.getTitle() + " Call";
 							}
-							// TODO i18n for title
 							var ims = [];
 							for ( var uname in users) {
 								if (users.hasOwnProperty(uname)) {

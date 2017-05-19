@@ -211,21 +211,6 @@ if (eXo.videoCalls) {
 							try {
 								var participants = decodeURIComponent(
 											location.pathname.substring(location.pathname.indexOf("call/_") + 6)).split(";")
-								// TODO was for debug purpose only
-								// for (var i = 0; i < participants.length; i++) {
-								// var p = participants[i];
-								// var personSearchQuery = uiApp.personsAndGroupsManager.createPersonSearchQuery();
-								// personSearchQuery.text(p);
-								// personSearchQuery.limit(5);
-								// personSearchQuery.getMore().then(function(results) {
-								// results.forEach(function(result) {
-								// var person = result.result;
-								// log("Person: " + p + " " + person.displayName());
-								// }, function(err) {
-								// log("Search person error: " + p, err);
-								// });
-								// });
-								// }
 								$("#mssfb-call-starting").hide();
 								var $convo = $("#mssfb-call-conversation");
 								if ($convo.length == 0) {
@@ -241,7 +226,7 @@ if (eXo.videoCalls) {
 									// Conversation Control was rendered successfully
 									log(">>>> MSSFB conversation rendered successfully: " + conversation);
 									// conversation.topic("TODO")
-									// TODO in case of video error, but audio or chat success - show a hind message to an user and autohide it
+									// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
 									var beforeunloadListener = function(e) {
 										var msg = onClosePage(conversation, uiApp);
 										e.returnValue = msg; // Gecko, Trident, Chrome 34+
@@ -270,8 +255,6 @@ if (eXo.videoCalls) {
 											window.removeEventListener("beforeunload", beforeunloadListener);
 											window.removeEventListener("unload", unloadListener);
 										}
-										// TODO code == InvitationFailed and subcode == UnsupportedMediaType - when other user in FF (no video/audion)
-										// then try what is possible: audio then chat
 										function isModalityUnsupported(error) {
 											if (error.code == "CommandDisabled" || (error.code == "InvitationFailed" && error.reason.subcode == "UnsupportedMediaType")) {
 												return true;

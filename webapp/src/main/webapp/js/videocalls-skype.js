@@ -62,8 +62,6 @@
 
 			this.configure = function(skypeEnv) {
 				settings = skypeEnv;
-				// TODO do some validation of given settings?
-				// Skype Configuration: apiKey for SDK, apiKeyCC for SDK+UI
 			};
 
 			this.isConfigured = function() {
@@ -109,9 +107,6 @@
 										$button.find(".callTitle").text(self.getTitle() + " " + self.getCallTitle());
 									}
 								}, 1000);
-								//$button.click(function() {
-									// TODO what else we could do here? status? fire listeners?
-								//});
 								button.resolve($button);
 							} else {
 								button.reject("No " + self.getTitle() + " users found");

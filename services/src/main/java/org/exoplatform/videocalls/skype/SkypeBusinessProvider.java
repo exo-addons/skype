@@ -199,7 +199,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
       for (int i = 0; i < values.size(); i++) {
         origins[i] = values.get(i);
       }
-      // TODO not required since Apr 14, 2017
+      // XXX not required since Apr 14, 2017
       // As suggested in
       // http://stackoverflow.com/questions/43345355/skype-web-sdk-only-one-server-https-webdir1e-online-lync-com-is-correctl
       // use exact server URL in autodiscovery until it will be fixed by Microsoft
