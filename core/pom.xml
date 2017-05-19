@@ -44,13 +44,11 @@
     <!-- **************************************** -->
     <!-- Dependencies versions                    -->
     <!-- **************************************** -->
-    <org.exoplatform.depmgt.version>13-SNAPSHOT</org.exoplatform.depmgt.version>
-    <org.exoplatform.platform.version>5.0.x-SNAPSHOT</org.exoplatform.platform.version>
-    <!-- Third-parties -->
-    <!-- for tests -->
+    <!-- org.exoplatform.depmgt.version>13-M01</org.exoplatform.depmgt.version>
+    <org.exoplatform.platform.version>5.0.0-M05</org.exoplatform.platform.version>
     <junit.version>4.12</junit.version>
     <org.mockito.version>2.2.11</org.mockito.version>
-    <httpclient-test.version>4.3.6</httpclient-test.version>
+    <httpclient-test.version>4.3.6</httpclient-test.version -->
   </properties>
   <dependencyManagement>
     <dependencies>

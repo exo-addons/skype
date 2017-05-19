@@ -24,7 +24,7 @@
   <parent>
     <artifactId>addons-parent-pom</artifactId>
     <groupId>org.exoplatform.addons</groupId>
-    <version>8-SNAPSHOT</version>
+    <version>8-M01</version>
   </parent>
   <artifactId>exo-skype-parent</artifactId>
   <version>1.0.x-SNAPSHOT</version>
@@ -52,8 +52,8 @@
     <!-- **************************************** -->
     <!-- Dependencies versions                    -->
     <!-- **************************************** -->
-    <org.exoplatform.depmgt.version>13-SNAPSHOT</org.exoplatform.depmgt.version>
-    <org.exoplatform.platform.version>5.0.x-SNAPSHOT</org.exoplatform.platform.version>
+    <org.exoplatform.depmgt.version>13-M05</org.exoplatform.depmgt.version>
+    <org.exoplatform.platform.version>5.0.0-M05</org.exoplatform.platform.version>
     <!-- Third-parties -->
     <org.jsoup.version>1.9.2</org.jsoup.version>
     <!-- for tests -->
