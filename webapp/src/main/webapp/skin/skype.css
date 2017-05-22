@@ -1,11 +1,11 @@
 /* Styles for Skype provider */
 
 .uiIconSocSkype:before {
-    content: url("/skype/skin/icons/skypeicon_14px.png");
+    content: url("/skype/skin/icons/skypeicon_14px.png") !important;
 }
 
 .uiIconSkypeCall:before {
-    content: url("/skype/skin/icons/skypeicon_14px.png");
+    content: url("/skype/skin/icons/skypeicon_14px.png") !important;
     position: relative;
 	top: 2px;
 	margin-right: 3px;

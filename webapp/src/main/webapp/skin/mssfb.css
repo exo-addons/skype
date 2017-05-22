@@ -1,10 +1,10 @@
 /* Styles for Skype/SfB provider */
 .uiIconSocMssfb:before {
-    content: url("/skype/skin/icons/sfbicon_14px.png");
+    content: url("/skype/skin/icons/sfbicon_14px.png") !important;
 }
 
 .uiIconMssfbCall:before {
-    content: url("/skype/skin/icons/sfbicon_14px.png");
+    content: url("/skype/skin/icons/sfbicon_14px.png") !important;
     position: relative;
 	top: 2px;
 	margin-right: 3px;
