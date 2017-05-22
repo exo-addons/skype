@@ -290,7 +290,8 @@
 							var contextName = (context.spaceName ? context.spaceName : context.userName);
 							initializer.notify("addCallButton " + contextName + " for " + context.currentUser.name);
 							if ($container.length == 0) {
-								$container = $("<div style='display: none;' class='btn-group callButtonContainer'></div>");
+								// TODO May 22 2017: btn-group removed
+								$container = $("<div style='display: none;' class='callButtonContainer'></div>");
 								$target.append($container);
 							}
 							var $dropdown = $container.find(".dropdown-menu");
@@ -342,6 +343,9 @@
 									$container.append($dropdown);
 								}
 								if (buttons.length > 0) {
+									if (buttons.length > 1) {
+										buttons[0].addClass("defaultCallButton"); // mark for CSS
+									}
 									$container.show();
 									initializer.resolve($container);
 								} else {
@@ -434,14 +438,14 @@
 				if ($chat.length > 0) {
 					var $room = $chat.find("a.room-detail-fullname");
 					if ($room.length == 0) {
-						// TODO
+						//
 					}
 				}
 			}
 		};
 
 		/**
-		 * Add call button to user popups and panels. TODO Adapt to provider model.
+		 * Add call button to user popups and panels.
 		 */
 		var initUserPopups = function(compId) {
 			var $tiptip = $("#tiptip_content");
@@ -480,8 +484,7 @@
 			// user popovers
 			// XXX hardcoded for peopleSuggest as no way found to add Lifecycle
 			// to its portlet (juzu)
-			$("#" + compId + ", #peopleSuggest").find(".owner, .author").find("a[href*='\\/profile\\/']").each(function() {
-				// attach action to
+			$("#" + compId + ", #peopleSuggest").find(".owner, .author, .spaceTitle").find("a[href*='\\/profile\\/']").each(function() {
 				$(this).mouseenter(function() {
 					// need wait for popover initialization
 					setTimeout(function() {
@@ -489,14 +492,14 @@
 						var $td = $tiptip.children("#tipName").children("tbody").children("tr").children("td");
 						if ($td.length > 1) {
 							var $userLink = $("a", $td.get(1));
-							//var userTitle = $userLink.text();
 							var userName = extractUserName($userLink);
 							if (userName != currentUser.name) {
 								var $userAction = $tiptip.find(".uiAction");
 								addUserButton($userAction, userName).done(function($container) {
 									// XXX workaround to avoid first-child happen on call button in the popover
 									$container.prepend($("<div class='btn' style='display: none;'></div>"));
-									$container.css("margin", "10px");
+									//$container.css("margin-left", "10px");
+									$container.css("margin-top", "10px");
 								});
 							}
 						}
@@ -505,7 +508,8 @@
 			});
 
 			// user panel in connections (all, personal and in space)
-			$("#" + compId).find(".spaceBox").each(function(i, elem) {
+			// May 22 2017: we don't want Call Button in user cards
+			/*$("#" + compId).find(".spaceBox").each(function(i, elem) {
 				var $userLink = $(elem).find(".spaceTitle a:first");
 				if ($userLink.length > 0) {
 					//var userTitle = $userLink.text();
@@ -517,7 +521,7 @@
 						});
 					}
 				}
-			});
+			});*/
 
 			// single user profile;
 			$("#" + compId).find("#socialTopLayout").each(function(i, elem) {
@@ -528,7 +532,6 @@
 					var $userActions = $(elem).find("#UIRelationshipAction .user-actions");
 					addUserButton($userActions, userName).done(function($container) {
 						$container.addClass("pull-left");
-						//$button.css({ "float" : "left", "height" : "28px"});
 					});
 					// Copied from Chat app: Fix PLF-6493: Only let hover happens on
 					// connection buttons instead
@@ -618,8 +621,12 @@
 					log(">> initSpace PROGRESS " + message);
 				});
 				initializer.done(function($container) {
-					$container.css("top", "-22px");
-					$container.find(".startCallButton").addClass("spaceCall");
+					var $button = $container.find(".startCallButton");
+					if ($breadcumbEntry.find(".chat-button").length > 0) {
+						$button.addClass("inlineButton");
+					}
+					$button.addClass("spaceCall");
+					$container.css("margin-top", "-40px");
 					log("<< initSpace DONE " + currentSpace.spaceName + " for " + currentUser.name);
 				});
 				initializer.fail(function(error, $container) {

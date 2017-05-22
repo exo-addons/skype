@@ -272,7 +272,9 @@
 							if (ims.length > 0) {
 								var userIMs = ims.join(";");
 								var $button = $("<a id='" + linkId + "' title='" + title
-											+ "' href='javascript:void(0);' class='mssfbCallAction'><span class='callTitle'>" + self.getCallTitle() + "</span></a>");
+											+ "' href='javascript:void(0);' class='mssfbCallAction'>"
+											+ "<i class='uiIconMssfbCall uiIconForum uiIconLightGray'></i>"
+													+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");
 								setTimeout(function() {
 									if (!$button.hasClass("btn")) {
 										// in dropdown show longer description

@@ -100,7 +100,9 @@
 								// use Skype URI for regular Skype user
 								var link = "skype:" + userIMs + "?call&amp;video=true";
 								var $button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
-											+ "' class='skypeCallAction'><span class='callTitle'>" + self.getCallTitle() + "</span></a>");
+											+ "' class='skypeCallAction'>"
+											+ "<i class='uiIconSkypeCall uiIconForum uiIconLightGray'></i>"
+											+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");
 								setTimeout(function() {
 									if (!$button.hasClass("btn")) {
 										// in dropdown show longer description

@@ -1,17 +1,24 @@
 /* Styles for Skype/SfB provider */
 .uiIconSocMssfb:before {
-    content: url("/skype/skin/icons/sfbicon_16px.png");
+    content: url("/skype/skin/icons/sfbicon_14px.png");
 }
 
-.mssfbCallAction:before {
-	content: url("/skype/skin/icons/sfbicon_16px.png");
-	position: relative;
-	top: 3px;
+.uiIconMssfbCall:before {
+    content: url("/skype/skin/icons/sfbicon_14px.png");
+    position: relative;
+	top: 2px;
 	margin-right: 3px;
 }
 
+.mssfbCallAction:before {
+	/*content: url("/skype/skin/icons/sfbicon_16px.png");
+	position: relative;
+	top: 3px;
+	margin-right: 3px;*/
+}
+
 .userCall.mssfbCallAction {
-	line-height: 17px;
+	/*line-height: 17px;*/
 }
 
 .uiMssfbSettings, .uiMssfbSettings>p, .uiMssfbSettings .ui-icon, .uiMssfbSettings .messageText {

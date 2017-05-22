@@ -179,7 +179,6 @@ public class VideoCallsService implements Startable {
       UserInfo info = new UserInfo(user.getUserName(), user.getFirstName(), user.getLastName());
       if (ims != null) {
         for (Map<String, String> m : ims) {
-          // TODO constants key/value - use from Social Profile code
           String imType = m.get("key");
           String imId = m.get("value");
           if (imId != null && imId.length() > 0) {

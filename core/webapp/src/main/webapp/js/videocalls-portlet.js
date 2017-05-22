@@ -26,8 +26,6 @@
 		$(function() {
 			// init context
 			videoCalls.init(user, context);
-			// TODO: do we want init calls buttons on the page right here, or wait for
-			// providers with their buttons?
 			videoCalls.update();
 
 			// and later on DOM changes (when portlets will load by Ajax)
@@ -41,10 +39,6 @@
 								var MutationObserver = window.MutationObserver || window.WebKitMutationObserver
 											|| window.MozMutationObserver;
 								var observer = new MutationObserver(function(mutations) {
-									// TODO it's for development tracing - remove it finally
-									// mutations.forEach(function(mutation) {
-									// console.log(mutation.type);
-									// });
 									// FYI this will be fired twice on each update
 									videoCalls.update();
 								});
