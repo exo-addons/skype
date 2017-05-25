@@ -10,14 +10,26 @@
 	text-align: initial;
 }
 
+.startCallButton.spaceCall {
+	font-size: 12px;
+}
+
 .callButtonContainer .btn {
 	min-width: 0;
 }
 
+/*
+ * We give class defaultCallButton properties of btn-group for such things as border and font, 
+ * but other will be omitted to don't be affected by its CSS from PLF core. 
+ */
 .defaultCallButton + .dropdown-toggle {
 	-webkit-border-radius: 0 3px 3px 0;
 	-moz-border-radius: 0 3px 3px 0;
 	border-radius: 0 3px 3px 0;
+	font-size: 12px;
+	padding-left: 5px;
+	padding-right: 5px;
+	margin-left: -1px !important;
 }
 
 .defaultCallButton {
@@ -30,34 +42,26 @@
     margin-right: 0px;
 }
 
-.callButtonContainer .btn + .btn {
-	margin-left: -1px;
-}
-
-.callButtonContainer .dropdown-toggle {
-	padding-left: 5px !important;
-    padding-right: 5px !important;
-}
-
 .inlineButton {
-	padding: 3px 7px 3px 7px;
+	padding: 2px 5px 2px 5px;
 }
 
-.userCall.btn {
-	/*margin-right: 0px;
-	padding-bottom: 3px;
-    padding-top: 3px;
-    -webkit-border-top-left-radius: 3px;
-	-moz-border-radius-topleft: 3px;
-	border-top-left-radius: 3px;
-	-webkit-border-bottom-left-radius: 3px;
-	-moz-border-radius-bottomleft: 3px;
-	border-bottom-left-radius: 3px;*/
+.inlineButton + .dropdown-toggle {
+	padding-top: 2px;
+	padding-bottom: 2px	
 }
 
-.uiSocApplication .callButtonContainer .dropdown-toggle, #socialTopLayout .callButtonContainer .dropdown-toggle {
-	margin-left: -1px !important;
+.callButtonContainer .uiIconMiniArrowDown {
+	vertical-align: text-bottom;
 }
+
+#tiptip_content .callButtonContainer {
+	margin-top: 1ch;
+}
+
+#UIBreadCrumbsNavigationPortlet .callButtonContainer {   
+    margin-top: -40px;   
+} 
 
 /******** Pnotify icons ********/
 .picon-32.picon-task-complete {

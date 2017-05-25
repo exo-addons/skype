@@ -99,6 +99,8 @@
   var isAndroid = /Android/.test(navigator.userAgent);
   var isWindowsMobile = /IEmobile|WPDesktop|Windows Phone/i.test(navigator.userAgent) || /WM\s*\d.*.Edge\/\d./i.test(navigator.userAgent);
   
+  var CACHE_LIVETIME = 30000;
+  
 	/**
 	 * Show notice to user. Options support "icon" class, "hide", "closer" and "nonblock" features.
 	 */
@@ -226,24 +228,111 @@
 		return process.promise(processTarget);
 	};
 
-	var getUserInfo = function(userName) {
+	function Cache() {
+		var cache = {};
+		var locks = {};
+		
+		this.put = function(key, value) {
+			cache[key] = value;
+			setTimeout(function() {
+				cache[key] = null;
+  		}, CACHE_LIVETIME);
+		};
+		
+		this.get = function(key) {
+			// TODO do we need this check?
+			if (cache.hasOwnProperty(key)) {
+				return cache[key];
+			} else {
+				return null;
+			}
+		};
+		
+		this.remove = function(key) {
+			cache[key] = null;
+		};
+		
+		this.lock = function(key, worker) {
+			locks[key] = worker;
+		};
+		
+		this.locked = function(key) {
+			if (locks.hasOwnProperty(key)) {
+				return locks[key];
+			} else {
+				return null;
+			}
+		};
+		
+		this.unlock = function(key) {
+			locks[key] = null;
+		};
+	}
+	
+	var getCached = function(key, cache, getFunc) {
+		var res = cache.locked(key);
+		if (res) {
+			return res;
+		}
+		var worker = $.Deferred();
+		cache.lock(key, res = worker.promise());
+		var cached = cache.get(key);
+		if (cached) {
+			cache.unlock(key);
+			worker.notify("CACHED " + key);
+			worker.resolve(cached, "cached");
+  	} else if (getFunc) {
+  		var unlock = true;
+  		var get = getFunc(key);
+  		get.done(function(data, status, textStatus, jqXHR) {
+  			cache.put(key, data);
+  			cache.unlock(key);
+  			unlock = false;
+  			worker.resolve(data, status, textStatus, jqXHR);
+	  	});
+  		get.fail(function(data, status, err, jqXHR) {
+  			cache.unlock(key);
+  			unlock = false;
+  			worker.reject(data, status, err, jqXHR);
+  		});
+  		get.always(function() {
+  			if (unlock) {
+  				// unlock again here - for a case if will not do in done/fail :)
+  				cache.unlock(key); 
+  			}
+  		});
+  	} else {
+  		cache.unlock(key);
+  		worker.notify("NOT FOUND " + key + ". Getter function not provided.");
+  		worker.reject("Not found: " + key);
+  	}
+  	return res;
+	};
+	
+	var cachedUsers = new Cache();
+	var getUserInfoRequest = function(userName) {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
 			url : prefixUrl + "/portal/rest/videocalls/user/" + userName
 		});
-
 		return initRequest(request);
 	};
-	
-	var getSpaceInfo = function(spaceName) {
+	var getUserInfo = function(userName) {
+		return getCached(userName, cachedUsers, getUserInfoRequest);
+	};
+
+	var cachedSpaces = new Cache();
+	var getSpaceInfoReq = function(spaceName) {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
 			url : prefixUrl + "/portal/rest/videocalls/space/" + spaceName
 		});
-
 		return initRequest(request);
+	};
+	var getSpaceInfo = function(spaceName) {
+		return getCached(spaceName, cachedSpaces, getSpaceInfoReq);
 	};
 
 	var serviceGet = function(url, data) {
@@ -377,7 +466,6 @@
 				isIOS : isIOS,
 				isAndroid : isAndroid,
 				isWindowsMobile : isWindowsMobile,
-				_user : null,
 				participants : function() {
 					var data = $.Deferred();
 					// access user via property defined below
@@ -392,32 +480,16 @@
 			  enumerable: true,
 			  configurable: false,
 			  get: function() {
-			  	// We use short-living cache for 5s
-			  	var cached = context._user;
-			  	if (cached) {
-			  		log(">> initUserPopups > get_user CACHED " + userName + " for " + currentUser.name);
-			  		var get = $.Deferred();
-			  		get.resolve(cached);
-			  		return get.promise();
-			  	} else {
-			  		log(">> initUserPopups > get_user " + userName + " for " + currentUser.name);
-			  		var get = getUserInfo(userName);
-				  	get.done(function(user) {
-				  		context._user = user;
-				  		setTimeout(function() {
-				  			context._user = null;
-				  		}, 5000);
-				  	});
-						get.fail(function(e, status) {
-							if (status == 404) {
-								log(">> initUserPopups < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userName + " for " + currentUser.name + ": " + JSON.stringify(e));
-							} else {
-								log(">> initUserPopups < ERROR get_user : " + JSON.stringify(e));
-								// TODO notify the user?
-							}
-						});
-						return get;
-			  	}
+			  	var get = getUserInfo(userName);
+					get.fail(function(e, status) {
+						if (typeof(status) == "number" && status == 404) {
+							log(">> initUserPopups < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userName + " for " + currentUser.name + ": " + JSON.stringify(e));
+						} else {
+							log(">> initUserPopups < ERROR get_user : " + JSON.stringify(e));
+							// TODO notify the user?
+						}
+					});
+					return get;
 			  },
 			  set: function() {
 			  	log(">> initUserPopups < ERROR set_user not supported " + userName + " for " + currentUser.name);
@@ -433,7 +505,6 @@
 		var initChat = function() {
 			if (chatApplication) {
 				log("Init chat for " + chatApplication.username);
-
 				var $chat = $("#chat-application");
 				if ($chat.length > 0) {
 					var $room = $chat.find("a.room-detail-fullname");
@@ -449,12 +520,10 @@
 		 */
 		var initUserPopups = function(compId) {
 			var $tiptip = $("#tiptip_content");
-			// if not in user profile wait for UIUserProfilePopup script load
-			if (window.location.href.indexOf("/portal/intranet/profile") < 0) {
-				if ($tiptip.length == 0 || $tiptip.hasClass("DisabledEvent")) {
-					setTimeout($.proxy(initUserPopups, this), 250, compId);
-					return;
-				}
+			// wait for UIUserProfilePopup script load
+			if ($tiptip.length == 0 || $tiptip.hasClass("DisabledEvent")) {
+				setTimeout($.proxy(initUserPopups, this), 250, compId);
+				return;
 			}
 
 			var addUserButton = function($userAction, userName) {
@@ -482,30 +551,47 @@
 			};
 
 			// user popovers
-			// XXX hardcoded for peopleSuggest as no way found to add Lifecycle
-			// to its portlet (juzu)
-			$("#" + compId + ", #peopleSuggest").find(".owner, .author, .spaceTitle").find("a[href*='\\/profile\\/']").each(function() {
-				$(this).mouseenter(function() {
-					// need wait for popover initialization
-					setTimeout(function() {
-						// Find user's first name for a tip
-						var $td = $tiptip.children("#tipName").children("tbody").children("tr").children("td");
-						if ($td.length > 1) {
-							var $userLink = $("a", $td.get(1));
-							var userName = extractUserName($userLink);
-							if (userName != currentUser.name) {
-								var $userAction = $tiptip.find(".uiAction");
-								addUserButton($userAction, userName).done(function($container) {
-									// XXX workaround to avoid first-child happen on call button in the popover
-									$container.prepend($("<div class='btn' style='display: none;'></div>"));
-									//$container.css("margin-left", "10px");
-									$container.css("margin-top", "10px");
-								});
-							}
+			var customizePopover = function() {
+				// wait for popover initialization
+				setTimeout(function() {
+					// Find user's first name for a tip
+					var $td = $tiptip.children("#tipName").children("tbody").children("tr").children("td");
+					if ($td.length > 1) {
+						var $userLink = $("a", $td.get(1));
+						var userName = extractUserName($userLink);
+						if (userName != currentUser.name) {
+							var $userAction = $tiptip.find(".uiAction");
+							addUserButton($userAction, userName).done(function($container) {
+								// XXX workaround to avoid first-child happen on call button in the popover
+								$container.prepend($("<div class='btn' style='display: none;'></div>"));
+							});
 						}
-					}, 600);
+					} else {
+						log("WARN tipName empty " + $td);
+					}
+				}, 300);
+			};
+			// XXX wait for loading activity stream (TODO try rely on a promise)
+			setTimeout(function() {
+				// XXX hardcoded for peopleSuggest as no way found to add Lifecycle to its portlet (juzu)
+				// user popovers in Social (authors, commenters, likers, profile, network, connections etc)
+				$("#" + compId + ", #peopleSuggest").find(".owner, .author, .spaceTitle, .activityAvatar, .commmentLeft, .listLiked, .profileContainer, .avatarBox, .userProfileShare .pull-left").find("a[href*='\\/profile\\/']").each(function() {
+					var $a = $(this);
+					//log("init social popup " + $a.attr("href"));
+					$a.mouseenter(function() {
+						customizePopover();
+					});
+				});				
+				
+				// user popovers in Forum
+				$("#" + compId).find("#UIForumContainer .postViewHeader").find("div[href*='\\/profile\\/']").each(function() {
+					var $div = $(this);
+					//log("init forum popup " + $div.attr("href"));
+					$div.mouseenter(function() {
+						customizePopover();
+					});
 				});
-			});
+			}, 1000);
 
 			// user panel in connections (all, personal and in space)
 			// May 22 2017: we don't want Call Button in user cards
@@ -565,7 +651,6 @@
 						isIOS : isIOS,
 						isAndroid : isAndroid,
 						isWindowsMobile : isWindowsMobile,
-						_space : null,
 						participants : function() {
 							var data = $.Deferred();
 							// access space via property defined below
@@ -580,31 +665,15 @@
 					  enumerable: true,
 					  configurable: false,
 					  get: function() {
-					  	// We use short-living cache for 5s
-					  	var cached = context._space;
-					  	if (cached) {
-					  		log(">> initSpace > get_space CACHED " + currentSpace.spaceName);
-					  		var get = $.Deferred();
-					  		get.resolve(cached);
-					  		return get.promise();
-					  	} else {
-						  	log(">> initSpace > get_space " + currentSpace.spaceName);
-						  	var get = getSpaceInfo(currentSpace.spaceName);
-						  	get.done(function(space) {
-						  		context._space = space;
-						  		setTimeout(function() {
-						  			context._space = null;
-						  		}, 5000);
-						  	});
-								get.fail(function(e, status) {
-									if (status == 404) {
-										log(">> initSpace < ERROR get_space " + currentSpace.spaceName + " for " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
-									} else {
-										log(">> initSpace < ERROR get_space " + currentSpace.spaceName + " for " + currentUser.name + ": " + JSON.stringify(e));
-									}
-								});
-								return get;
-					  	}
+					  	var get = getSpaceInfo(currentSpace.spaceName);
+					  	get.fail(function(e, status) {
+								if (typeof(status) == "number" && status == 404) {
+									log(">> initSpace < ERROR get_space " + currentSpace.spaceName + " for " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
+								} else {
+									log(">> initSpace < ERROR get_space " + currentSpace.spaceName + " for " + currentUser.name + ": " + JSON.stringify(e));
+								}
+							});
+							return get;
 					  },
 					  set: function() {
 					  	log(">> initSpace < ERROR set_space not supported " + currentSpace.spaceName + " for " + currentUser.name);
@@ -626,7 +695,6 @@
 						$button.addClass("inlineButton");
 					}
 					$button.addClass("spaceCall");
-					$container.css("margin-top", "-40px");
 					log("<< initSpace DONE " + currentSpace.spaceName + " for " + currentUser.name);
 				});
 				initializer.fail(function(error, $container) {
