@@ -37,6 +37,8 @@
 	if (videoCalls) {
 
 		function SfBProvider() {
+			var EMAIL_PATTERN = /\S+@\S+[\.]*\S+/g;
+			
 			var self = this;
 			var settings, currentKey;
 			var appInstance, uiAppInstance;
@@ -51,6 +53,17 @@
 				log("SfB login/call: " + loginUri);
 				var theWindow = videoCalls.showCallPopup(loginUri, title);
 				return theWindow;
+			};
+			
+			var notifyCaller = function(destWindow, title, message) {
+				if (destWindow.notifyUser) {
+					destWindow.notifyUser({
+						title : title, 
+						text : message							        
+					});
+				} else {
+					setTimeout($.proxy(notifyCaller, this), 250, destWindow, title, message);
+				}
 			};
 			
 			this.getType = function() {
@@ -259,13 +272,20 @@
 								title = self.getTitle() + " Call";
 							}
 							var ims = [];
+							var wrongUsers = [];
 							for ( var uname in users) {
 								if (users.hasOwnProperty(uname)) {
 									var u = users[uname];
 									//var uskype = videoCalls.imAccount(u, "skype");
 									var ubusiness = videoCalls.imAccount(u, "mssfb");
-									if (ubusiness && ubusiness.id != context.currentUserSFB.id) {
-										ims.push(encodeURIComponent(ubusiness.id));
+									if (ubusiness) {
+										if (ubusiness.id != context.currentUserSFB.id) {
+											if (EMAIL_PATTERN.test(ubusiness.id)) {
+												ims.push(encodeURIComponent(ubusiness.id));
+											} else {
+												wrongUsers.push(u);
+											}
+										}
 									}
 								}
 							}
@@ -285,6 +305,34 @@
 									// TODO check if such window isn't already open by this app
 									var callUri = videoCalls.getBaseUrl() + "/portal/skype/call/_" + userIMs;
 									var callWindow = authRedirectWindow(title, settings.clientId, callUri, "https://webdir.online.lync.com");
+									if (wrongUsers.length > 0) {
+										// inform the caller in call window
+										var userNames = "";
+										for (var i=0; i<wrongUsers.length; i++) {
+											if (i > 0) {
+												userNames += ", ";
+											}
+											var wu = wrongUsers[i];
+											userNames += wu.firstName + " " + wu.lastName;
+										}
+										var s, have, who; 
+										if (wrongUsers.length > 1) {
+											s = "s";
+											have = "have";
+											who = "They were";
+										} else {
+											s = "";
+											have = "has";
+											who = "It was";
+										}
+										$(callWindow).on("load", function() {
+											var title = "Wrong Skype account" + s;
+											var message = "Following user " + s + " " + have + " wrong business account: " + 
+												userNames + ". " + who + " not added to the call.";
+											log(title, message);
+											notifyCaller(callWindow, title, message);
+										});
+									}
 								});
 								button.resolve($button);
 							} else {

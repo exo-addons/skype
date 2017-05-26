@@ -113,11 +113,13 @@
 			hide : options && typeof options.hide != "undefined" ? options.hide : false,
 			closer : options && typeof options.closer != "undefined" ? options.closer : true,
 			sticker : false,
-			opacity : .75,
+			opacity : .85,
 			shadow : true,
 			width : options && options.width ? options.width : NOTICE_WIDTH,
 			nonblock : options && typeof options.nonblock != "undefined" ? options.nonblock : false,
-			nonblock_opacity : .25,
+			nonblock_opacity : .45,
+			addclass : options && options.addclass ? options.addclass : "",
+			cornerclass : options && options.cornerclass ? options.cornerclass : "",
 			after_init : function(pnotify) {
 				if (options && typeof options.onInit == "function") {
 					options.onInit(pnotify);
@@ -159,6 +161,21 @@
 			hide : false,
 			delay : 30000,
 			icon : "picon-dialog-warning",
+			onInit : onInit
+		});
+	};
+	
+	/**
+	 * Show warning notice bar to user. Info will be shown for 8sec and hidden then.
+	 */
+	var showWarnBar = function(title, text, onInit) {
+		return showNotice("exclamation", title, text, {
+			hide : false,
+			delay : 30000,
+			icon : "picon-dialog-warning",
+			width : "100%",
+			addclass : "stack-bar-top",
+      cornerclass : "",
 			onInit : onInit
 		});
 	};
@@ -563,6 +580,14 @@
 							var $userAction = $tiptip.find(".uiAction");
 							addUserButton($userAction, userName).done(function($container) {
 								// XXX workaround to avoid first-child happen on call button in the popover
+								/*var $btns = $container.siblings();
+								var $connect = $btns.filter(".connect");
+								if ($btns.length > 1 && $connect.length > 0 && !$userAction.hasClass("secondLine")) {
+									var connectAction = $connect.data("action"); 
+									if (connectAction && connectAction.indexOf("Disconnect") >=0) {
+										$userAction.addClass("secondLine");
+									}
+								}*/
 								$container.prepend($("<div class='btn' style='display: none;'></div>"));
 							});
 						}
@@ -847,6 +872,14 @@
 			} else {
 				return null;
 			}
+		};
+		
+		this.showWarn = function(title, text, onInit) {
+			showWarn(title, text, onInit);
+		};
+		
+		this.showWarnBar = function(title, text, onInit) {
+			showWarnBar(title, text, onInit);
 		};
 	}
 	

@@ -4,7 +4,7 @@
 if (eXo.videoCalls) {
 	(function(videoCalls) {
 		"use strict";
-
+		
 		var mssfb = videoCalls.getProvider("mssfb");
 		if (mssfb) {
 			var hasToken = /#access_token=/.test(location.hash);
@@ -150,6 +150,15 @@ if (eXo.videoCalls) {
 
 				var clientId = mssfb.getClientId();
 				log(">> MSSFB " + location.href);
+				
+				window.notifyUser = function(message) {
+					if (typeof(message) == "object") {
+						videoCalls.showWarn(message.title, message.text);
+					} else {
+						videoCalls.showWarn("Warning", message);
+					}
+				};
+				
 				if (isLogin) {
 					// FYI it's what WebSDK calls an "empty page"
 					log(">>> MSSFB login");
@@ -224,7 +233,7 @@ if (eXo.videoCalls) {
 									"participants" : participants
 								}).then(function(conversation) {
 									// Conversation Control was rendered successfully
-									log(">>>> MSSFB conversation rendered successfully: " + conversation);
+									//log(">>>> MSSFB conversation rendered successfully: " + conversation);
 									// conversation.topic("TODO")
 									// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
 									var beforeunloadListener = function(e) {

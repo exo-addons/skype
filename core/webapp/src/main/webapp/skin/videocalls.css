@@ -55,8 +55,8 @@
 	vertical-align: text-bottom;
 }
 
-#tiptip_content .callButtonContainer {
-	margin-top: 1ch;
+#tiptip_content .connectAction>.connect, #tiptip_content .connectAction>.chatPopupOverlay, #tiptip_content .connectAction>.callButtonContainer {
+	margin-top: 1ch !important;
 }
 
 #UIBreadCrumbsNavigationPortlet .callButtonContainer {   

@@ -27,6 +27,7 @@
 	if (videoCalls) {
 
 		function SkypeProvider() {
+			var NON_WHITESPACE_PATTERN = /\s+/g;
 			var self = this;
 			var settings, currentKey;
 			
@@ -85,13 +86,19 @@
 								title = self.getTitle() + " Call";
 							}
 							var ims = [];
+							var wrongUsers = [];
 							for ( var uname in users) {
 								if (users.hasOwnProperty(uname)) {
 									var u = users[uname];
 									var uskype = videoCalls.imAccount(u, "skype");
 									if (uskype && uskype.id != context.currentUserSkype.id) {
-										// this is a regular Skype, it cannot call business users
-										ims.push(uskype.id);
+										// extra check for valid skype account: it should not contain whitespaces
+										if (uskype.id && uskype.id.search(NON_WHITESPACE_PATTERN) < 0) {
+											// this is a regular Skype, it cannot call business users
+											ims.push(uskype.id);											
+										} else {
+											wrongUsers.push(u);
+										}
 									} // else, skip this user
 								}
 							}
@@ -109,6 +116,34 @@
 										$button.find(".callTitle").text(self.getTitle() + " " + self.getCallTitle());
 									}
 								}, 1000);
+								$button.click(function() {
+									if (wrongUsers.length > 0) {
+										// inform the caller
+										var userNames = "";
+										for (var i=0; i<wrongUsers.length; i++) {
+											if (i > 0) {
+												userNames += ", ";
+											}
+											var wu = wrongUsers[i];
+											userNames += wu.firstName + " " + wu.lastName;
+										}
+										var s, have, who; 
+										if (wrongUsers.length > 1) {
+											s = "s";
+											have = "have";
+											who = "They were";
+										} else {
+											s = "";
+											have = "has";
+											who = "It was";
+										}
+										var title = "Wrong Skype account" + s;
+										var message = "Following user " + s + " " + have + " wrong Skype account: " + 
+											userNames + ". " + who + " not added to the call.";
+										log(title, message);
+										videoCalls.showWarn(title, message);
+									}
+								});
 								button.resolve($button);
 							} else {
 								button.reject("No " + self.getTitle() + " users found");
