@@ -111,6 +111,7 @@
 			type : type,
 			icon : "picon " + ( options ? options.icon : ""),
 			hide : options && typeof options.hide != "undefined" ? options.hide : false,
+			delay : options && typeof options.delay != "undefined" ? options.delay : undefined,
 			closer : options && typeof options.closer != "undefined" ? options.closer : true,
 			sticker : false,
 			opacity : .85,
