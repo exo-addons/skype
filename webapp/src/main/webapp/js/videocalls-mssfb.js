@@ -37,7 +37,7 @@
 	if (videoCalls) {
 
 		function SfBProvider() {
-			var EMAIL_PATTERN = /\S+@\S+[\.]*\S+/g;
+			var EMAIL_PATTERN = /\S+@\S+[\.]*\S+/;
 			
 			var self = this;
 			var settings, currentKey;

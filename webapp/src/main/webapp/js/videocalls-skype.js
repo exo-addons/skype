@@ -27,7 +27,7 @@
 	if (videoCalls) {
 
 		function SkypeProvider() {
-			var NON_WHITESPACE_PATTERN = /\s+/g;
+			var NON_WHITESPACE_PATTERN = /\s+/;
 			var self = this;
 			var settings, currentKey;
 			

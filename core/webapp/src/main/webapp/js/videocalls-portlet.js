@@ -35,14 +35,15 @@
 				// http://webcomponents.org/polyfills/
 				updater = setTimeout(
 							function() {
-								var portal = document.getElementById("UIPortalApplication");
+								var targetId = "RightBody"; // was "UIPortalApplication" but it's not required and bad for perf
+								var target = document.getElementById(targetId);
 								var MutationObserver = window.MutationObserver || window.WebKitMutationObserver
 											|| window.MozMutationObserver;
 								var observer = new MutationObserver(function(mutations) {
 									// FYI this will be fired twice on each update
-									videoCalls.update();
+									videoCalls.update(targetId);
 								});
-								observer.observe(portal, {
+								observer.observe(target, {
 									subtree : true,
 									childList : true,
 									attributes : false,
