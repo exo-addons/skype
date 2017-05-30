@@ -1,17 +1,13 @@
 /* Styles for Video Calls core */
 .callButtonContainer {
 	position: relative;
-    display: inline-block;
-    vertical-align: middle;
-    white-space: nowrap;
+	display: inline-block;
+	vertical-align: middle;
+	white-space: nowrap;
 }
 
 .startCallButton {
 	text-align: initial;
-}
-
-.startCallButton.spaceCall {
-	font-size: 12px;
 }
 
 .callButtonContainer .btn {
@@ -22,7 +18,7 @@
  * We give class defaultCallButton properties of btn-group for such things as border and font, 
  * but other will be omitted to don't be affected by its CSS from PLF core. 
  */
-.defaultCallButton + .dropdown-toggle {
+.defaultCallButton+.dropdown-toggle {
 	-webkit-border-radius: 0 3px 3px 0;
 	-moz-border-radius: 0 3px 3px 0;
 	border-radius: 0 3px 3px 0;
@@ -39,16 +35,7 @@
 }
 
 .defaultCallButton.userCall {
-    margin-right: 0px;
-}
-
-.inlineButton {
-	padding: 2px 5px 2px 5px;
-}
-
-.inlineButton + .dropdown-toggle {
-	padding-top: 2px;
-	padding-bottom: 2px	
+	margin-right: 0px;
 }
 
 .callButtonContainer .uiIconMiniArrowDown {
@@ -59,9 +46,40 @@
 	margin-top: 1ch !important;
 }
 
-#UIBreadCrumbsNavigationPortlet .callButtonContainer {   
-    margin-top: -40px;   
-} 
+#UIBreadCrumbsNavigationPortlet .callButtonContainer {
+	margin-top: -40px;
+}
+
+.inlineButton+.dropdown-toggle {
+	padding-top: 2px;
+	padding-bottom: 2px
+}
+
+.inlineButton {
+	padding: 2px 0 2px 5px;
+}
+
+/***** Transparent and Disabled styles *******/
+.spaceCall {
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	font-size: 12px;
+}
+
+.spaceCall + .dropdown-toggle {
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+}
+
+.spaceCall.disabled, .userCall.disabled {
+	color: #999
+}
+
+.spaceCall.disabled > i:before, .userCall.disabled > i:before {
+	opacity: .6
+}
 
 /******** Pnotify icons ********/
 .picon-32.picon-task-complete {
