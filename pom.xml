@@ -52,13 +52,10 @@
     <!-- **************************************** -->
     <!-- Dependencies versions                    -->
     <!-- **************************************** -->
-    <org.exoplatform.depmgt.version>13-M05</org.exoplatform.depmgt.version>
-    <org.exoplatform.platform.version>5.0.0-M05</org.exoplatform.platform.version>
-    <!-- Third-parties -->
-    <org.jsoup.version>1.9.2</org.jsoup.version>
+    <org.exoplatform.depmgt.version>13-M06</org.exoplatform.depmgt.version>
+    <org.exoplatform.platform.version>5.0.0-M06</org.exoplatform.platform.version>
     <!-- for tests -->
     <junit.version>4.12</junit.version>
-    <org.mockito.version>2.2.11</org.mockito.version>
     <httpclient-test.version>4.3.6</httpclient-test.version>
   </properties>
   <dependencyManagement>
@@ -117,12 +114,6 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>${junit.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>${org.mockito.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
