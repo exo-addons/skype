@@ -62,7 +62,7 @@
 /***** Transparent and Disabled styles *******/
 .spaceCall {
 	background: transparent;
-	border: 0;
+	border: solid 1px transparent;
 	box-shadow: none;
 	font-size: 12px;
 }
