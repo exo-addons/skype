@@ -714,10 +714,22 @@
 				});
 				initializer.done(function($container) {
 					var $button = $container.find(".startCallButton");
+					$button.addClass("spaceCall");
+					var $dropdown = $button.siblings(".dropdown-toggle");
 					if ($breadcumbEntry.find(".chat-button").length > 0) {
 						$button.addClass("inlineButton");
 					}
-					$button.addClass("spaceCall");
+					$button.addClass("transparentButton");
+					$button.hover(function() {
+						$button.removeClass("transparentButton");
+					}, function() {
+						$button.addClass("transparentButton");
+					});
+					$dropdown.hover(function() {
+						$button.removeClass("transparentButton");
+					}, function() {
+						$button.addClass("transparentButton");
+					});
 					log("<< initSpace DONE " + currentSpace.spaceName + " for " + currentUser.name);
 				});
 				initializer.fail(function(error, $container) {
