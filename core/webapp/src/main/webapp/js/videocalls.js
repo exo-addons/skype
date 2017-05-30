@@ -598,7 +598,7 @@
 			setTimeout(function() {
 				// XXX hardcoded for peopleSuggest as no way found to add Lifecycle to its portlet (juzu)
 				// user popovers in Social (authors, commenters, likers, profile, network, connections etc)
-				$("#" + compId + ", #peopleSuggest").find(".owner, .author, .spaceTitle, .activityAvatar, .commmentLeft, .listLiked, .profileContainer, .avatarBox, .userProfileShare .pull-left").find("a[href*='\\/profile\\/']").each(function() {
+				$("#" + compId).find(".owner, .author, .spaceTitle, .activityAvatar, .commmentLeft, .listLiked, .profileContainer, .avatarBox, .userProfileShare .pull-left, #onlineList").find("a[href*='\\/profile\\/']").each(function() {
 					var $a = $(this);
 					//log("init social popup " + $a.attr("href"));
 					$a.mouseenter(function() {
