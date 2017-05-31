@@ -34,6 +34,28 @@
 	border-radius: 3px 0 0 3px;
 }
 
+.defaultCallButton.spaceCall {
+	padding-right: 3px;
+	/*padding-left: 6px;*/
+}
+
+.defaultCallButton.spaceCall  + .dropdown-toggle {
+	padding-left: 3px;
+}
+
+/*.inlineButton + .dropdown-toggle {
+	padding-top: 2px;
+	padding-bottom: 2px
+}
+
+.inlineButton {
+	padding: 2px 5px 2px 5px;
+}*/
+
+.spaceCall {
+	font-size: 12px;
+}
+
 .defaultCallButton.userCall {
 	margin-right: 0px;
 }
@@ -48,19 +70,6 @@
 
 #UIBreadCrumbsNavigationPortlet .callButtonContainer {
 	margin-top: -40px;
-}
-
-.inlineButton + .dropdown-toggle {
-	padding-top: 2px;
-	padding-bottom: 2px
-}
-
-.inlineButton {
-	padding: 2px 0px 2px 5px;
-}
-
-.spaceCall {
-	font-size: 12px;
 }
 
 /***** Transparent and Disabled styles *******/
