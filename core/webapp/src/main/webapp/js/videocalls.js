@@ -714,18 +714,8 @@
 				});
 				initializer.done(function($container) {
 					var $button = $container.find(".startCallButton");
-					$button.addClass("spaceCall");
-					var $dropdown = $button.siblings(".dropdown-toggle");
-					if ($breadcumbEntry.find(".chat-button").length > 0) {
-						$button.addClass("inlineButton");
-					}
-					$button.addClass("transparentButton");
-					$button.hover(function() {
-						$button.removeClass("transparentButton");
-					}, function() {
-						$button.addClass("transparentButton");
-					});
-					$dropdown.hover(function() {
+					$button.addClass("spaceCall").addClass("transparentButton");
+					$button.add($button.siblings(".dropdown-toggle")).hover(function() {
 						$button.removeClass("transparentButton");
 					}, function() {
 						$button.addClass("transparentButton");
@@ -920,7 +910,7 @@
 			videoCalls.loadStyle("/videocalls/skin/jquery-ui.theme.min.css");
 			videoCalls.loadStyle("/videocalls/skin/jquery.pnotify.default.css");
 			videoCalls.loadStyle("/videocalls/skin/jquery.pnotify.default.icons.css");
-			videoCalls.loadStyle("/videocalls/skin/videocalls.css");
+			//videoCalls.loadStyle("/videocalls/skin/videocalls.css");
 		} catch(e) {
 			log("Error configuring Video Calls notifications.", e);
 		}

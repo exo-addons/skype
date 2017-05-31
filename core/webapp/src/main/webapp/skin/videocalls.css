@@ -1,17 +1,24 @@
-/* Styles for Video Calls core */
+/* 
+ * Video Calls common style 
+ */
 .callButtonContainer {
 	position: relative;
 	display: inline-block;
 	vertical-align: middle;
 	white-space: nowrap;
+	font-size: 12px;
+}
+
+.callButtonContainer .btn {
+	min-width: 0;
 }
 
 .startCallButton {
 	text-align: initial;
 }
 
-.callButtonContainer .btn {
-	min-width: 0;
+.spaceCall {
+	font-size: 12px;
 }
 
 /*
@@ -22,38 +29,16 @@
 	-webkit-border-radius: 0 3px 3px 0;
 	-moz-border-radius: 0 3px 3px 0;
 	border-radius: 0 3px 3px 0;
-	font-size: 12px;
 	padding-left: 5px;
 	padding-right: 5px;
 	margin-left: -1px !important;
+	font-size: 12px;
 }
 
 .defaultCallButton {
 	-webkit-border-radius: 3px 0 0 3px;
 	-moz-border-radius: 3px 0 0 3px;
 	border-radius: 3px 0 0 3px;
-}
-
-.defaultCallButton.spaceCall {
-	padding-right: 3px;
-	/*padding-left: 6px;*/
-}
-
-.defaultCallButton.spaceCall  + .dropdown-toggle {
-	padding-left: 3px;
-}
-
-/*.inlineButton + .dropdown-toggle {
-	padding-top: 2px;
-	padding-bottom: 2px
-}
-
-.inlineButton {
-	padding: 2px 5px 2px 5px;
-}*/
-
-.spaceCall {
-	font-size: 12px;
 }
 
 .defaultCallButton.userCall {
@@ -72,17 +57,17 @@
 	margin-top: -40px;
 }
 
-/***** Transparent and Disabled styles *******/
+/***** Transparent styles (for space avatar, CSS class will be triggered by Javascript) *******/
 .transparentButton, .transparentButton + .dropdown-toggle {
 	background: transparent;
 	border: solid 1px transparent;
 	box-shadow: none;
 }
 
+/***** Disabled styles *******/
 .spaceCall.disabled, .userCall.disabled {
 	color: #999
 }
-
 .spaceCall.disabled > i:before, .userCall.disabled > i:before {
 	opacity: .6
 }

@@ -1,0 +1,17 @@
+@import "/videocalls/skin/videocalls.css";
+/* 
+ * Video Calls Default skin (aka Platform 4.0) 
+ */
+
+.callButtonContainer, .spaceCall {
+	font-size: 12px;
+}
+
+/* Call button is more narrow in spaces */
+.defaultCallButton.spaceCall {
+	padding-right: 3px;
+}
+
+.defaultCallButton.spaceCall+.dropdown-toggle {
+	padding-left: 3px;
+}

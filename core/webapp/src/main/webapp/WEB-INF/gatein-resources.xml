@@ -24,14 +24,37 @@
   xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
 
   <!-- CSS for Video Calls support in Platform -->
-  <!-- portlet-skin>
+  <!-- portal-skin>
+    <skin-name>Default</skin-name>
+    <skin-module>VideoCallsSkin</skin-module>
+    <css-path>/skin/videocalls-default.css</css-path>
+    <css-priority>10</css-priority>
+    <overwrite>true</overwrite>
+  </portal-skin>
+  <portal-skin>
+    <skin-name>Enterprise</skin-name>
+    <skin-module>VideoCallsSkin</skin-module>
+    <css-path>/skin/videocalls-enterprise.css</css-path>
+    <css-priority>10</css-priority>
+    <overwrite>true</overwrite>
+  </portal-skin -->
+
+  <portlet-skin>
     <application-name>videocalls</application-name>
     <portlet-name>VideoCallsPortlet</portlet-name>
     <skin-name>Default</skin-name>
-    <css-path>/skin/videocalls.css</css-path>
-  </portlet-skin -->
-  <!-- overwrite>true</overwrite -->
-  <!-- css-priority>1</css-priority -->
+    <css-path>/skin/videocalls-default.css</css-path>
+    <overwrite>true</overwrite>
+    <css-priority>10</css-priority>
+  </portlet-skin>
+  <portlet-skin>
+    <application-name>videocalls</application-name>
+    <portlet-name>VideoCallsPortlet</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <css-path>/skin/videocalls-enterprise.css</css-path>
+    <overwrite>true</overwrite>
+    <css-priority>10</css-priority>
+  </portlet-skin>
 
   <!-- Javascript for Video Calls support in Platform -->
   <module>

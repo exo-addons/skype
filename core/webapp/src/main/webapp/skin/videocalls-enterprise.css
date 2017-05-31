@@ -1,0 +1,43 @@
+@import "/videocalls/skin/videocalls.css";
+/* 
+ * Video Calls style for Enterprise skin (for Platform 5.0) 
+ */
+.callButtonContainer {
+	font-size: 15px !important;
+}
+
+.spaceCall {
+	font-size: 12px !important;
+}
+
+.transparentButton, .transparentButton + .dropdown-toggle {
+	background: transparent !important;
+	border: solid 2px transparent !important;
+	box-shadow: none !important;
+}
+
+.transparentButton .callTitle {
+	color: #fff;
+} 
+
+#tiptip_content .userCall, .user-actions .userCall {
+	padding-top: 5px;
+	padding-bottom: 6px;
+}
+
+/* Call button is more narrow in spaces */
+.spaceCall:last-child {
+	padding-right: 5px !important;
+}
+
+.spaceCall {
+	padding: 2px 4px 2px 5px !important;
+}
+
+.defaultCallButton.spaceCall + .dropdown-toggle {
+	padding: 2px 5px 3px 4px;
+}
+
+.defaultCallButton.spaceCall + .dropdown-menu li > a {
+    padding: 5px 10px;
+}
