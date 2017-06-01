@@ -911,6 +911,7 @@
 			videoCalls.loadStyle("/videocalls/skin/jquery.pnotify.default.css");
 			videoCalls.loadStyle("/videocalls/skin/jquery.pnotify.default.icons.css");
 			//videoCalls.loadStyle("/videocalls/skin/videocalls.css");
+			// FYI eXo.env.client.skin contains skin name, it can be consulted to load a specific CSS
 		} catch(e) {
 			log("Error configuring Video Calls notifications.", e);
 		}

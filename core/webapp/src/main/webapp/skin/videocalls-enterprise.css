@@ -7,7 +7,7 @@
 }
 
 .spaceCall {
-	font-size: 12px !important;
+	font-size: 14px !important;
 }
 
 .transparentButton, .transparentButton + .dropdown-toggle {
@@ -17,7 +17,7 @@
 }
 
 .transparentButton .callTitle {
-	color: #fff;
+	color: yellow;
 } 
 
 #tiptip_content .userCall, .user-actions .userCall {
