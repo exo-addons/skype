@@ -1,4 +1,5 @@
 @import "/videocalls/skin/videocalls.css";
+@import "/videocalls/skin/videocalls.css";
 /* 
  * Video Calls style for Enterprise skin (for Platform 5.0) 
  */
@@ -7,7 +8,7 @@
 }
 
 .spaceCall {
-	font-size: 14px !important;
+	font-size: 12px !important;
 }
 
 .transparentButton, .transparentButton + .dropdown-toggle {
@@ -17,7 +18,7 @@
 }
 
 .transparentButton .callTitle {
-	color: yellow;
+	color: #fff;
 } 
 
 #tiptip_content .userCall, .user-actions .userCall {

@@ -7,6 +7,10 @@
 	font-size: 12px;
 }
 
+.callTitle {
+	color: yellow;
+}
+
 /* Call button is more narrow in spaces */
 .defaultCallButton.spaceCall {
 	padding-right: 3px;
