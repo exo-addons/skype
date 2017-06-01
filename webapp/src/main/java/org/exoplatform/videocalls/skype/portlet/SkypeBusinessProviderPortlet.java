@@ -101,21 +101,12 @@ public class SkypeBusinessProviderPortlet extends GenericPortlet {
         JavascriptManager js =
                              ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
         js.require("SHARED/videoCalls", "videoCalls")
-          .addScripts("\nwindow.require(['SHARED/videoCalls_mssfb'], function(mssfbProvider) {\n"
-              + "if (mssfbProvider) {\n mssfbProvider.configure(" + settingsJson
+          .addScripts("\nwindow.require(['SHARED/videoCalls_mssfb'], function(mssfbProvider) {"
+              + "if (mssfbProvider) { mssfbProvider.configure(" + settingsJson
                 + "); videoCalls.addProvider(mssfbProvider); videoCalls.update(); }"
               + "}, function(err) {" 
-              //+ "if (err && err.requireModules && err.requireModules[0] === 'skypeWeb') {"
-                + "\nconsole.log('Error creating Skype For Business provider. Error loading module: ' + JSON.stringify(err));\n"
-              //+ "} else {"
-              //  + "console.log('Error loading Skype For Business provider');"
-              //+ "}"
+                + "console.log('Error creating Skype For Business provider. Error loading module: ' + JSON.stringify(err));"
               + "});");
-        // TODO cleanup
-//        js.require("SHARED/videoCalls", "videoCalls")
-//          .require("SHARED/videoCalls_mssfb", "mssfbProvider")
-//          .addScripts("if (mssfbProvider) { mssfbProvider.configure(" + settingsJson
-//              + "); videoCalls.addProvider(mssfbProvider); videoCalls.update(); }");
       } catch (Exception e) {
         LOG.error("Error processing Skype Calls portlet for user " + request.getRemoteUser(), e);
       }
