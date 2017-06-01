@@ -388,24 +388,31 @@
 				if (providers.length > 0) {
 					if (!$target.data("callbuttoninit")) {
 						$target.data("callbuttoninit", true);
+						var buttonClass = "startCallButton";
 						var $container = $target.find(".callButtonContainer");
+						var $dropdown = $container.find(".dropdown-menu");
+						var newDropdown = false;
 						if ($container.length == 0) {
 							// TODO May 22 2017: btn-group removed
 							$container = $("<div style='display: none;' class='callButtonContainer'></div>");
 							$target.append($container);
+						} else if ($dropdown.length == 0) { 
+							if ($container.find("." + buttonClass).length > 0) {
+								$dropdown = $("<ul class='dropdown-menu'></ul>");
+								newDropdown = true;
+							} // else, need add first & default button (see in addProviderButton())
 						}
-						var buttonClass = "startCallButton";
 						var providerFlag = "hasProvider_";
 						var contextName = (context.spaceName ? context.spaceName : context.userName);
-						var $dropdown = $container.find(".dropdown-menu");
 						var workers = [];
 						var buttons = [];
 						function addProviderButton(provider, button) {
 							// need do this in a function to keep worker variable in the scope of given button when it will be done 
 							var bworker = $.Deferred();
 							button.done(function($button) {
+								// TODO reorder buttons in business priority 
 								if ($dropdown.length > 0) {
-									// add others in dropdown
+									// add in dropdown
 									$button.addClass(buttonClass);
 									var $li = $("<li></li>");
 									$li.append($button)
@@ -415,6 +422,7 @@
 									$button.addClass("btn " + buttonClass); // btn btn-primary actionIcon 
 									$container.append($button); 
 									$dropdown = $("<ul class='dropdown-menu'></ul>");
+									newDropdown = true;
 								}
 								buttons.push($button);
 								log("<<< addCallButton DONE " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.name);
@@ -442,15 +450,21 @@
 						}
 						if (workers.length > 0) {
 							$.when.apply($, workers).always(function() {
-								if ($dropdown.children().length > 0) {
+								if (newDropdown && $dropdown.children().length > 0) {
 									var $toggle = $("<button class='btn dropdown-toggle' data-toggle='dropdown'>" + 
 											"<i class='uiIconMiniArrowDown uiIconLightGray'></i></span></button>");
 									$container.append($toggle);
 									$container.append($dropdown);
 								}
 								if (buttons.length > 0) {
-									if (buttons.length > 1) {
-										buttons[0].addClass("defaultCallButton"); // mark for CSS
+									var $allButtons = $container.find("." + buttonClass);
+									if ($allButtons.length > 1) {
+										// ensure first button of all is a default one (for CSS)
+										// TODO was: buttons[0].addClass("defaultCallButton");
+										var $firstButon = $allButtons.first();
+										if (!$firstButon.hasClass("defaultCallButton")) {
+											$firstButon.addClass("defaultCallButton");
+										}
 									}
 									$container.show();
 									initializer.resolve($container);

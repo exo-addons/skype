@@ -86,8 +86,8 @@ public class SkypeProviderPortlet extends GenericPortlet {
                              ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
         js.require("SHARED/videoCalls", "videoCalls")
           .require("SHARED/videoCalls_skype", "skypeProvider")
-          .addScripts("skypeProvider.configure(" + settingsJson
-              + "); videoCalls.addProvider(skypeProvider); videoCalls.update();");
+          .addScripts("if (skypeProvider) { skypeProvider.configure(" + settingsJson
+              + "); videoCalls.addProvider(skypeProvider); videoCalls.update(); }");
       } catch (Exception e) {
         LOG.error("Error processing Skype Calls portlet for user " + request.getRemoteUser(), e);
       }

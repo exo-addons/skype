@@ -80,9 +80,9 @@
       <depends>
         <module>videoCallsJquery</module>
       </depends>
-      <depends>
+      <!-- depends>
         <module>videoCalls_mssfb</module>
-      </depends>
+      </depends -->
     </module>
   </portlet>
 </gatein-resources>

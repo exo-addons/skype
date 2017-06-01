@@ -37,18 +37,25 @@
 							function() {
 								var targetId = "RightBody"; // was "UIPortalApplication" but it's not required and bad for perf
 								var target = document.getElementById(targetId);
-								var MutationObserver = window.MutationObserver || window.WebKitMutationObserver
-											|| window.MozMutationObserver;
-								var observer = new MutationObserver(function(mutations) {
-									// FYI this will be fired twice on each update
-									videoCalls.update(targetId);
-								});
-								observer.observe(target, {
-									subtree : true,
-									childList : true,
-									attributes : false,
-									characterData : false
-								});
+								if (!target) {
+									target = document.getElementById("chat-application");
+									if (!target) {
+										target = document.getElementById("UIPortalApplication");
+									}
+								}
+								if (target) {
+									var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+									var observer = new MutationObserver(function(mutations) {
+										// FYI this will be fired twice on each update
+										videoCalls.update(targetId);
+									});
+									observer.observe(target, {
+										subtree : true,
+										childList : true,
+										attributes : false,
+										characterData : false
+									});									
+								}
 							}, 2500);
 			}
 		});
