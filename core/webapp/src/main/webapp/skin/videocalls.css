@@ -30,7 +30,6 @@
 	font-size: 12px;
 }
 
-
 /*
  * We give class defaultCallButton properties of btn-group for such things as border and font, 
  * but other will be omitted to don't be affected by its CSS from PLF core. 
@@ -75,10 +74,10 @@
 }
 
 /***** Disabled styles *******/
-.spaceCall.disabled, .userCall.disabled {
+.startCallButton.disabled {
 	color: #999
 }
-.spaceCall.disabled > i:before, .userCall.disabled > i:before {
+.startCallButton.disabled > i:before {
 	opacity: .6
 }
 

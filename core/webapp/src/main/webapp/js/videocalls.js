@@ -738,12 +738,23 @@
 				var initializer = addCallButton($breadcumbEntry, spaceContext());
 				initializer.done(function($container) {
 					var $button = $container.find(".startCallButton");
-					$button.addClass("spaceCall").addClass("transparentButton");
-					$button.add($button.siblings(".dropdown-toggle")).hover(function() {
-						$button.removeClass("transparentButton");
+					$button.addClass("spaceCall");
+					var $first = $button.first();
+					var $dropdown = $first.siblings(".dropdown-toggle");
+					var $hover = $();
+					if ($first.hasClass("transparentButton")) {
+						if ($dropdown.length == 1) {
+							$hover = $hover.add($dropdown);							
+						}
+					} else {
+						$first.addClass("transparentButton");
+						$hover = $hover.add($first).add($dropdown);
+					}
+					$hover.hover(function() {
+						$first.removeClass("transparentButton");
 					}, function() {
-						$button.addClass("transparentButton");
-					});
+						$first.addClass("transparentButton");
+					});						
 					log("<< initSpace DONE " + currentSpace.spaceName + " for " + currentUser.name);
 				});
 				initializer.fail(function(error) {
