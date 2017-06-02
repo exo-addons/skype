@@ -18,11 +18,16 @@
  */
 package org.exoplatform.videocalls.rest;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -104,6 +109,59 @@ public class RESTVideoCallsService implements ResourceContainer {
       } else {
         return Response.status(Status.BAD_REQUEST)
                        .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+  
+  /**
+   * Gets the users info.
+   *
+   * @param uriInfo
+   *          the uri info
+   * @param names
+   *          user names
+   * @return the users info response
+   */
+  @GET
+  @RolesAllowed("users")
+  @Path("/users")
+  @Deprecated // TODO for future use
+  public Response getUsersInfo(@Context UriInfo uriInfo, @QueryParam("names") String names) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      if (names != null) {
+        try {
+          Set<UserInfo> users = new LinkedHashSet<>();
+          for (String userName : names.trim().split(",")) {
+            if (ME.equals(userName)) {
+              userName = currentUserName;
+            } 
+            UserInfo user = videoCalls.getUserInfo(userName);
+            if (user != null) {
+              users.add(user);
+            } else {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Skipped not found user: " + userName);
+              }
+              return Response.status(Status.NOT_FOUND)
+                  .entity(ErrorInfo.notFoundError("User " + userName + " not found or not accessible"))
+                  .build();
+            }
+          }
+          return Response.ok().entity(users.toArray()).build();
+        } catch (Throwable e) {
+          LOG.error("Error reading users info of '" + names + "' by '" + currentUserName + "'", e);
+          return Response.serverError()
+                         .entity(ErrorInfo.serverError("Error reading users " + names))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: names"))
                        .build();
       }
     } else {

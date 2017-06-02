@@ -340,6 +340,38 @@
 		return getCached(userName, cachedUsers, getUserInfoRequest);
 	};
 
+	/** @Deprecated TODO not yet used */
+	var getUsersInfoRequest = function(names) {
+		var request = $.ajax({
+			async : true,
+			type : "GET",
+			url : prefixUrl + "/portal/rest/videocalls/users",
+			data : {
+				names : names
+			}
+		});
+		return initRequest(request);
+	};
+	var getUsersInfo = function(names) {
+		// TODO get by one user using local cache or get all from the server, or get all not cached from the server?
+		// 1. get by one user using local cache
+		var all = $.Deferred();
+		var users = [];
+		var workers = [];
+		for (var i=0; i<names.length; i++) {
+			var uname = names[i];
+			var get = getCached(userName, cachedUsers, getUsersInfoRequest);
+			get.done(function(u) {
+				users.push(u);
+			});
+			workers.push(get);
+		}
+		$.when.apply($, workers).always(function() {
+			all.resolve(users);
+		});
+		return all.promise();
+	};
+
 	var cachedSpaces = new Cache();
 	var getSpaceInfoReq = function(spaceName) {
 		var request = $.ajax({
@@ -391,7 +423,7 @@
 				if (addProviders.length > 0) {
 					var buttonClass = "startCallButton";
 					var providerFlag = "hasProvider_";
-					var contextName = (context.spaceName ? context.spaceName : context.userName);
+					var contextName = (context.spaceName ? context.spaceName : (context.roomTitle ? context.roomTitle : context.userName));
 					// 2) if already calling, then need wait for previous call completion and then re-call this method 
 					var prevInitializer = $target.data("callbuttoninit");
 					if (prevInitializer) {
@@ -510,58 +542,78 @@
 			return initializer.promise();
 		};
 		
-		var userContext = function(userName) {
-			var context = {
-				currentUser : currentUser,
-				userName : userName,
-				isIOS : isIOS,
-				isAndroid : isAndroid,
-				isWindowsMobile : isWindowsMobile,
-				participants : function() {
-					var data = $.Deferred();
-					// access user via property defined below
-					context.user.done(function(user) {
-						// resolve with array of participants, id for DOM elements, title for UI
-						data.resolve([ user ], user.name, user.title);
-					});
-					return data.promise();
-				}
-			};
-			Object.defineProperty(context, "user", {
-			  enumerable: true,
-			  configurable: false,
-			  get: function() {
-			  	var get = getUserInfo(userName);
-					get.fail(function(e, status) {
-						if (typeof(status) == "number" && status == 404) {
-							log(">> initUserPopups < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userName + " for " + currentUser.name + ": " + JSON.stringify(e));
-						} else {
-							log(">> initUserPopups < ERROR get_user : " + JSON.stringify(e));
-							// TODO notify the user?
-						}
-					});
-					return get;
-			  },
-			  set: function() {
-			  	log(">> initUserPopups < ERROR set_user not supported " + userName + " for " + currentUser.name);
-			  	throw "Changing 'user' property not supported";
-			  }
-			});
-			return context;
-		};
-		
 		/**
 		 * TODO a placeholder for Chat initialization
 		 */
 		var initChat = function() {
-			if (chatApplication) {
-				log("Init chat for " + chatApplication.username);
-				var $chat = $("#chat-application");
-				if ($chat.length > 0) {
-					var $room = $chat.find("a.room-detail-fullname");
-					if ($room.length == 0) {
-						//
+			var $chat = $("#chat-application");
+			// chatApplication is a global on chat app page
+			if (typeof(chatApplication) == "object" && chatApplication && $chat.length > 0) {
+				log(">> initChat " + chatApplication.username);
+				var roomId = chatApplication.targetUser; //$roomTitle.find("#chat-room-detail-fullname");
+				var roomTitle = chatApplication.targetFullname;
+				var isGroup = roomId.startsWith("team-"); //$teamDropdown.is(":visible");
+				//var $roomTitle = $chat.find("#room-detail");
+				if (roomId) {
+					var $teamDropdown = $roomTitle.find(".chat-team-button-dropdown");
+					if ($teamDropdown.length > 0) {
+						var $wrapper = $("<div class='callButtonContainerWrapper' style='display: none;'></div>");
+						$teamDropdown.before($wrapper);
+						
+						var roomUsers = [];
+						var chatContext = function(roomName) {
+							var context = {
+								currentUser : currentUser,
+								roomId : roomId,
+								roomTitle : roomTitle,
+								isIOS : isIOS,
+								isAndroid : isAndroid,
+								isWindowsMobile : isWindowsMobile,
+								participants : function() {
+									var data = $.Deferred();
+									if (roomUsers.length > 0) {
+										data.resolve(roomUsers, roomId, roomTitle);
+									} else {
+										chatApplication.getUsers(roomId, function (chatUsers) {
+											var unames = [];
+											for (var i=0; i<chatUsers.length; i++) {
+												var u = chatUsers[i];
+												unames.push(u.name);
+											}
+											var get = getUsersInfo(unames);
+											get.done(function(users) {
+												data.resolve(users, roomId, roomTitle);												
+											});
+											get.fail(function(e, status) {
+												if (typeof(status) == "number" && status == 404) {
+													log(">> initChat < ERROR get_users " + (e.message ? e.message + " " : "Not found ") + " for " + currentUser.name + ": " + JSON.stringify(e));
+												} else {
+													log(">> initChat < ERROR get_users : " + JSON.stringify(e));
+													// TODO notify the user?
+												}
+											});
+					          });										
+									}
+									return data.promise();
+								}
+							};
+							return context;
+						};
+						
+						var initializer = addCallButton($wrapper, chatContext(roomName));
+						initializer.done(function($container) {
+							$container.find(".startCallButton").addClass("chatCall");
+							$wrapper.show();
+							log("<< initChat DONE " + roomName + " for " + currentUser.name);
+						});
+						initializer.fail(function(error) {
+							log("<< initChat ERROR " + roomName + " for " + currentUser.name + ": " + error);
+						});
+					} else {
+						log("Chat app team dropdown not found");
 					}
+				} else {
+					log("Chat app room not found");
 				}
 			}
 		};
@@ -576,6 +628,46 @@
 				setTimeout($.proxy(initUserPopups, this), 250, compId);
 				return;
 			}
+			
+			var userContext = function(userName) {
+				var context = {
+					currentUser : currentUser,
+					userName : userName,
+					isIOS : isIOS,
+					isAndroid : isAndroid,
+					isWindowsMobile : isWindowsMobile,
+					participants : function() {
+						var data = $.Deferred();
+						// access user via property defined below
+						context.user.done(function(user) {
+							// resolve with array of participants, id for DOM elements, title for UI
+							data.resolve([ user ], user.name, user.title);
+						});
+						return data.promise();
+					}
+				};
+				Object.defineProperty(context, "user", {
+				  enumerable: true,
+				  configurable: false,
+				  get: function() {
+				  	var get = getUserInfo(userName);
+						get.fail(function(e, status) {
+							if (typeof(status) == "number" && status == 404) {
+								log(">> initUserPopups < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userName + " for " + currentUser.name + ": " + JSON.stringify(e));
+							} else {
+								log(">> initUserPopups < ERROR get_user : " + JSON.stringify(e));
+								// TODO notify the user?
+							}
+						});
+						return get;
+				  },
+				  set: function() {
+				  	log(">> initUserPopups < ERROR set_user not supported " + userName + " for " + currentUser.name);
+				  	throw "Changing 'user' property not supported";
+				  }
+				});
+				return context;
+			};
 
 			var addUserButton = function($userAction, userName) {
 				var initializer = addCallButton($userAction, userContext(userName));
@@ -771,6 +863,7 @@
 			if (currentUser) { 
 				initUserPopups(compId);
 				initSpace();
+				initChat();
 			}
 		};
 
