@@ -102,10 +102,11 @@ public class SkypeBusinessProviderPortlet extends GenericPortlet {
                              ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
         js.require("SHARED/videoCalls", "videoCalls")
           .addScripts("\nwindow.require(['SHARED/videoCalls_mssfb'], function(mssfbProvider) {"
-              + "if (mssfbProvider) { mssfbProvider.configure(" + settingsJson
-                + "); videoCalls.addProvider(mssfbProvider); videoCalls.update(); }"
-              + "}, function(err) {" 
-                + "console.log('Error creating Skype For Business provider. Error loading module: ' + JSON.stringify(err));"
+              + "if (mssfbProvider) { mssfbProvider.configure(" 
+              + settingsJson
+              + "); videoCalls.addProvider(mssfbProvider); videoCalls.update(); }" 
+              + "}, function(err) {"
+              + "console.log('Error creating Skype For Business provider. Error loading module: ' + JSON.stringify(err));"
               + "});");
       } catch (Exception e) {
         LOG.error("Error processing Skype Calls portlet for user " + request.getRemoteUser(), e);
