@@ -17,9 +17,19 @@
 	text-align: initial;
 }
 
+.startCallButton > i:before {
+	font-size: 1px;
+}
+
+.startCallButton .callTitle {
+	position: relative;
+    top: 1px;
+}
+
 .spaceCall {
 	font-size: 12px;
 }
+
 
 /*
  * We give class defaultCallButton properties of btn-group for such things as border and font, 

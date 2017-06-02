@@ -1,5 +1,4 @@
 @import "/videocalls/skin/videocalls.css";
-@import "/videocalls/skin/videocalls.css";
 /* 
  * Video Calls style for Enterprise skin (for Platform 5.0) 
  */
@@ -36,7 +35,7 @@
 }
 
 .defaultCallButton.spaceCall + .dropdown-toggle {
-	padding: 2px 5px 3px 4px;
+	padding: 2px 5px 2px 4px;
 }
 
 .defaultCallButton.spaceCall + .dropdown-menu li > a {
