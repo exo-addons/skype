@@ -17,7 +17,7 @@
 	box-shadow: none !important;
 }
 
-.transparentButton .callTitle {
+.transparentButton.defaultCallButton .callTitle {
 	color: #fff;
 } 
 

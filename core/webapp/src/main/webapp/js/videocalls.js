@@ -385,16 +385,19 @@
 		var addCallButton = function($target, context) {
 			var initializer = $.Deferred();
 			if ($target.length > 0) {
-				if (providers.length > 0) {
+				// We need deal with non consecutive asynchronous calls to this method,
+				// 1) use only currently available providers - froze the state
+				var addProviders = providers.slice();
+				if (addProviders.length > 0) {
 					var buttonClass = "startCallButton";
 					var providerFlag = "hasProvider_";
 					var contextName = (context.spaceName ? context.spaceName : context.userName);
-					// We need deal with non consecutive asynchronous calls to this method,
-					// if already calling, then need wait for previous call completion and then re-call this method 
+					// 2) if already calling, then need wait for previous call completion and then re-call this method 
 					var prevInitializer = $target.data("callbuttoninit");
 					if (prevInitializer) {
-						log(">>>> callbuttoninit WAIT " + contextName);
+						log(">>> addCallButton > init WAIT " + contextName + " providers: " + addProviders.length);
 						prevInitializer.always(function() {
+							log(">>> addCallButton > init RESUMED " + contextName + " providers: " + addProviders.length);
 							addCallButton($target, context).done(function($container) {
 								initializer.resolve($container);
 							}).fail(function(err) {
@@ -402,97 +405,101 @@
 							});
 						});
 					} else {
-						$target.data("callbuttoninit", initializer);						
-						log(">>>> callbuttoninit " + contextName);
-					}
-					initializer.always(function() {
-						$target.removeData("callbuttoninit");
-						log("<<<< callbuttoninit " + contextName);
-					});
-					
-					var $container = $target.find(".callButtonContainer");
-					var $dropdown = $container.find(".dropdown-menu");
-					var newDropdown = false;
-					if ($container.length == 0) {
-						// TODO May 22 2017: btn-group removed
-						$container = $("<div style='display: none;' class='callButtonContainer'></div>");
-						$target.append($container);
-					} else if ($dropdown.length == 0) { 
-						if ($container.find("." + buttonClass).length > 0) {
-							$dropdown = $("<ul class='dropdown-menu'></ul>");
-							newDropdown = true;
-						} // else, need add first & default button (see in addProviderButton())
-					}
-					var workers = [];
-					var buttons = [];
-					function addProviderButton(provider, button) {
-						// need do this in a function to keep worker variable in the scope of given button when it will be done 
-						var bworker = $.Deferred();
-						button.done(function($button) {
-							// TODO reorder buttons in business priority 
-							if ($dropdown.length > 0) {
-								// add in dropdown
-								$button.addClass(buttonClass);
-								var $li = $("<li></li>");
-								$li.append($button)
-								$dropdown.append($li);	
-							} else {
-								// add first & default button
-								$button.addClass("btn " + buttonClass); // btn btn-primary actionIcon 
-								$container.append($button); 
+						$target.data("callbuttoninit", initializer);
+						log(">>> addCallButton > init " + contextName + " providers: " + addProviders.length);
+						initializer.always(function() {
+							$target.removeData("callbuttoninit");
+							log("<<< addCallButton < init " + contextName + " providers: " + addProviders.length);
+						});
+						// Do the main work here
+						var $container = $target.find(".callButtonContainer");
+						var $dropdown = $container.find(".dropdown-menu");
+						var newDropdown = false;
+						if ($container.length == 0) {
+							// TODO May 22 2017: btn-group removed
+							$container = $("<div style='display: none;' class='callButtonContainer'></div>");
+							$target.append($container);
+						} else if ($dropdown.length == 0) { 
+							if ($container.find("." + buttonClass).length > 0) {
 								$dropdown = $("<ul class='dropdown-menu'></ul>");
 								newDropdown = true;
-							}
-							buttons.push($button);
-							log("<<< addCallButton DONE " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.name);
-						});
-						button.fail(function(msg) {
-							log("<<< addCallButton CANCELED " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.name + ": " + msg);
-						});
-						button.always(function() {
-							// even if was fail, we treat it as canceled and mark the provider
-							$container.data(providerFlag + provider.getType(), true);
-							// for the below $.when's always callback we need resolve all workers independently succeeded or failed 
-							bworker.resolve();
-						});
-						workers.push(bworker.promise());
-					}
-					// we have an one button for each provider
-					for (var i = 0; i < providers.length; i++) {
-						var p = providers[i];
-						if ($container.data(providerFlag + p.getType())) {
-							log("<<< addCallButton DONE (already) " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.name);
-						} else {
-							var b = p.callButton(context);
-							addProviderButton(p, b);
+							} // else, need add first & default button (see in addProviderButton())
 						}
-					}
-					if (workers.length > 0) {
-						$.when.apply($, workers).always(function() {
-							if (newDropdown && $dropdown.children().length > 0) {
-								var $toggle = $("<button class='btn dropdown-toggle' data-toggle='dropdown'>" + 
-										"<i class='uiIconMiniArrowDown uiIconLightGray'></i></span></button>");
-								$container.append($toggle);
-								$container.append($dropdown);
-							}
-							if (buttons.length > 0) {
-								var $allButtons = $container.find("." + buttonClass);
-								if ($allButtons.length > 1) {
-									// ensure first button of all is a default one (for CSS)
-									// TODO was: buttons[0].addClass("defaultCallButton");
-									var $firstButon = $allButtons.first();
-									if (!$firstButon.hasClass("defaultCallButton")) {
-										$firstButon.addClass("defaultCallButton");
-									}
+						var workers = [];
+						var buttons = [];
+						function addProviderButton(provider, button) {
+							log(">>> addCallButton > adding > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.name);
+							// need do this in a function to keep worker variable in the scope of given button when it will be done 
+							var bworker = $.Deferred();
+							button.done(function($button) {
+								// TODO reorder buttons in business priority 
+								if ($dropdown.length > 0) {
+									// add in dropdown
+									log(">>> addCallButton > add in dropdown > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.name);
+									$button.addClass(buttonClass);
+									var $li = $("<li></li>");
+									$li.append($button)
+									$dropdown.append($li);	
+								} else {
+									// add first & default button
+									log(">>> addCallButton > add first & default button > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.name);
+									$button.addClass("btn " + buttonClass); // btn btn-primary actionIcon 
+									$container.append($button);
+									$dropdown = $("<ul class='dropdown-menu'></ul>");
+									newDropdown = true;
 								}
-								$container.show();
-								initializer.resolve($container);
+								buttons.push($button);
+								log("<<< addCallButton DONE < " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.name);
+							});
+							button.fail(function(msg) {
+								log("<<< addCallButton CANCELED < " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.name + ": " + msg);
+							});
+							button.always(function() {
+								// even if was fail, we treat it as canceled and mark the provider
+								$container.data(providerFlag + provider.getType(), true);
+								// for the below $.when's always callback we need resolve all workers independently succeeded or failed 
+								bworker.resolve();
+							});
+							workers.push(bworker.promise());
+						}
+						// we have an one button for each provider
+						log(">>> addCallButton > " + contextName + " for " + context.currentUser.name + " providers: " + addProviders.length);
+						for (var i = 0; i < addProviders.length; i++) {
+							var p = addProviders[i];
+							log(">>> addCallButton > next provider > " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.name + " providers: " + addProviders.length);
+							if ($container.data(providerFlag + p.getType())) {
+								log("<<< addCallButton DONE (already) < " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.name);
 							} else {
-								initializer.reject("Nothing added");
+								var b = p.callButton(context);
+								addProviderButton(p, b);
 							}
-		        });
-					} else {
-						initializer.reject("Nothing to add");
+						}
+						if (workers.length > 0) {
+							$.when.apply($, workers).always(function() {
+								if (newDropdown && $dropdown.children().length > 0) {
+									var $toggle = $("<button class='btn dropdown-toggle' data-toggle='dropdown'>" + 
+											"<i class='uiIconMiniArrowDown uiIconLightGray'></i></span></button>");
+									$container.append($toggle);
+									$container.append($dropdown);
+								}
+								if (buttons.length > 0) {
+									var $allButtons = $container.find("." + buttonClass);
+									if ($allButtons.length > 1) {
+										// ensure first button of all is a default one (for CSS)
+										var $firstButon = $allButtons.first();
+										if (!$firstButon.hasClass("defaultCallButton")) {
+											$firstButon.addClass("defaultCallButton");
+										}
+									}
+									$container.show();
+									initializer.resolve($container);
+								} else {
+									initializer.reject("Nothing added");
+								}
+			        });
+						} else {
+							initializer.reject("Nothing to add");
+						}
 					}
 				} else {
 					initializer.reject("No providers");
