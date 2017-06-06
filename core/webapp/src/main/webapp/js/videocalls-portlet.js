@@ -35,12 +35,22 @@
 				// http://webcomponents.org/polyfills/
 				updater = setTimeout(
 							function() {
-								var targetId = "RightBody"; // was "UIPortalApplication" but it's not required and bad for perf
-								var target = document.getElementById(targetId);
-								if (!target) {
-									target = document.getElementById("chat-application");
-									if (!target) {
+								var targetId;
+								var target;
+								var chat = document.getElementById("chat-application");
+								if (chat) {
+									target = document.getElementById("room-users");
+									targetId = "chat-application";
+								} else {
+									target = document.getElementById("RightBody");
+									if (target) {
+										targetId = "RightBody";
+									} else {
 										target = document.getElementById("UIPortalApplication");
+										if (target) {
+											targetId = "UIPortalApplication"; // XXX this may cause CPU loading on intranet home
+											console.log("[videocalls_portlet] Portal's RightBody not found, will use the whole portal app for updates");
+										}
 									}
 								}
 								if (target) {
@@ -55,6 +65,8 @@
 										attributes : false,
 										characterData : false
 									});									
+								} else {
+									console.log("[videocalls_portlet] target not found for updates");
 								}
 							}, 2500);
 			}

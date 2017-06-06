@@ -66,6 +66,11 @@
 	margin-top: -40px;
 }
 
+.callButtonContainerWrapper {
+	margin-top: 15px;
+    margin-right: 10px;
+}
+
 /***** Transparent styles (for space avatar, CSS class will be triggered by Javascript) *******/
 .transparentButton, .transparentButton + .dropdown-toggle {
 	background: transparent;

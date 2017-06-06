@@ -360,7 +360,7 @@
 		var workers = [];
 		for (var i=0; i<names.length; i++) {
 			var uname = names[i];
-			var get = getCached(userName, cachedUsers, getUsersInfoRequest);
+			var get = getCached(uname, cachedUsers, getUserInfoRequest);
 			get.done(function(u) {
 				users.push(u);
 			});
@@ -543,80 +543,132 @@
 		};
 		
 		/**
-		 * TODO a placeholder for Chat initialization
+		 * eXo Chat initialization
 		 */
 		var initChat = function() {
 			var $chat = $("#chat-application");
 			// chatApplication is a global on chat app page
 			if (typeof(chatApplication) == "object" && chatApplication && $chat.length > 0) {
-				setTimeout(function() {
 				log(">> initChat " + chatApplication.username);
-				var roomId = chatApplication.targetUser; //$roomTitle.find("#chat-room-detail-fullname");
-				var roomTitle = chatApplication.targetFullname;
-				var isGroup = roomId.startsWith("team-"); //$teamDropdown.is(":visible");
-				var $roomTitle = $chat.find("#room-detail");
-				if (roomId) {
-					var $teamDropdown = $roomTitle.find(".chat-team-button-dropdown");
-					if ($teamDropdown.length > 0) {
-						var $wrapper = $("<div class='callButtonContainerWrapper' style='display: none;'></div>");
-						$teamDropdown.before($wrapper);
-						
-						var roomUsers = [];
-						var chatContext = function(roomName) {
-							var context = {
-								currentUser : currentUser,
-								roomId : roomId,
-								roomTitle : roomTitle,
-								isIOS : isIOS,
-								isAndroid : isAndroid,
-								isWindowsMobile : isWindowsMobile,
-								participants : function() {
-									var data = $.Deferred();
-									if (roomUsers.length > 0) {
-										data.resolve(roomUsers, roomId, roomTitle);
-									} else {
-										chatApplication.getUsers(roomId, function (chatUsers) {
-											var unames = [];
-											for (var i=0; i<chatUsers.length; i++) {
-												var u = chatUsers[i];
-												unames.push(u.name);
-											}
-											var get = getUsersInfo(unames);
-											get.done(function(users) {
-												data.resolve(users, roomId, roomTitle);												
-											});
-											get.fail(function(e, status) {
-												if (typeof(status) == "number" && status == 404) {
-													log(">> initChat < ERROR get_users " + (e.message ? e.message + " " : "Not found ") + " for " + currentUser.name + ": " + JSON.stringify(e));
-												} else {
-													log(">> initChat < ERROR get_users : " + JSON.stringify(e));
-													// TODO notify the user?
-												}
-											});
-					          });										
-									}
-									return data.promise();
+				var $roomDetail = $chat.find("#room-detail");
+				
+				function addRoomButtton() {
+					$roomDetail.find(".callButtonContainerWrapper").hide(); // hide immediately
+					setTimeout(function() {
+						var roomId = chatApplication.targetUser; //$roomDetail.find("#chat-room-detail-fullname");
+						var roomTitle = chatApplication.targetFullname;
+						log(">>> addRoomButtton " + roomTitle + "(" + roomId + ") for " + chatApplication.username);
+						var isGroup = roomId.startsWith("space-") || roomId.startsWith("team-"); //$teamDropdown.is(":visible");
+						if (roomId) {
+							var $teamDropdown = $roomDetail.find(".chat-team-button-dropdown");
+							if ($teamDropdown.length > 0) {
+								var $wrapper = $roomDetail.find(".callButtonContainerWrapper");
+								if ($wrapper.length > 0) {
+									$wrapper.empty();
+								} else {
+									$wrapper = $("<div class='callButtonContainerWrapper pull-right' style='display: none;'></div>");
+									$teamDropdown.after($wrapper);
 								}
-							};
-							return context;
-						};
-						
-						var initializer = addCallButton($wrapper, chatContext(roomName));
-						initializer.done(function($container) {
-							$container.find(".startCallButton").addClass("chatCall");
-							$wrapper.show();
-							log("<< initChat DONE " + roomName + " for " + currentUser.name);
-						});
-						initializer.fail(function(error) {
-							log("<< initChat ERROR " + roomName + " for " + currentUser.name + ": " + error);
-						});
-					} else {
-						log("Chat app team dropdown not found");
-					}
-				} else {
-					log("Chat app room not found");
+								var roomUsers = [];
+								var chatContext = function(roomTitle) {
+									var context = {
+										currentUser : currentUser,
+										roomId : roomId,
+										roomTitle : roomTitle,
+										isIOS : isIOS,
+										isAndroid : isAndroid,
+										isWindowsMobile : isWindowsMobile,
+										participants : function() {
+											var data = $.Deferred();
+											if (roomUsers.length > 0) {
+												data.resolve(roomUsers, roomId, roomTitle);
+											} else if (isGroup) {
+												chatApplication.getUsers(roomId, function (resp) {
+													var unames = [];
+													for (var i=0; i<resp.users.length; i++) {
+														var u = resp.users[i];
+														if (u && u.name && u.name != "null") {
+															unames.push(u.name);
+														}
+													}
+													var get = getUsersInfo(unames);
+													get.done(function(users) {
+														roomUsers = users;
+														data.resolve(users, roomId, roomTitle);												
+													});
+													get.fail(function(e, status) {
+														if (typeof(status) == "number" && status == 404) {
+															log(">> initChat < ERROR get_users " + (e.message ? e.message + " " : "Not found ") + " for " + currentUser.name + ": " + JSON.stringify(e));
+														} else {
+															log(">> initChat < ERROR get_users : " + JSON.stringify(e));
+															// TODO notify the user?
+														}
+													});
+							          });
+											} else {
+												// we assume it's one-on-one room
+												var get = getUserInfo(roomId);
+												get.done(function(user) {
+													roomUsers = [ user ];
+													data.resolve(roomUsers, roomId, roomTitle);												
+												});
+												get.fail(function(e, status) {
+													if (typeof(status) == "number" && status == 404) {
+														log(">> initChat < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + " for " + currentUser.name + ": " + JSON.stringify(e));
+													} else {
+														log(">> initChat < ERROR get_user : " + JSON.stringify(e));
+														// TODO notify the user?
+													}
+												});
+											}
+											return data.promise();
+										}
+									};
+									return context;
+								};
+								
+								var initializer = addCallButton($wrapper, chatContext(roomTitle));
+								initializer.done(function($container) {
+									$container.find(".startCallButton").addClass("chatCall");
+									$container.find(".dropdown-menu").addClass("pull-right");
+									$wrapper.show();
+									log("<< initChat DONE " + roomTitle + " for " + currentUser.name);
+								});
+								initializer.fail(function(error) {
+									log("<< initChat ERROR " + roomTitle + " for " + currentUser.name + ": " + error);
+									if (error.indexOf("Nothing added") < 0) {
+										$roomDetail.removeData("roomcallinitialized");
+									}
+								});
+							} else {
+								log("Chat team dropdown not found");
+								$roomDetail.removeData("roomcallinitialized");
+							}
+						} else {
+							log("Chat room not found");
+							$roomDetail.removeData("roomcallinitialized");
+						}
+					}, 300);
 				}
-				}, 5000);
+				
+				if (!$roomDetail.data("roomcallinitialized")) {
+					$roomDetail.data("roomcallinitialized", true);
+					addRoomButtton();
+				} else {
+					log("Chat room already initialized");
+				}
+				//
+				var $chatUsers = $chat.find("#chat-users");
+				$chatUsers.each(function(index, elem) {
+					var $target = $(elem);
+					if (!$target.data("usercallinitialized")) {
+						$target.data("usercallinitialized", true);
+						$target.click(function() {
+							$roomDetail.removeData("roomcallinitialized");
+							addRoomButtton();
+						});
+					}
+				});
 			}
 		};
 
@@ -721,7 +773,6 @@
 				// user popovers in Social (authors, commenters, likers, profile, network, connections etc)
 				$("#" + compId).find(".owner, .author, .spaceTitle, .activityAvatar, .commmentLeft, .listLiked, .profileContainer, .avatarBox, .userProfileShare .pull-left, #onlineList").find("a[href*='\\/profile\\/']").each(function() {
 					var $a = $(this);
-					//log("init social popup " + $a.attr("href"));
 					$a.mouseenter(function() {
 						customizePopover();
 					});
@@ -730,8 +781,16 @@
 				// user popovers in Forum
 				$("#" + compId).find("#UIForumContainer .postViewHeader").find("div[href*='\\/profile\\/']").each(function() {
 					var $div = $(this);
-					//log("init forum popup " + $div.attr("href"));
 					$div.mouseenter(function() {
+						customizePopover();
+					});
+				});
+				
+				// user popovers in chat
+				$("#" + compId).find(".room-user .avatarCircle").find("img[src*='\\/social/users\\/']").each(function() {
+					var $user = $(this).closest(".room-user");
+					//log("init chat popup " + $(this).attr("src"));
+					$user.mouseenter(function() {
 						customizePopover();
 					});
 				});
