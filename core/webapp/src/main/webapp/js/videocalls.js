@@ -549,11 +549,12 @@
 			var $chat = $("#chat-application");
 			// chatApplication is a global on chat app page
 			if (typeof(chatApplication) == "object" && chatApplication && $chat.length > 0) {
+				setTimeout(function() {
 				log(">> initChat " + chatApplication.username);
 				var roomId = chatApplication.targetUser; //$roomTitle.find("#chat-room-detail-fullname");
 				var roomTitle = chatApplication.targetFullname;
 				var isGroup = roomId.startsWith("team-"); //$teamDropdown.is(":visible");
-				//var $roomTitle = $chat.find("#room-detail");
+				var $roomTitle = $chat.find("#room-detail");
 				if (roomId) {
 					var $teamDropdown = $roomTitle.find(".chat-team-button-dropdown");
 					if ($teamDropdown.length > 0) {
@@ -615,6 +616,7 @@
 				} else {
 					log("Chat app room not found");
 				}
+				}, 5000);
 			}
 		};
 
