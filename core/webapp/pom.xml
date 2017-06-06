@@ -24,7 +24,7 @@
   <parent>
     <artifactId>exo-videocalls-parent</artifactId>
     <groupId>org.exoplatform.addons</groupId>
-    <version>1.0.x-SNAPSHOT</version>
+    <version>1.0.0-M03</version>
   </parent>
   <artifactId>exo-videocalls-webapp</artifactId>
   <packaging>war</packaging>
