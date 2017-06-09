@@ -24,11 +24,41 @@
   xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
 
   <!-- CSS for Skype Calls support in Platform -->
+  <!-- 
+      FIXME loading styles via portlet skin doesn't work with Enterprise skin where the skin loads after the portlet skin.
+      Thus, we load Skype styles from Javascript, later when DOM already loaded.
+   -->
   <!-- portlet-skin>
     <application-name>skype</application-name>
     <portlet-name>SkypeProviderPortlet</portlet-name>
     <skin-name>Default</skin-name>
     <css-path>/skin/skype.css</css-path>
+    <overwrite>true</overwrite>
+    <css-priority>1</css-priority>
+  </portlet-skin>
+  <portlet-skin>
+    <application-name>skype</application-name>
+    <portlet-name>SkypeProviderPortlet</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <css-path>/skin/skype.css</css-path>
+    <overwrite>true</overwrite>
+    <css-priority>1</css-priority>
+  </portlet-skin>
+  <portlet-skin>
+    <application-name>skype</application-name>
+    <portlet-name>SkypeBusinessProviderPortlet</portlet-name>
+    <skin-name>Default</skin-name>
+    <css-path>/skin/mssfb.css</css-path>
+    <overwrite>true</overwrite>
+    <css-priority>1</css-priority>
+  </portlet-skin>
+  <portlet-skin>
+    <application-name>skype</application-name>
+    <portlet-name>SkypeBusinessProviderPortlet</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <css-path>/skin/mssfb.css</css-path>
+    <overwrite>true</overwrite>
+    <css-priority>1</css-priority>
   </portlet-skin -->
   
   <module>
@@ -80,9 +110,6 @@
       <depends>
         <module>videoCallsJquery</module>
       </depends>
-      <!-- depends>
-        <module>videoCalls_mssfb</module>
-      </depends -->
     </module>
   </portlet>
 </gatein-resources>

@@ -50,7 +50,7 @@
 	border-radius: 3px 0 0 3px;
 }
 
-.defaultCallButton.userCall {
+.defaultCallButton.popoverCall {
 	margin-right: 0px;
 }
 
@@ -58,7 +58,7 @@
 	vertical-align: text-bottom;
 }
 
-#tiptip_content .connectAction>.connect, #tiptip_content .connectAction>.chatPopupOverlay, #tiptip_content .connectAction>.callButtonContainer {
+#tiptip_content .connectAction>.callButtonSibling, #tiptip_content .connectAction>.callButtonContainer {
 	margin-top: 1ch !important;
 }
 

@@ -106,6 +106,9 @@
 								var userIMs = ims.join(";");
 								// use Skype URI for regular Skype user
 								var link = "skype:" + userIMs + "?call&amp;video=true";
+								if (ims.length > 2) {
+									link += "&amp;topic=" + encodeURIComponent(title);
+								}
 								var $button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
 											+ "' class='skypeCallAction'>"
 											+ "<i class='uiIconSkypeCall uiIconForum uiIconLightGray'></i>"
@@ -170,14 +173,13 @@
 		
 		$(function() {
 			try {
-				// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will work as expected
-				// for Dynamic Containers
+				// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will be able to load after the Enterprise skin
 				videoCalls.loadStyle("/skype/skin/skype.css");
 			} catch(e) {
 				log("Error loading Skype Call styles.", e);
 			}
 		});
-
+		
 		return provider;
 	} else {
 		log("WARN: videoCalls not given and eXo.videoCalls not defined. Skype provider registration skipped.");

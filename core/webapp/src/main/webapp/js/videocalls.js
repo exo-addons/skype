@@ -657,7 +657,7 @@
 				} else {
 					log("Chat room already initialized");
 				}
-				//
+				
 				var $chatUsers = $chat.find("#chat-users");
 				$chatUsers.each(function(index, elem) {
 					var $target = $(elem);
@@ -672,8 +672,48 @@
 			}
 		};
 
+		var userContext = function(userName) {
+			var context = {
+				currentUser : currentUser,
+				userName : userName,
+				isIOS : isIOS,
+				isAndroid : isAndroid,
+				isWindowsMobile : isWindowsMobile,
+				participants : function() {
+					var data = $.Deferred();
+					// access user via property defined below
+					context.user.done(function(user) {
+						// resolve with array of participants, id for DOM elements, title for UI
+						data.resolve([ user ], user.name, user.title);
+					});
+					return data.promise();
+				}
+			};
+			Object.defineProperty(context, "user", {
+			  enumerable: true,
+			  configurable: false,
+			  get: function() {
+			  	var get = getUserInfo(userName);
+					get.fail(function(e, status) {
+						if (typeof(status) == "number" && status == 404) {
+							log(">> userContext < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userName + " for " + currentUser.name + ": " + JSON.stringify(e));
+						} else {
+							log(">> userContext < ERROR get_user : " + JSON.stringify(e));
+							// TODO notify the user?
+						}
+					});
+					return get;
+			  },
+			  set: function() {
+			  	log(">> userContext < ERROR set_user not supported " + userName + " for " + currentUser.name);
+			  	throw "Changing 'user' property not supported";
+			  }
+			});
+			return context;
+		};
+		
 		/**
-		 * Add call button to user popups and panels.
+		 * Add call button to user's on-mouse popups and panels.
 		 */
 		var initUserPopups = function(compId) {
 			var $tiptip = $("#tiptip_content");
@@ -683,50 +723,10 @@
 				return;
 			}
 			
-			var userContext = function(userName) {
-				var context = {
-					currentUser : currentUser,
-					userName : userName,
-					isIOS : isIOS,
-					isAndroid : isAndroid,
-					isWindowsMobile : isWindowsMobile,
-					participants : function() {
-						var data = $.Deferred();
-						// access user via property defined below
-						context.user.done(function(user) {
-							// resolve with array of participants, id for DOM elements, title for UI
-							data.resolve([ user ], user.name, user.title);
-						});
-						return data.promise();
-					}
-				};
-				Object.defineProperty(context, "user", {
-				  enumerable: true,
-				  configurable: false,
-				  get: function() {
-				  	var get = getUserInfo(userName);
-						get.fail(function(e, status) {
-							if (typeof(status) == "number" && status == 404) {
-								log(">> initUserPopups < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userName + " for " + currentUser.name + ": " + JSON.stringify(e));
-							} else {
-								log(">> initUserPopups < ERROR get_user : " + JSON.stringify(e));
-								// TODO notify the user?
-							}
-						});
-						return get;
-				  },
-				  set: function() {
-				  	log(">> initUserPopups < ERROR set_user not supported " + userName + " for " + currentUser.name);
-				  	throw "Changing 'user' property not supported";
-				  }
-				});
-				return context;
-			};
-
 			var addUserButton = function($userAction, userName) {
 				var initializer = addCallButton($userAction, userContext(userName));
 				initializer.done(function($container) {
-					$container.find(".startCallButton").addClass("userCall");
+					$container.find(".startCallButton").addClass("popoverCall");
 					log("<< initUserPopups DONE " + userName + " for " + currentUser.name);
 				});
 				initializer.fail(function(error) {
@@ -745,10 +745,9 @@
 				// wait for popover initialization
 				setTimeout(function() {
 					// Find user's first name for a tip
-					var $td = $tiptip.children("#tipName").children("tbody").children("tr").children("td");
-					if ($td.length > 1) {
-						var $userLink = $("a", $td.get(1));
-						var userName = extractUserName($userLink);
+					var $profileLink = $tiptip.find("#tipName #profileName>a");
+					if ($profileLink.length > 0) {
+						var userName = extractUserName($profileLink);
 						if (userName != currentUser.name) {
 							var $userAction = $tiptip.find(".uiAction");
 							var buttonUser = $userAction.data("callbuttonuser");
@@ -758,12 +757,18 @@
 								$userAction.find(".callButtonContainer").empty();
 								addUserButton($userAction, userName).done(function($container) {
 									// XXX workaround to avoid first-child happen on call button in the popover
+									$container.siblings(".btn").each(function() {
+										var $s = $(this);
+										if (!$s.hasClass("callButtonSibling")) {
+											$s.addClass("callButtonSibling");										
+										}
+									});
 									$container.prepend($("<div class='btn' style='display: none;'></div>"));
 								});
 							}
 						}
 					} else {
-						log("WARN tipName empty " + $td);
+						log("<< initUserPopups WARN: popover profileName link not found");
 					}
 				}, 300);
 			};
@@ -771,7 +776,7 @@
 			setTimeout(function() {
 				// XXX hardcoded for peopleSuggest as no way found to add Lifecycle to its portlet (juzu)
 				// user popovers in Social (authors, commenters, likers, profile, network, connections etc)
-				$("#" + compId).find(".owner, .author, .spaceTitle, .activityAvatar, .commmentLeft, .listLiked, .profileContainer, .avatarBox, .userProfileShare .pull-left, #onlineList").find("a[href*='\\/profile\\/']").each(function() {
+				$("#" + compId).find(".author>.ownerName, .author>.owner, .itemList .spaceBox, .activityAvatar, .commentItem>.commmentLeft, .commentItem>.commentLeft, .commentItem>.commentRight, .commentItem>.contentComment, .listLiked, .profileContainer, .avatarBox, .userProfileShare .pull-left, #onlineList").find("a[href*='\\/profile\\/']").each(function() {
 					var $a = $(this);
 					$a.mouseenter(function() {
 						customizePopover();
@@ -839,6 +844,114 @@
 			});
 		};
 		
+		var spaceContext = function(spaceName) {
+			var context = {
+				currentUser : currentUser,
+				spaceName : spaceName,
+				isIOS : isIOS,
+				isAndroid : isAndroid,
+				isWindowsMobile : isWindowsMobile,
+				participants : function() {
+					var data = $.Deferred();
+					// access space via property defined below
+					context.space.done(function(space) {
+						// resolve with array of participants, id for DOM elements, title for UI
+						data.resolve(space.members, space.prettyName, space.title);								
+					});
+					return data.promise();
+				}
+			};
+			Object.defineProperty(context, "space", {
+			  enumerable: true,
+			  configurable: false,
+			  get: function() {
+			  	var get = getSpaceInfo(spaceName);
+			  	get.fail(function(e, status) {
+						if (typeof(status) == "number" && status == 404) {
+							log(">> spaceContext < ERROR get_space " + spaceName + " for " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
+						} else {
+							log(">> spaceContext < ERROR get_space " + spaceName + " for " + currentUser.name + ": " + JSON.stringify(e));
+						}
+					});
+					return get;
+			  },
+			  set: function() {
+			  	log(">> spaceContext < ERROR set_space not supported " + spaceName + " for " + currentUser.name);
+			  	throw "Changing 'space' property not supported";
+			  }
+			});
+			return context;
+		};
+		
+		/**
+		 * Add call button to space's on-mouse popups and panels.
+		 */
+		var initSpacePopups = function(compId) {
+			var $tiptip = $("#tiptip_content");
+			// wait for popup script load
+			if ($tiptip.length == 0 || $tiptip.hasClass("DisabledEvent")) {
+				setTimeout($.proxy(initSpacePopups, this), 250, compId);
+				return;
+			}
+			
+			var addSpaceButton = function($spaceAction, spaceName) {
+				var initializer = addCallButton($spaceAction, spaceContext(spaceName));
+				initializer.done(function($container) {
+					$container.find(".startCallButton").addClass("popoverCall");
+					log("<< initSpacePopups DONE " + spaceName + " for " + currentUser.name);
+				});
+				initializer.fail(function(error) {
+					log("<< initSpacePopups ERROR " + spaceName + " for " + currentUser.name + ": " + error);
+				});
+				return initializer.promise();
+			};
+
+			var extractSpaceName = function($spaceLink) {
+				var spaceName = $spaceLink.attr("href");
+				return spaceName.substring(spaceName.lastIndexOf("/") + 1, spaceName.length);
+			};
+
+			// space popovers
+			var customizePopover = function() {
+				// wait for popover initialization
+				setTimeout(function() {
+					// Find user's first name for a tip
+					var $profileLink = $tiptip.find("#tipName #profileName>a");
+					if ($profileLink.length > 0) {
+						var spaceName = extractSpaceName($profileLink);
+						var $spaceAction = $tiptip.find(".uiAction");
+						var buttonSpace = $spaceAction.data("callbuttonspace");
+						if (!buttonSpace || buttonSpace != spaceName) {
+							$spaceAction.data("callbuttonspace", spaceName);
+							// cleanup after previous space
+							$spaceAction.find(".callButtonContainer").empty();
+							addSpaceButton($spaceAction, spaceName).done(function($container) {
+								// XXX workaround to avoid first-child happen on call button in the popover
+								$container.siblings(".btn").each(function() {
+									var $s = $(this);
+									if (!$s.hasClass("callButtonSibling")) {
+										$s.addClass("callButtonSibling");										
+									}
+								});
+								$container.prepend($("<div class='btn' style='display: none;'></div>"));
+							});
+						}
+					} else {
+						log("<< initSpacePopups WARN popover profileName link not found");
+					}
+				}, 300);
+			};
+			// XXX wait for loading activity stream (TODO try rely on a promise)
+			setTimeout(function() {
+				$("#" + compId).find(".author>.spaceName, .author>.owner").find("a.space-avatar[href*='\\/g/:spaces:']").each(function() {
+					var $a = $(this);
+					$a.mouseenter(function() {
+						customizePopover();
+					});
+				});
+			}, 1000);
+		};
+		
 		var initSpace = function() {
 			if (currentUser && currentSpace) {
 				var $navigationPortlet = $("#UIBreadCrumbsNavigationPortlet");
@@ -847,48 +960,9 @@
 					return;
 				}
 				
-				var spaceContext = function() {
-					var context = {
-						currentUser : currentUser,
-						spaceName : currentSpace.spaceName,
-						isIOS : isIOS,
-						isAndroid : isAndroid,
-						isWindowsMobile : isWindowsMobile,
-						participants : function() {
-							var data = $.Deferred();
-							// access space via property defined below
-							context.space.done(function(space) {
-								// resolve with array of participants, id for DOM elements, title for UI
-								data.resolve(space.members, space.prettyName, space.title);								
-							});
-							return data.promise();
-						}
-					};
-					Object.defineProperty(context, "space", {
-					  enumerable: true,
-					  configurable: false,
-					  get: function() {
-					  	var get = getSpaceInfo(currentSpace.spaceName);
-					  	get.fail(function(e, status) {
-								if (typeof(status) == "number" && status == 404) {
-									log(">> initSpace < ERROR get_space " + currentSpace.spaceName + " for " + currentUser.name + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.spaceName + ": " + JSON.stringify(e));
-								} else {
-									log(">> initSpace < ERROR get_space " + currentSpace.spaceName + " for " + currentUser.name + ": " + JSON.stringify(e));
-								}
-							});
-							return get;
-					  },
-					  set: function() {
-					  	log(">> initSpace < ERROR set_space not supported " + currentSpace.spaceName + " for " + currentUser.name);
-					  	throw "Changing 'space' property not supported";
-					  }
-					});
-					return context;
-				};
-				
 				var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
 				
-				var initializer = addCallButton($breadcumbEntry, spaceContext());
+				var initializer = addCallButton($breadcumbEntry, spaceContext(currentSpace.spaceName));
 				initializer.done(function($container) {
 					var $button = $container.find(".startCallButton");
 					$button.addClass("spaceCall");
@@ -923,6 +997,7 @@
 			}
 			if (currentUser) { 
 				initUserPopups(compId);
+				initSpacePopups(compId);
 				initSpace();
 				initChat();
 			}
@@ -1081,21 +1156,20 @@
 	}
 	
 	$(function() {
-		// Init notification styles
 		try {
+			// Init notification styles
 			// configure Pnotify: use jQuery UI css
 			$.pnotify.defaults.styling = "jqueryui";
 			// no history roller in the right corner
 			$.pnotify.defaults.history = false;
 			
-			// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will work as expected
-			// for Dynamic Containers
+			// Load common styles here - it's common CSS for all skins so far.
 			videoCalls.loadStyle("/videocalls/skin/jquery-ui.min.css");
 			videoCalls.loadStyle("/videocalls/skin/jquery-ui.structure.min.css");
 			videoCalls.loadStyle("/videocalls/skin/jquery-ui.theme.min.css");
 			videoCalls.loadStyle("/videocalls/skin/jquery.pnotify.default.css");
 			videoCalls.loadStyle("/videocalls/skin/jquery.pnotify.default.icons.css");
-			//videoCalls.loadStyle("/videocalls/skin/videocalls.css");
+			//videoCalls.loadStyle("/videocalls/skin/videocalls.css"); // this CSS will be loaded as portlet skin
 			// FYI eXo.env.client.skin contains skin name, it can be consulted to load a specific CSS
 		} catch(e) {
 			log("Error configuring Video Calls notifications.", e);

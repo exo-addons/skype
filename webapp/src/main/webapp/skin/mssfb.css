@@ -10,19 +10,8 @@
 .uiIconMssfbCall:before {
     content: url("/skype/skin/icons/sfbicon_14px.png") !important;
     position: relative;
-	/*top: 2px;*/
+	top: -1px;
 	margin-right: 3px;
-}
-
-.mssfbCallAction:before {
-	/*content: url("/skype/skin/icons/sfbicon_16px.png");
-	position: relative;
-	top: 3px;
-	margin-right: 3px;*/
-}
-
-.userCall.mssfbCallAction {
-	/*line-height: 17px;*/
 }
 
 .uiMssfbSettings, .uiMssfbSettings>p, .uiMssfbSettings .ui-icon, .uiMssfbSettings .messageText {
