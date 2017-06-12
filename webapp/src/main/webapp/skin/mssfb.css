@@ -10,7 +10,6 @@
 .uiIconMssfbCall:before {
     content: url("/skype/skin/icons/sfbicon_14px.png") !important;
     position: relative;
-	top: -1px;
 	margin-right: 3px;
 }
 

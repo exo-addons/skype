@@ -61,6 +61,22 @@
     <css-priority>1</css-priority>
   </portlet-skin -->
   
+  <!-- CSS tweaks for Enterprise skin -->
+  <portlet-skin>
+    <application-name>skype</application-name>
+    <portlet-name>SkypeProviderPortlet</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <css-path>/skin/skype-mssfb-enterprise.css</css-path>
+    <overwrite>true</overwrite>
+  </portlet-skin>
+  <portlet-skin>
+    <application-name>skype</application-name>
+    <portlet-name>SkypeBusinessProviderPortlet</portlet-name>
+    <skin-name>Enterprise</skin-name>
+    <css-path>/skin/skype-mssfb-enterprise.css</css-path>
+    <overwrite>true</overwrite>
+  </portlet-skin>
+  
   <module>
     <name>skypeWeb</name>
     <url>https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js</url>
