@@ -1,0 +1,6 @@
+/**
+ * Skype & Skype for Business CSS tweaks for Enterprise skin.
+ */ 
+.uiIconSkypeCall:before, .uiIconMssfbCall:before {
+	top: -1px;
+}
