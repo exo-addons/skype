@@ -171,32 +171,39 @@ public class VideoCallsService implements Startable {
     Identity userIdentity = socialIdentityManager.getOrCreateIdentity(OrganizationIdentityProvider.NAME,
                                                                       id,
                                                                       true);
-    if (user != null && userIdentity != null) {
-      Profile socialProfile = socialIdentityManager.getProfile(userIdentity);
-      @SuppressWarnings("unchecked")
-      List<Map<String, String>> ims =
-                                    (List<Map<String, String>>) socialProfile.getProperty(Profile.CONTACT_IMS);
-      UserInfo info = new UserInfo(user.getUserName(), user.getFirstName(), user.getLastName());
-      if (ims != null) {
-        for (Map<String, String> m : ims) {
-          String imType = m.get("key");
-          String imId = m.get("value");
-          if (imId != null && imId.length() > 0) {
-            VideoCallsProvider provider = providers.get(imType);
-            if (provider != null && provider.isSupportedType(imType)) {
-              try {
-                info.addImAccount(provider.getIMInfo(imId));
-              } catch (VideoCallsProviderException e) {
-                LOG.warn(e.getMessage());
+    if (user != null) {
+      if (userIdentity != null) {
+        Profile socialProfile = socialIdentityManager.getProfile(userIdentity);
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> ims =
+                                      (List<Map<String, String>>) socialProfile.getProperty(Profile.CONTACT_IMS);
+        UserInfo info = new UserInfo(user.getUserName(), user.getFirstName(), user.getLastName());
+        if (ims != null) {
+          for (Map<String, String> m : ims) {
+            String imType = m.get("key");
+            String imId = m.get("value");
+            if (imId != null && imId.length() > 0) {
+              VideoCallsProvider provider = providers.get(imType);
+              if (provider != null && provider.isSupportedType(imType)) {
+                try {
+                  info.addImAccount(provider.getIMInfo(imId));
+                } catch (VideoCallsProviderException e) {
+                  LOG.warn(e.getMessage());
+                }
               }
             }
           }
         }
+        return info;
+      } else {
+        // TODO exception here?
+        LOG.warn("Social identity not found for " + user.getUserName() + " (" + user.getFirstName() + " " + user.getLastName() + ")");
       }
-      return info;
     } else {
-      return null;
+      // TODO exception here?
+      LOG.warn("User not found: " + id);
     }
+    return null;
   }
 
   /**
@@ -211,7 +218,9 @@ public class VideoCallsService implements Startable {
     SpaceInfo space = new SpaceInfo(socialSpace);
     for (String sm : socialSpace.getMembers()) {
       UserInfo user = getUserInfo(sm);
-      space.addMember(user);
+      if (user != null) {
+        space.addMember(user);
+      }
     }
     return space;
   }

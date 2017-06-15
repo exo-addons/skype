@@ -84,12 +84,16 @@ public class VideoCallsPortlet extends GenericPortlet {
       String contextJson = asJSON(context);
 
       UserInfo exoUser = videocalls.getUserInfo(remoteUser);
-      String exoUserJson = asJSON(exoUser);
+      if (exoUser != null) {
+        String exoUserJson = asJSON(exoUser);
 
-      JavascriptManager js =
-                           ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
-      js.require("SHARED/videoCallsPortlet", "videoCallsPortlet")
-        .addScripts("videoCallsPortlet.start(" + exoUserJson + "," + contextJson + ");");
+        JavascriptManager js =
+                             ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
+        js.require("SHARED/videoCallsPortlet", "videoCallsPortlet")
+          .addScripts("videoCallsPortlet.start(" + exoUserJson + "," + contextJson + ");");
+      } else {
+        LOG.warn("Video Calls portlet cannot be initialized: user info cannot be obtained for " + remoteUser);
+      }
     } catch (Exception e) {
       LOG.error("Error processing Video Calls portlet for user " + remoteUser, e);
     }

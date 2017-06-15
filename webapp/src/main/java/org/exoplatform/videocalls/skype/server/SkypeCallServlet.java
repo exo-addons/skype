@@ -102,20 +102,25 @@ public class SkypeCallServlet extends AbstractHttpServlet {
               httpReq.setAttribute("spaceInfo", asJSON(context));
 
               UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
-              httpReq.setAttribute("userInfo", asJSON(exoUser));
+              if (exoUser != null) {
+                httpReq.setAttribute("userInfo", asJSON(exoUser));
 
-              URI redirectURI = new URI(httpReq.getScheme(),
-                                        null,
-                                        httpReq.getServerName(),
-                                        httpReq.getServerPort(),
-                                        "/portal/skype/call",
-                                        null,
-                                        null);
-              SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
-              httpReq.setAttribute("settings", asJSON(settings));
+                URI redirectURI = new URI(httpReq.getScheme(),
+                                          null,
+                                          httpReq.getServerName(),
+                                          httpReq.getServerPort(),
+                                          "/portal/skype/call",
+                                          null,
+                                          null);
+                SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
+                httpReq.setAttribute("settings", asJSON(settings));
 
-              // to JSP page
-              httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
+                // to JSP page
+                httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
+              } else {
+                LOG.warn("Skype Call servlet cannot be initialized: user info cannot be obtained for "
+                    + remoteUser);
+              }
             } catch (Exception e) {
               LOG.error("Error processing Skype call page", e);
               httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
