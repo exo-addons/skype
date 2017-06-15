@@ -17,9 +17,9 @@
     	if (eXo.videoCalls) {
 			(function(videoCalls) {
 			  "use strict";
+			  videoCalls.init(${userInfo}, ${spaceInfo});
 			  videoCalls.mssfb.configure(${settings}); 
 			  videoCalls.addProvider(videoCalls.mssfb);
-			  videoCalls.init(${userInfo}, ${spaceInfo});
 			})(eXo.videoCalls);
     	} else {
     		console.log("eXo.videoCalls not defined for Skype for Business Call page");

@@ -5,26 +5,26 @@ if (eXo.videoCalls) {
 	(function(videoCalls) {
 		"use strict";
 		
+		/** For debug logging. */
+		var objId = Math.floor((Math.random() * 1000) + 1);
+		var logPrefix = "[mssfbcall_" + objId + "] ";
+		var log = function(msg, e) {
+			if (typeof console != "undefined" && typeof console.log != "undefined") {
+				console.log(logPrefix + msg);
+				if (e && typeof e.stack != "undefined") {
+					console.log(e.stack);
+				}
+			}
+		};
+		log("> Loading at " + location.href);
+		
 		var mssfb = videoCalls.getProvider("mssfb");
 		if (mssfb) {
 			var hasToken = /#access_token=/.test(location.hash);
 			var hasError = /#error=/.test(location.hash);
 			var isCall = /\/_/.test(location.pathname);
 			var isLogin = /\/login/.test(location.pathname);
-
 			var isClosed = false;
-
-			/** For debug logging. */
-			var objId = Math.floor((Math.random() * 1000) + 1);
-			var logPrefix = "[mssfbcall_" + objId + "] ";
-			function log(msg, e) {
-				if (typeof console != "undefined" && typeof console.log != "undefined") {
-					console.log(logPrefix + msg);
-					if (e && typeof e.stack != "undefined") {
-						console.log(e.stack);
-					}
-				}
-			}
 
 			function getParameterByName(name, url) {
 				if (!url) {
@@ -146,10 +146,11 @@ if (eXo.videoCalls) {
 			}
 
 			$(function() {
+				log(">> MSSFB " + location.href);
+				
 				alignLoader();
 
 				var clientId = mssfb.getClientId();
-				log(">> MSSFB " + location.href);
 				
 				window.notifyUser = function(message) {
 					if (typeof(message) == "object") {
@@ -166,10 +167,11 @@ if (eXo.videoCalls) {
 						log(">>>> MSSFB login token: " + location.hash);
 						// FYI window.opener.eXo.videoCalls.mssfb.loginToken will exist only within provider.init() execution and short time
 						// thus this if-block should not execute for call authentication
-						if (window.opener && window.opener.eXo && window.opener.eXo.videoCalls && window.opener.eXo.videoCalls.mssfb && window.opener.eXo.videoCalls.mssfb.loginToken) {
-							var openerUri = window.opener.location.href;
+						var parent = window.opener ? window.opener : (window.parent ? window.parent : null);
+						if (parent && parent.eXo && parent.eXo.videoCalls && parent.eXo.videoCalls.mssfb && parent.eXo.videoCalls.mssfb.loginToken) {
+							var parentUri = parent.location.href;
 							
-							// **** experiments with ADSL to obtain auth token for SDK calls later
+							// **** TODO experiments with ADSL to obtain auth token for SDK calls later
 							/*var settings = {
 										clientId : clientId,
 										cacheLocation: "localStorage"
@@ -185,22 +187,31 @@ if (eXo.videoCalls) {
 			        });*/
 							//
 							
-							log(">>>> MSSFB login opener: " + openerUri);
+							log(">>>> MSSFB login opener: " + parentUri);
 							var hline = location.hash;
+							// FYI we assume expiration time in seconds
+							var expiresIn;
+							try {
+								expiresIn = parseInt(getParameterByName("expires_in", hline));
+							} catch(e) {
+								log("Error parsing token expiration time: " + e);
+								expiresIn = 0;
+							}
 							var token = {
 								"access_token" : getParameterByName("access_token", hline),
 								"token_type" : getParameterByName("token_type", hline),
-								"expires_in" : getParameterByName("expires_in", hline),
 								"session_state" : getParameterByName("session_state", hline),
-								"hash_line" : hline
+								"hash_line" : hline,
+								"expires_in" : expiresIn,
+								"created" : new Date().getTime()/1000
 							};
-							window.opener.eXo.videoCalls.mssfb.loginToken(token).always(function() {
+							parent.eXo.videoCalls.mssfb.loginToken(token).always(function() {
 								setTimeout(function() {
 									window.close();
 								}, 500);								
 							});
 						} else {
-							log(">>>> MSSFB login has no opener");
+							log(">>>> MSSFB login has no opener or not initialized for callback token");
 						}
 					}
 					if (hasError) {
@@ -370,6 +381,7 @@ if (eXo.videoCalls) {
 		} else {
 			console.log("MSSFB provider not found for mssfb-call.js");
 		}
+		log("< Loaded at " + location.href);
 	})(eXo.videoCalls);
 } else {
 	console.log("eXo.videoCalls not defined for mssfb-call.js");

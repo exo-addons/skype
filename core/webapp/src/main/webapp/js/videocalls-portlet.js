@@ -26,7 +26,6 @@
 		$(function() {
 			// init context
 			videoCalls.init(user, context);
-			videoCalls.update();
 
 			// and later on DOM changes (when portlets will load by Ajax)
 			var iev = getIEVersion();
@@ -53,6 +52,7 @@
 										}
 									}
 								}
+								videoCalls.update(targetId);
 								if (target) {
 									var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
 									var observer = new MutationObserver(function(mutations) {

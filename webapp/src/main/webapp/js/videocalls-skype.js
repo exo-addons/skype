@@ -8,14 +8,15 @@
 	/** For debug logging. */
 	var objId = Math.floor((Math.random() * 1000) + 1);
 	var logPrefix = "[skype_" + objId + "] ";
-	function log(msg, e) {
+	var log = function(msg, e) {
 		if (typeof console != "undefined" && typeof console.log != "undefined") {
 			console.log(logPrefix + msg);
 			if (e && typeof e.stack != "undefined") {
 				console.log(e.stack);
 			}
 		}
-	}
+	};
+	log("> Loading at " + location.href);
 
 	var globalVideoCalls = typeof eXo != "undefined" && eXo && eXo.videoCalls ? eXo.videoCalls : null;
 	
@@ -151,7 +152,9 @@
 							} else {
 								button.reject("No " + self.getTitle() + " users found");
 							}
-						});
+						}).fail(function(err) {
+							button.reject("Error getting participants for " + self.getTitle() + ": " + err);
+						});;
 					} else {
 						button.reject("Not Skype user");
 					}
@@ -179,6 +182,8 @@
 				log("Error loading Skype Call styles.", e);
 			}
 		});
+
+		log("< Loaded at " + location.href);
 		
 		return provider;
 	} else {
