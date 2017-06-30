@@ -728,10 +728,10 @@
 						registerCall();
 						conversation.state.once("Disconnected", function() {
 							log("Disconnected call " + callId + " CONVERSATION state:" + conversation.state());
-							app.conversationsManager.conversations.remove(conversation);
+							//app.conversationsManager.conversations.remove(conversation);
 							window.removeEventListener("beforeunload", beforeunloadListener);
 							window.removeEventListener("unload", unloadListener);
-							container.hide();
+							//container.hide();
 						});
 						conversation.videoService.start().then(function() {
 							log(">>> video STARTED");
