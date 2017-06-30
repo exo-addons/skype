@@ -92,7 +92,7 @@
 				return this;
 			};
 		}
-
+		
 		function SfBProvider() {
 			var EMAIL_PATTERN = /\S+@\S+[\.]*\S+/;
 			
@@ -516,6 +516,7 @@
 			var loginIframe;
 			var loginTokenUpdater;
 			var loginTokenHandler = function(token) {
+				delete provider.loginToken;
 				var process = $.Deferred();
 				try {
 					if (loginTokenUpdater) {
@@ -582,11 +583,9 @@
 				provider.loginToken = function(token) {
 					var callback = loginTokenHandler(token);
 					callback.done(function(api, app) {
-						delete provider.loginToken;
 						process.resolve(api, app);
 					});
 					callback.fail(function(err) {
-						delete provider.loginToken;
 						process.reject(err);
 					});
 					callback.always(function() {
@@ -787,27 +786,31 @@
 				log(">> makeCallPopover '" + title + "' message:" + message);
 				var process = $.Deferred();
 				var $call = $("div.uiOutgoingCall");
-				if ($call.length == 0) {
-					$call = $("<div class='uiOutgoingCall' title='" + title + " call'></div>");
-					$(document.body).append($call);
-				} else {
-					$call.empty();
+				if ($call.length > 0) {
+					try {
+						$call.dialog("destroy");
+					} catch(e) {
+						log(">>> acceptCallPopover: error destroing prev dialog ", e);
+					}
+					$call.remove();
 				}
+				$call = $("<div class='uiOutgoingCall' title='" + title + " call'></div>");
 				$call.append($("<p><span class='ui-icon messageIcon' style='float:left; margin:12px 12px 20px 0;'></span>"
 					//+ "<a target='_self' href='" + callerLink + "'><img src='" + callerAvatar + "'></a>"
 					+ "<div class='messageText'>" + message + "</div></p>"));
+				$(document.body).append($call);
 				$call.dialog({
 		      resizable: false,
 		      height: "auto",
 		      width: 400,
 		      modal: false,
 		      buttons: {
-		        "Answer": function() {
-		        	process.resolve("accepted");
+		        "Call": function() {
+		        	process.resolve("confirmed");
 		        	$call.dialog( "close" );
 		        },
-		        "Decline": function() {
-		        	process.reject("declined");
+		        "Cancel": function() {
+		        	process.reject("canceled");
 		        	$call.dialog( "close" );
 		        }
 		      }
@@ -931,7 +934,6 @@
 												var callback = loginTokenHandler(token);
 												callback.done(function(api, app) {
 													log("User login done.");
-													delete provider.loginToken;
 													makeCallPopover("Make " + provider.getTitle() + " call?", "Do you want make " + title + "?").done(function() {
 														outgoingCallHandler(api, app, container, title, participants);														
 													}).fail(function() {
@@ -939,7 +941,6 @@
 													});
 												});
 												callback.fail(function(err) {
-													delete provider.loginToken;
 													videoCalls.showError(provider.getTitle() + " error", "Unable sign in your " + provider.getTitle() + " account. " + err);
 												});
 												return callback.promise();
@@ -972,15 +973,19 @@
 				log(">> acceptCallPopover '" + callerMessage + "' caler:" + callerLink + " avatar:" + callerAvatar);
 				var process = $.Deferred();
 				var $call = $("div.uiIncomingCall");
-				if ($call.length == 0) {
-					$call = $("<div class='uiIncomingCall' title='" + provider.getTitle() + " call'></div>");
-					$(document.body).append($call);
-				} else {
-					$call.empty();
+				if ($call.length > 0) {
+					try {
+						$call.dialog("destroy");
+					} catch(e) {
+						log(">>> acceptCallPopover: error destroing prev dialog ", e);
+					}
+					$call.remove();
 				}
+				$call = $("<div class='uiIncomingCall' title='" + provider.getTitle() + " call'></div>");
 				$call.append($("<p><span class='ui-icon messageIcon' style='float:left; margin:12px 12px 20px 0;'></span>"
 					+ "<a target='_self' href='" + callerLink + "'><img src='" + callerAvatar + "'></a>"
 					+ "<div class='messageText'>" + callerMessage + "</div></p>"));
+				$(document.body).append($call);
 				$call.dialog({
 		      resizable: false,
 		      height: "auto",
@@ -1058,12 +1063,17 @@
 								window.removeEventListener("beforeunload", beforeunloadListener);
 								window.removeEventListener("unload", unloadListener);
 							};
-							/*conversation.state.once("Disconnected", function() {
+							conversation.state.once("Connecting", function() {
+								log("Connecting call " + callId + " '" + callerMessage + "' state:" + conversation.state());
+								window.addEventListener("beforeunload", beforeunloadListener);
+								window.addEventListener("unload", unloadListener);
+							});
+							conversation.state.once("Disconnected", function() {
 								log("Disconnected call " + callId + " '" + callerMessage + "' state:" + conversation.state());
-								app.conversationsManager.conversations.remove(conversation);
+								//app.conversationsManager.conversations.remove(conversation);
 								window.removeEventListener("beforeunload", beforeunloadListener);
 								window.removeEventListener("unload", unloadListener);
-							});*/
+							});
 							
 							var accept = null;
 							// this method may be invoked several times by the above SDK conversation's services accept callback
@@ -1075,7 +1085,7 @@
 										var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
 										popover.progress(function($call) {
 											conversation.state.changed(function(newValue, reason, oldValue) {
-												if (newValue == "Disconnected") {
+												if (newValue == "Disconnected" && $call.is(":visible")) {
 													$call.dialog("close");
 												}
 											});
@@ -1093,10 +1103,34 @@
 													conversation.selfParticipant.chat.state.changed(function(newValue, reason, oldValue) {
 														log(">>> conversation " + callId + " CHAT state changed: " + oldValue + "->" + newValue + " reason:" + reason
 																	+ " CONVERSATION state: " + conversation.state());
+														if (newValue === "Notified") {
+															conversation.chatService.accept().then(function() {
+																log(">>> Incoming CHAT ACCEPTED");
+																accept.resolve("chat");
+															}, function(chatError) {
+																log("<<< Error accepting chat: " + JSON.stringify(chatError));
+																//handleError(chatError);
+															});
+														}
 													});
 													conversation.selfParticipant.audio.state.changed(function(newValue, reason, oldValue) {
 														log(">>> conversation " + callId + " AUDIO state changed: " + oldValue + "->" + newValue + " reason:" + reason
 																	+ " CONVERSATION state: " + conversation.state());
+														if (newValue === "Notified") {
+															conversation.audioService.accept().then(function() {
+																log(">>> Incoming AUDIO ACCEPTED");
+																accept.resolve("audio");
+															}, function(audioError) {
+																log("<<< Error accepting audio: " + JSON.stringify(audioError));
+																//handleError(audioError);
+															});
+														} else if (newValue === "Disconnected") {
+															log("Disconnected audio for call " + callId + " CONVERSATION state: " + conversation.state());
+															if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
+																videoCalls.showError("Skype Plugin Not Initialized", 
+																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
+															}
+														}
 													});
 													conversation.selfParticipant.video.state.changed(function(newValue, reason, oldValue) {
 														// 'Notified' indicates that there is an incoming call
@@ -1110,7 +1144,7 @@
 															}, function(videoError) {
 																// error starting videoService, cancel (by this user) also will go here
 																log("<<< Error accepting video: " + JSON.stringify(videoError));
-																if (isModalityUnsupported(videoError)) {
+																/*if (isModalityUnsupported(videoError)) {
 																	// ok, try audio
 																	conversation.audioService.accept().then(function() {
 																		log(">>> Incoming AUDIO ACCEPTED");
@@ -1133,19 +1167,19 @@
 																	});
 																} else {
 																	handleError(videoError);
-																}
+																}*/
 															});
-															window.addEventListener("beforeunload", beforeunloadListener);
-															window.addEventListener("unload", unloadListener);
+															//window.addEventListener("beforeunload", beforeunloadListener);
+															//window.addEventListener("unload", unloadListener);
 														} else if (newValue === "Disconnected") {
-															log("Disconnected call " + callId + " CONVERSATION state: " + conversation.state());
+															log("Disconnected video for call " + callId + " CONVERSATION state: " + conversation.state());
 															//app.conversationsManager.conversations.remove(conversation);
-															window.removeEventListener("beforeunload", beforeunloadListener);
-															window.removeEventListener("unload", unloadListener);
+															//window.removeEventListener("beforeunload", beforeunloadListener);
+															//window.removeEventListener("unload", unloadListener);
 															//container.hide();
-															if (oldValue === "Connected" || oldValue === "Connecting") {
+															//if (oldValue === "Connected" || oldValue === "Connecting") {
 																// TODO
-															}
+															//}
 															if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
 																videoCalls.showError("Skype Plugin Not Initialized", 
 																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
@@ -1190,7 +1224,7 @@
 										setTimeout(function() {
 											// reset it to make next incoming call able to ask an user in new popover
 											accept = null;
-										}, 2500);
+										}, 1500);
 									});
 								}
 								return accept.promise();
@@ -1211,10 +1245,11 @@
 							});
 							conversation.chatService.accept.enabled.when(true, function() {
 								log(">>>> conversation chatService ACCEPT: " + callId);
-								acceptCall().fail(function(err) {
-									conversation.chatService.reject();
-									log("<<<< conversation chatService REJECTED " + callId + ": " + err);
-								});
+								// TODO chat needs specific handling
+//								acceptCall().fail(function(err) {
+//									conversation.chatService.reject();
+//									log("<<<< conversation chatService REJECTED " + callId + ": " + err);
+//								});
 							});
 							// TODO audioPhoneService accept?
 						} else {
@@ -1229,6 +1264,21 @@
 				});
 			}; 
 			
+			var alignChatsCallContainer = function($chats, $container) {
+				var chatsPos = $chats.offset();
+				$container.offset(chatsPos);
+				$container.height($chats.height());
+				$container.width($chats.width());
+				$container.find("#chatInputContainer").width("100%");
+			};
+			$(window).resize(function() {
+			  // align Call container to #chats div dimentions
+				var $chats = $("#chat-application #chats");
+				var $container = $("#mssfb-call-container");
+				if ($chats.length > 0 && $container.length > 0 && $container.is(":visible")) {
+					alignChatsCallContainer($chats, $container);
+				}
+			});
 			this.init = function(context) {
 				log("Init at " + location.origin + location.pathname);
 				var $control = $(".mssfbControl");
@@ -1251,8 +1301,10 @@
 				      modal: true,
 				      buttons: {
 				        "Login": function() {
-				        	loginWindow();
-				        	// this method will be available at globalVideoCalls.mssfb on a call page
+				        	$(loginWindow()).on("unload", function() {
+				        		delete provider.loginToken;
+				        	});
+				        	// this method will be available at eXo.videoCalls.mssfb on a call page
 				        	provider.loginToken = function(token) {
 										var callback = loginTokenHandler(token);
 										callback.fail(function(err) {
@@ -1319,16 +1371,20 @@
 									$(document.body).append($container);
 								} else {
 									$container.hide();
-									//$convo = $container.find("#mssfb-call-conversation");
-									//$convo.empty();
 								}
 								var container = new CallContainer($container);
+								container.resized = false;
 								container.onShow(function() {
-									var chatsPos = $chats.offset();
-									$container.offset(chatsPos);
-									$container.height($chats.height());
-									$container.width($chats.width());
+									if (!container.resized) {
+										container.resized = true;
+										//setTimeout(function() {
+											alignChatsCallContainer($chats, $container);										
+										//}, 250);
+									}
 									$container.show("fold");
+									setTimeout(function() {
+										alignChatsCallContainer($chats, $container);										
+									}, 250);
 									//$chats.hide();
 								});
 								container.onHide(function() {
@@ -1495,17 +1551,6 @@
 		}
 		
 		$(function() {
-			$(window).resize(function() {
-			  // align Call container to #chats div dimentions
-				var $chats = $("#chat-application #chats");
-				var $container = $("#mssfb-call-container");
-				if ($chats.length > 0 && $container.length > 0 && $container.is(":visible")) {
-					var chatsPos = $chats.offset();
-					$container.offset(chatsPos);
-					$container.height($chats.height());
-					$container.width($chats.width());
-				}
-			});
 			try {
 				// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will be able to load after the Enterprise skin
 				videoCalls.loadStyle("/skype/skin/mssfb.css");
