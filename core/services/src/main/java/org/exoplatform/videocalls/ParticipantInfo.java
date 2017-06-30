@@ -19,28 +19,24 @@
  */
 package org.exoplatform.videocalls;
 
-import java.util.Map;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
 
 /**
- * Group abstraction for conversations in eXo video calls.<br>
- * 
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: GroupInfo.java 00000 Mar 3, 2017 pnedonosko $
- * 
+ * @version $Id: ParticipantInfo.java 00000 Feb 23, 2017 pnedonosko $
  */
-public abstract class GroupInfo extends IdentityInfo {
+public class ParticipantInfo extends UserInfo {
 
-  public GroupInfo(String id, String title) {
-    super(id, title);
-  }
-
-  /**
-   * Gets the members.
-   *
-   * @return the members
-   */
-  public abstract Map<String, UserInfo> getMembers();
-
+  public static final String EMPTY_NAME = "".intern();
+  
+  /** The Constant LOG. */
+  protected static final Log LOG = ExoLogger.getLogger(ParticipantInfo.class);
+  
+  protected ParticipantInfo(String imType, String imId) {
+    super(EMPTY_NAME, imId, EMPTY_NAME);
+    addImAccount(imType, imId);
+  }  
 }

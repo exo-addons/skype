@@ -21,34 +21,31 @@
 	margin-bottom: 30px !important;
 }
 
-#mssfb-call-starting {
-	position: relative;
-	width: 100%;
-	height: 400px;
-	vertical-align: middle;
-	margin-right: auto;
-	margin-left: auto;
-	text-align: center;
+.mssfbLoginWarningContainer {
+	/*margin-top: 15px;
+    margin-right: 5px;
+	padding: 7px;*/
+	margin: 18px 7px 0px 7px;
+	color: initial;
 }
 
-.waitThrobber {
-	display: block;
-	width: 64px;
-	height: 100%;
-	margin: auto;
-	pointer-events: none;
-	background: url('/eXoResources/skin/images/Loading/loading64x64Light.gif')
-		no-repeat left center !important; /* orientation=lt */
-	background: url('/eXoResources/skin/images/Loading/loading64x64Light.gif')
-		no-repeat right center !important; /* orientation=rt */
+.mssfbLoginWarningContainer .popover.bottom {
+	width: 230px;
+    left: -107px;
+    top: -8px;
+}
+.mssfbLoginWarningContainer .popover-content {
+	background-color: #FFF4C4; /* @warningBackground */
+}
+.mssfbLoginWarningContainer .arrow:after {
+	border-bottom-color: #FFF4C4 !important; /* @warningBackground */
 }
 
-.mssfb-call-container {
-	margin: 15px;
-	height: 400px;
+.pnotifyTextLink {
+	text-decoration: underline;
 }
 
-#mssfb-call-conversation {
-	width: 100%;
-	height: 100%;
+.pluginError {
+    padding-top: 25%;
+    font-size: large;
 }

@@ -16,7 +16,7 @@
 			}
 		}
 	};
-	log("> Loading at " + location.href);
+	log("> Loading at " + location.origin + location.pathname);
 
 	var globalVideoCalls = typeof eXo != "undefined" && eXo && eXo.videoCalls ? eXo.videoCalls : null;
 	
@@ -183,7 +183,7 @@
 			}
 		});
 
-		log("< Loaded at " + location.href);
+		log("< Loaded at " + location.origin + location.pathname);
 		
 		return provider;
 	} else {

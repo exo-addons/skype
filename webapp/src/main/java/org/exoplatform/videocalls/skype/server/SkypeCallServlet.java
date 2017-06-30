@@ -4,7 +4,6 @@
 package org.exoplatform.videocalls.skype.server;
 
 import static org.exoplatform.videocalls.VideoCallsUtils.asJSON;
-import static org.exoplatform.videocalls.VideoCallsUtils.getCurrentContext;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -43,6 +42,9 @@ public class SkypeCallServlet extends AbstractHttpServlet {
 
   /** The Constant SERVER_ERROR_PAGE. */
   private final static String   SERVER_ERROR_PAGE = "/WEB-INF/pages/servererror.html";
+  
+  /** The Constant EMPTY_STRING. */
+  private final static String EMPTY_STRING = "".intern();
 
   /**
    * Instantiates a new skype call servlet.
@@ -98,9 +100,20 @@ public class SkypeCallServlet extends AbstractHttpServlet {
             try {
               // init page scope with settings for videoCalls and Skype provider
 
-              ContextInfo context = getCurrentContext();
-              httpReq.setAttribute("spaceInfo", asJSON(context));
-
+              String title = httpReq.getParameter("title");
+              httpReq.setAttribute("callTitle", title != null ? title : EMPTY_STRING);
+              
+              String spaceId = httpReq.getParameter("space");
+              if (spaceId == null) {
+                spaceId = EMPTY_STRING;
+              }
+              String roomTitle = httpReq.getParameter("room");
+              if (roomTitle == null) {
+                roomTitle = EMPTY_STRING;
+              }
+              ContextInfo context = new ContextInfo(spaceId, roomTitle);
+              httpReq.setAttribute("contextInfo", asJSON(context));
+              
               UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
               if (exoUser != null) {
                 httpReq.setAttribute("userInfo", asJSON(exoUser));

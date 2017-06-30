@@ -29,40 +29,40 @@ package org.exoplatform.videocalls;
  */
 public class ContextInfo {
 
-  /** The space pretty name. */
-  private final String spaceName;
+  /** The space id (pretty name). */
+  private final String spaceId;
 
-  /** The room name. */
-  private final String roomName;
+  /** The room title. */
+  private final String roomTitle;
 
   /**
    * Instantiates a new context info.
    *
-   * @param spaceName the space name
-   * @param roomName the room name
+   * @param spaceId the space id
+   * @param roomTitle the room name
    */
-  public ContextInfo(String spaceName, String roomName) {
+  public ContextInfo(String spaceId, String roomTitle) {
     super();
-    this.spaceName = spaceName;
-    this.roomName = roomName;
+    this.spaceId = spaceId;
+    this.roomTitle = roomTitle;
   }
 
   /**
-   * Gets the space pretty name.
+   * Gets the space id.
    *
-   * @return the space name
+   * @return the space id
    */
-  public String getSpaceName() {
-    return spaceName;
+  public String getSpaceId() {
+    return spaceId;
   }
 
   /**
-   * Gets the room name.
+   * Gets the room title.
    *
-   * @return the room name
+   * @return the room title
    */
-  public String getRoomName() {
-    return roomName;
+  public String getRoomTitle() {
+    return roomTitle;
   }
 
 }

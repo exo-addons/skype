@@ -18,12 +18,15 @@
  */
 package org.exoplatform.videocalls.rest;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -38,6 +41,7 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
 import org.exoplatform.services.security.ConversationState;
+import org.exoplatform.videocalls.CallInfo;
 import org.exoplatform.videocalls.GroupInfo;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
@@ -115,7 +119,7 @@ public class RESTVideoCallsService implements ResourceContainer {
       return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
     }
   }
-  
+
   /**
    * Gets the users info.
    *
@@ -139,7 +143,7 @@ public class RESTVideoCallsService implements ResourceContainer {
           for (String userName : names.trim().split(",")) {
             if (ME.equals(userName)) {
               userName = currentUserName;
-            } 
+            }
             UserInfo user = videoCalls.getUserInfo(userName);
             if (user != null) {
               users.add(user);
@@ -148,16 +152,15 @@ public class RESTVideoCallsService implements ResourceContainer {
                 LOG.debug("Skipped not found user: " + userName);
               }
               return Response.status(Status.NOT_FOUND)
-                  .entity(ErrorInfo.notFoundError("User " + userName + " not found or not accessible"))
-                  .build();
+                             .entity(ErrorInfo.notFoundError("User " + userName
+                                 + " not found or not accessible"))
+                             .build();
             }
           }
           return Response.ok().entity(users.toArray()).build();
         } catch (Throwable e) {
           LOG.error("Error reading users info of '" + names + "' by '" + currentUserName + "'", e);
-          return Response.serverError()
-                         .entity(ErrorInfo.serverError("Error reading users " + names))
-                         .build();
+          return Response.serverError().entity(ErrorInfo.serverError("Error reading users " + names)).build();
         }
       } else {
         return Response.status(Status.BAD_REQUEST)
@@ -215,5 +218,128 @@ public class RESTVideoCallsService implements ResourceContainer {
     } else {
       return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
     }
+  }
+
+  @GET
+  @RolesAllowed("users")
+  @Path("/call/{type}/{id}")
+  public Response getCallInfo(@Context UriInfo uriInfo,
+                              @PathParam("type") String type,
+                              @PathParam("id") String id) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String callId = callId(type, id);
+      String currentUserName = convo.getIdentity().getUserId();
+      try {
+        CallInfo call = videoCalls.getCallInfo(callId);
+        if (call != null) {
+          return Response.ok().entity(call).build();
+        } else {
+          return Response.status(Status.NOT_FOUND).entity(ErrorInfo.notFoundError("Call not found")).build();
+        }
+      } catch (Throwable e) {
+        LOG.error("Error reading call info for '" + callId + "' by '" + currentUserName + "'", e);
+        return Response.serverError().entity(ErrorInfo.serverError("Error reading call information")).build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+
+  @DELETE
+  @RolesAllowed("users")
+  @Path("/call/{type}/{id}")
+  public Response deleteCallInfo(@Context UriInfo uriInfo,
+                                 @PathParam("type") String type,
+                                 @PathParam("id") String id) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String callId = callId(type, id);
+      String currentUserName = convo.getIdentity().getUserId();
+      try {
+        CallInfo call = videoCalls.removeCallInfo(callId);
+        if (call != null) {
+          return Response.ok().entity(call).build();
+        } else {
+          return Response.status(Status.NOT_FOUND).entity(ErrorInfo.notFoundError("Call not found")).build();
+        }
+      } catch (Throwable e) {
+        LOG.error("Error removing call info for '" + callId + "' by '" + currentUserName + "'", e);
+        return Response.serverError()
+                       .entity(ErrorInfo.serverError("Error removing call information"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+
+  @POST
+  @RolesAllowed("users")
+  @Path("/call/{type}/{id}")
+  public Response postCallInfo(@Context UriInfo uriInfo,
+                               @PathParam("type") String type,
+                               @PathParam("id") String id,
+                               @FormParam("title") String title,
+                               @FormParam("provider") String providerType,
+                               @FormParam("owner") String ownerId,
+                               @FormParam("ownerType") String ownerType,
+                               @FormParam("participants") String participants) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String callId = callId(type, id);
+      if (title != null) {
+        if (providerType != null) {
+          if (ownerId != null) {
+            if (ownerType != null) {
+              if (participants != null) {
+                String currentUserName = convo.getIdentity().getUserId();
+                try {
+                  CallInfo call =
+                                videoCalls.addCallInfo(callId,
+                                                       ownerId,
+                                                       ownerType,
+                                                       title,
+                                                       providerType,
+                                                       Arrays.asList(participants.split(";")));
+                  return Response.ok().entity(call).build();
+                } catch (Throwable e) {
+                  LOG.error("Error creating call info for '" + callId + "' by '" + currentUserName + "'", e);
+                  return Response.serverError()
+                                 .entity(ErrorInfo.serverError("Error creating call record"))
+                                 .build();
+                }
+              } else {
+                return Response.status(Status.BAD_REQUEST)
+                               .entity(ErrorInfo.clientError("Wrong request parameters: participants"))
+                               .build();
+              }
+            } else {
+              return Response.status(Status.BAD_REQUEST)
+                             .entity(ErrorInfo.clientError("Wrong request parameters: ownerType"))
+                             .build();
+            }
+          } else {
+            return Response.status(Status.BAD_REQUEST)
+                           .entity(ErrorInfo.clientError("Wrong request parameters: owner"))
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST)
+                         .entity(ErrorInfo.clientError("Wrong request parameters: provider"))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: title"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+
+  private String callId(String type, String id) {
+    return new StringBuffer(type).append('/').append(id).toString();
   }
 }

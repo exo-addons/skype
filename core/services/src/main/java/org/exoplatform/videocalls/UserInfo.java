@@ -35,7 +35,7 @@ import org.exoplatform.services.log.Log;
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: UserInfo.java 00000 Feb 23, 2017 pnedonosko $
  */
-public class UserInfo {
+public class UserInfo extends IdentityInfo {
 
   /** The Constant LOG. */
   protected static final Log LOG = ExoLogger.getLogger(UserInfo.class);
@@ -82,9 +82,6 @@ public class UserInfo {
     }
   }
 
-  /** The name. */
-  private final String                    name;
-
   /** The first name. */
   private final String                    firstName;
 
@@ -93,28 +90,24 @@ public class UserInfo {
 
   /** The IM accounts. */
   private final Map<String, List<IMInfo>> imAccounts = new HashMap<String, List<IMInfo>>();
+  
+  /** The avatar uri. */
+  private String                    avatarUri;
+  
+  /** The profile uri. */
+  private String                    profileUri;
 
   /**
    * Instantiates a new user info.
    *
-   * @param userName the user id in the system
+   * @param userId the user id in the system
    * @param firstName the first type
    * @param lastName the last type
    */
-  public UserInfo(String userName, String firstName, String lastName) {
-    super();
-    this.name = userName;
+  public UserInfo(String userId, String firstName, String lastName) {
+    super(userId, new StringBuffer(firstName).append(lastName).toString());
     this.firstName = firstName;
     this.lastName = lastName;
-  }
-
-  /**
-   * Gets the name.
-   *
-   * @return the user id in the system
-   */
-  public String getName() {
-    return name;
   }
 
   /**
@@ -188,4 +181,22 @@ public class UserInfo {
   public Collection<IMInfo> getImAccount(String type) {
     return Collections.unmodifiableCollection(imAccounts.get(type));
   }
+
+  public String getAvatarUri() {
+    return avatarUri;
+  }
+
+  public void setAvatarUri(String avatarUri) {
+    this.avatarUri = avatarUri;
+  }
+
+  public String getProfileUri() {
+    return profileUri;
+  }
+
+  public void setProfileUri(String profileUri) {
+    this.profileUri = profileUri;
+  }
+  
+  
 }

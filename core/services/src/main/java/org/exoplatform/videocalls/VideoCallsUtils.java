@@ -71,7 +71,9 @@ public class VideoCallsUtils {
       SpaceService spaceService = webuiContext.getUIApplication().getApplicationComponent(SpaceService.class);
       if (spaceService != null) {
         String spacePrettyName = getSpaceNameByContext();
-        return spaceService.getSpaceByPrettyName(spacePrettyName);
+        if (spacePrettyName != null) {
+          return spaceService.getSpaceByPrettyName(spacePrettyName);
+        }
       }
     }
     return null;

@@ -41,3 +41,7 @@
 .defaultCallButton.spaceCall + .dropdown-menu li > a {
     padding: 5px 10px;
 }
+
+#UIBreadCrumbsNavigationPortlet .callButtonContainer {
+	padding-top: 3px;
+}

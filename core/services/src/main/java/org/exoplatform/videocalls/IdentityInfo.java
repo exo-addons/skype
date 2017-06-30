@@ -19,28 +19,50 @@
  */
 package org.exoplatform.videocalls;
 
-import java.util.Map;
-
 /**
- * Group abstraction for conversations in eXo video calls.<br>
+ * Identity abstraction for conversations in eXo video calls.<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: GroupInfo.java 00000 Mar 3, 2017 pnedonosko $
+ * @version $Id: IdentityInfo.java 00000 Mar 3, 2017 pnedonosko $
  * 
  */
-public abstract class GroupInfo extends IdentityInfo {
+public abstract class IdentityInfo {
 
-  public GroupInfo(String id, String title) {
-    super(id, title);
+  /** The title. */
+  protected final String title;
+
+  /** The id. */
+  protected final String id;
+
+  /**
+   * Instantiates a new identity info.
+   *
+   * @param id the id
+   * @param title the title
+   */
+  public IdentityInfo(String id, String title) {
+    this.id = id;
+    this.title = title;
   }
 
   /**
-   * Gets the members.
+   * Gets the id.
    *
-   * @return the members
+   * @return the id
    */
-  public abstract Map<String, UserInfo> getMembers();
+  public String getId() {
+    return id;
+  }
+
+  /**
+   * Gets the title.
+   *
+   * @return the title
+   */
+  public String getTitle() {
+    return title;
+  }
 
 }

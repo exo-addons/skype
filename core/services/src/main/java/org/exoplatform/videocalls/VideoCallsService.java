@@ -19,6 +19,7 @@
  */
 package org.exoplatform.videocalls;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -42,6 +43,7 @@ import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.identity.model.Profile;
 import org.exoplatform.social.core.identity.provider.OrganizationIdentityProvider;
 import org.exoplatform.social.core.manager.IdentityManager;
+import org.exoplatform.social.core.service.LinkProvider;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
 import org.picocontainer.Startable;
@@ -59,8 +61,8 @@ public class VideoCallsService implements Startable {
    */
   public class SpaceInfo extends GroupInfo {
 
-    /** The space pretty name. */
-    protected final String                prettyName;
+    /** The space group id. */
+    protected final String                groupId;
 
     /** The members. */
     protected final Map<String, UserInfo> members = new LinkedHashMap<>();
@@ -71,8 +73,8 @@ public class VideoCallsService implements Startable {
      * @param socialSpace the social space
      */
     public SpaceInfo(Space socialSpace) {
-      super(socialSpace.getGroupId(), socialSpace.getDisplayName());
-      this.prettyName = socialSpace.getPrettyName();
+      super(socialSpace.getPrettyName(), socialSpace.getDisplayName());
+      this.groupId = socialSpace.getGroupId();
     }
 
     /**
@@ -89,21 +91,64 @@ public class VideoCallsService implements Startable {
      * @param user the user
      */
     protected void addMember(UserInfo user) {
-      members.put(user.getName(), user);
+      members.put(user.getId(), user);
     }
 
     /**
-     * Gets the pretty name.
+     * Gets the group id of the space.
      *
-     * @return the prettyName
+     * @return the groupId
      */
-    public String getPrettyName() {
-      return prettyName;
+    public String getGroupId() {
+      return groupId;
     }
   }
 
+  /**
+   * The Class RoomInfo.
+   */
+  public class RoomInfo extends GroupInfo {
+
+    /** The members. */
+    protected final Map<String, UserInfo> members = new LinkedHashMap<>();
+
+    /**
+     * Instantiates a new room info.
+     *
+     * @param id the id
+     * @param name the name
+     */
+    public RoomInfo(String id, String name) {
+      super(id, name);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<String, UserInfo> getMembers() {
+      return Collections.unmodifiableMap(members);
+    }
+
+    /**
+     * Adds the member.
+     *
+     * @param user the user
+     */
+    protected void addMember(UserInfo user) {
+      members.put(user.getId(), user);
+    }
+  }
+
+  public static final String                      OWNER_TYPE_USER     = "user";
+
+  public static final String                      OWNER_TYPE_SPACE    = "space";
+
+  public static final String                      OWNER_TYPE_CHATROOM = "chat_room";
+
   /** The Constant LOG. */
-  protected static final Log                      LOG       = ExoLogger.getLogger(VideoCallsService.class);
+  protected static final Log                      LOG                 =
+                                                      ExoLogger.getLogger(VideoCallsService.class);
 
   /** The jcr service. */
   protected final RepositoryService               jcrService;
@@ -111,7 +156,7 @@ public class VideoCallsService implements Startable {
   /** The session providers. */
   protected final SessionProviderService          sessionProviders;
 
-  /** The hierarchy creator. */
+  /** The hierarchy owner. */
   protected final NodeHierarchyCreator            hierarchyCreator;
 
   /** The organization. */
@@ -127,17 +172,20 @@ public class VideoCallsService implements Startable {
   protected final ListenerService                 listenerService;
 
   /** The providers. */
-  protected final Map<String, VideoCallsProvider> providers = new ConcurrentHashMap<>();
+  protected final Map<String, VideoCallsProvider> providers           = new ConcurrentHashMap<>();
 
   /** The space service. */
   protected SpaceService                          spaceService;
+
+  /** The active calls. */
+  protected final Map<String, CallInfo>           calls               = new ConcurrentHashMap<>();
 
   /**
    * Instantiates a new VideoCalls service.
    *
    * @param jcrService the jcr service
    * @param sessionProviders the session providers
-   * @param hierarchyCreator the hierarchy creator
+   * @param hierarchyCreator the hierarchy owner
    * @param organization the organization
    * @param socialIdentityManager the social identity manager
    * @param driveService the drive service
@@ -194,10 +242,13 @@ public class VideoCallsService implements Startable {
             }
           }
         }
+        info.setAvatarUri(socialProfile.getAvatarUrl());
+        info.setProfileUri(LinkProvider.getUserProfileUri(id));
         return info;
       } else {
         // TODO exception here?
-        LOG.warn("Social identity not found for " + user.getUserName() + " (" + user.getFirstName() + " " + user.getLastName() + ")");
+        LOG.warn("Social identity not found for " + user.getUserName() + " (" + user.getFirstName() + " "
+            + user.getLastName() + ")");
       }
     } else {
       // TODO exception here?
@@ -223,6 +274,112 @@ public class VideoCallsService implements Startable {
       }
     }
     return space;
+  }
+
+  /**
+   * Gets the room info.
+   *
+   * @param id the id
+   * @param title the title
+   * @return the room info
+   */
+  public RoomInfo getRoomInfo(String id, String title) {
+    return new RoomInfo(id, title);
+  };
+
+  /**
+   * Adds the call info.
+   *
+   * @param id the id
+   * @param ownerId the owner id
+   * @param title the title
+   * @param providerType the provider type
+   * @param parts the parts
+   * @return the call info
+   * @throws Exception the exception
+   */
+  public CallInfo addCallInfo(String id,
+                              String ownerId,
+                              String ownerType,
+                              String title,
+                              String providerType,
+                              Collection<String> parts) throws Exception {
+    boolean isUser = OWNER_TYPE_USER.equals(ownerType);
+    boolean isSpace = OWNER_TYPE_SPACE.equals(ownerType);
+    // boolean isRoom = OWNER_TYPE_CHATROOM.equals(ownerType);
+    String ownerUri, ownerAvatar;
+    IdentityInfo owner;
+    if (isUser) {
+      UserInfo userInfo = getUserInfo(ownerId);
+      if (userInfo == null) {
+        // if owner user not found, it's possibly an external user, thus treat it as a chat room
+        owner = new RoomInfo(ownerId, title);
+        ownerUri = ParticipantInfo.EMPTY_NAME;
+        ownerAvatar = LinkProvider.PROFILE_DEFAULT_AVATAR_URL;
+      } else {
+        owner = userInfo;
+        ownerUri = userInfo.getProfileUri();
+        ownerAvatar = userInfo.getAvatarUri();
+        if (ownerAvatar == null) {
+          ownerAvatar = LinkProvider.PROFILE_DEFAULT_AVATAR_URL;
+        }
+      }
+    } else if (isSpace) {
+      Space space = spaceService.getSpaceByPrettyName(ownerId);
+      if (space != null) {
+        owner = new SpaceInfo(space);
+        ownerUri = space.getUrl();
+        ownerAvatar = space.getAvatarUrl();
+        if (ownerAvatar == null) {
+          ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
+        }
+      } else {
+        LOG.warn("Cannot find call's owner space " + ownerId);
+        owner = new RoomInfo(ownerId, title);
+        ownerUri = ParticipantInfo.EMPTY_NAME;
+        ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
+      }
+    } else {
+      // XXX We assume it's custom Chat room
+      owner = new RoomInfo(ownerId, title);
+      ownerUri = ParticipantInfo.EMPTY_NAME;
+      ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
+    }
+    CallInfo call = new CallInfo(providerType, title, owner, ownerType, ownerUri, ownerAvatar);
+    for (String pid : parts) {
+      UserInfo part = getUserInfo(pid);
+      if (part != null) {
+        // it's eXo user
+        call.addParticipant(part);
+      } else {
+        // external participant
+        call.addParticipant(new ParticipantInfo(providerType, pid));
+      }
+    }
+    calls.put(id, call);
+    return call;
+  }
+
+  /**
+   * Gets the call info.
+   *
+   * @param id the id
+   * @return the call info
+   * @throws Exception the exception
+   */
+  public CallInfo getCallInfo(String id) throws Exception {
+    return calls.get(id);
+  }
+
+  /**
+   * Removes the call info.
+   *
+   * @param id the id
+   * @return the call info
+   * @throws Exception the exception
+   */
+  public CallInfo removeCallInfo(String id) throws Exception {
+    return calls.remove(id);
   }
 
   /**
