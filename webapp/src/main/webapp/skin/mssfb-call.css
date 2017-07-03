@@ -47,16 +47,21 @@
 
 #mssfb-call-container>.actionHover {
 	position: absolute;
-	top: 0px;
-	left: 0px;
+	top: 4px;
+	left: 4px;
 	width: 100%;
 	margin: 0px;
-	z-index: 10000;
+	z-index: 1000;
 	
 }
 
+#mssfb-call-container>.actionHover .uiIconClose {
+	top: 0px;
+    left: 0px;
+}
+
 #mssfb-call-container>.actionHover .uiIconClose:before {
-	font-size: 18px;
+	font-size: 16px;
 }
 
 .mssfb-call-container {
@@ -67,4 +72,8 @@
 #mssfb-call-conversation {
 	width: 100%;
 	height: 100%;
+}
+
+#mssfb-call-container + .ui-dialog {
+	z-index: 1000;
 }

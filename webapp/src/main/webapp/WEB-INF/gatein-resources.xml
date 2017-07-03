@@ -62,7 +62,8 @@
   </portlet-skin -->
   
   <!-- CSS tweaks for Enterprise skin -->
-  <portlet-skin>
+  <!-- XXX Will be loaded by provider's JS after the base styles-->
+  <!-- portlet-skin>
     <application-name>skype</application-name>
     <portlet-name>SkypeProviderPortlet</portlet-name>
     <skin-name>Enterprise</skin-name>
@@ -75,7 +76,7 @@
     <skin-name>Enterprise</skin-name>
     <css-path>/skin/skype-mssfb-enterprise.css</css-path>
     <overwrite>true</overwrite>
-  </portlet-skin>
+  </portlet-skin -->
   
   <module>
     <name>skypeWeb</name>

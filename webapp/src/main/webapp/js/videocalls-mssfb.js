@@ -564,21 +564,6 @@
 				// FYI if user not authorized (in cookies etc) this iframe will fail due to 'X-Frame-Options' to 'deny' set by MS
 				// TODO may be another URL found to do this?
 				var iframeUri = authRedirectLink(provider.getTitle() + " Login", settings.clientId, loginUri, "https://webdir.online.lync.com");
-				setTimeout(function() {
-					// check if $iframe not stays on MS server: it will mean we need login user explicitly
-					try {
-						var iframeLocation = $iframe.get(0).contentWindow.location;
-						var checkUri = iframeLocation.href.origin + iframeLocation.href.pathname;
-						// if iframe accessed ok, then it's eXo server URL, not MS login
-						log("Login iframe check DONE: " + checkUri);
-					} catch (e) {
-						// it's an error, like DOMException for
-						$iframe.remove();
-						delete provider.loginToken;
-						log("Login iframe check FAILED", e);
-						process.reject("User not logged in");
-					}
-				}, 2000);
 				var $iframe = $("<iframe src='" + iframeUri + "' height='0' width='0' style='display: none;'></iframe>");
 				provider.loginToken = function(token) {
 					var callback = loginTokenHandler(token);
@@ -593,6 +578,23 @@
 					});
 					return callback.promise();
 				};
+				setTimeout(function() {
+					// check if $iframe not stays on MS server: it will mean we need login user explicitly
+					$iframe.load(function(){
+						try {
+							var iframeLocation = $iframe.get(0).contentWindow.location;
+							var checkUri = iframeLocation.href.origin + iframeLocation.href.pathname;
+							// if iframe accessed ok, then it's eXo server URL, not MS login
+							log("Login iframe check DONE: " + checkUri);
+						} catch (e) {
+							// it's an error, like DOMException for
+							$iframe.remove();
+							delete provider.loginToken;
+							log("Login iframe check FAILED", e);
+							process.reject("User not logged in");
+						}
+					});
+				}, 2000);
 				$(document.body).append($iframe);
 				return process.promise();
 			};
@@ -723,7 +725,11 @@
 								log("<<< call " + callId + " unregistration failed " + JSON.stringify(err));
 							});
 						};
-						conversation.topic(title);
+						try {
+							conversation.topic(title);
+						} catch(e) {
+							log(">>> Error setting conversation topic: " + topic, e);
+						}
 						registerCall();
 						conversation.state.once("Disconnected", function() {
 							log("Disconnected call " + callId + " CONVERSATION state:" + conversation.state());
@@ -790,7 +796,7 @@
 					try {
 						$call.dialog("destroy");
 					} catch(e) {
-						log(">>> acceptCallPopover: error destroing prev dialog ", e);
+						log(">>> makeCallPopover: error destroing prev dialog ", e);
 					}
 					$call.remove();
 				}
@@ -1064,12 +1070,12 @@
 								window.removeEventListener("unload", unloadListener);
 							};
 							conversation.state.once("Connecting", function() {
-								log("Connecting call " + callId + " '" + callerMessage + "' state:" + conversation.state());
+								log("Connecting " + callId + " '" + callerMessage + "' state:" + conversation.state());
 								window.addEventListener("beforeunload", beforeunloadListener);
 								window.addEventListener("unload", unloadListener);
 							});
 							conversation.state.once("Disconnected", function() {
-								log("Disconnected call " + callId + " '" + callerMessage + "' state:" + conversation.state());
+								log("Disconnected " + callId + " '" + callerMessage + "' state:" + conversation.state());
 								//app.conversationsManager.conversations.remove(conversation);
 								window.removeEventListener("beforeunload", beforeunloadListener);
 								window.removeEventListener("unload", unloadListener);
@@ -1101,7 +1107,7 @@
 													container.show();
 													// TODO check this working in FF where no video/audio supported
 													conversation.selfParticipant.chat.state.changed(function(newValue, reason, oldValue) {
-														log(">>> conversation " + callId + " CHAT state changed: " + oldValue + "->" + newValue + " reason:" + reason
+														log(">>> CHAT state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																	+ " CONVERSATION state: " + conversation.state());
 														if (newValue === "Notified") {
 															conversation.chatService.accept().then(function() {
@@ -1114,7 +1120,7 @@
 														}
 													});
 													conversation.selfParticipant.audio.state.changed(function(newValue, reason, oldValue) {
-														log(">>> conversation " + callId + " AUDIO state changed: " + oldValue + "->" + newValue + " reason:" + reason
+														log(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																	+ " CONVERSATION state: " + conversation.state());
 														if (newValue === "Notified") {
 															conversation.audioService.accept().then(function() {
@@ -1134,7 +1140,7 @@
 													});
 													conversation.selfParticipant.video.state.changed(function(newValue, reason, oldValue) {
 														// 'Notified' indicates that there is an incoming call
-														log(">>> conversation " + callId + " VIDEO state changed: " + oldValue + "->" + newValue + " reason:" + reason
+														log(">>> VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																	+ " CONVERSATION state: " + conversation.state());
 														if (newValue === "Notified") {
 															// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
@@ -1230,25 +1236,25 @@
 								return accept.promise();
 							};
 							conversation.videoService.accept.enabled.when(true, function() {
-								log(">>>> conversation videoService ACCEPT: " + callId);
+								log(">>>> videoService ACCEPT: " + callId);
 								acceptCall().fail(function(err) {
 									conversation.videoService.reject();
-									log("<<<< conversation videoService REJECTED " + callId + ": " + err);
+									log("<<<< videoService REJECTED " + callId + ": " + err);
 								});
 							});
 							conversation.audioService.accept.enabled.when(true, function() {
-								log(">>>> conversation audioService ACCEPT: " + callId);
+								log(">>>> audioService ACCEPT: " + callId);
 								acceptCall().fail(function(err) {
 									conversation.audioService.reject();
-									log("<<<< conversation audioService REJECTED " + callId + ": " + err);
+									log("<<<< audioService REJECTED " + callId + ": " + err);
 								});
 							});
 							conversation.chatService.accept.enabled.when(true, function() {
-								log(">>>> conversation chatService ACCEPT: " + callId);
+								log(">>>> chatService ACCEPT: " + callId);
 								// TODO chat needs specific handling
 //								acceptCall().fail(function(err) {
 //									conversation.chatService.reject();
-//									log("<<<< conversation chatService REJECTED " + callId + ": " + err);
+//									log("<<<< chatService REJECTED " + callId + ": " + err);
 //								});
 							});
 							// TODO audioPhoneService accept?
@@ -1266,9 +1272,9 @@
 			
 			var alignChatsCallContainer = function($chats, $container) {
 				var chatsPos = $chats.offset();
-				$container.offset(chatsPos);
 				$container.height($chats.height());
 				$container.width($chats.width());
+				$container.offset(chatsPos);
 				$container.find("#chatInputContainer").width("100%");
 			};
 			$(window).resize(function() {
@@ -1357,6 +1363,16 @@
 										if (container && container.conversation) {
 											// TODO ask user for confirmation of leaving the call
 											container.conversation.leave(); // TODO need remove from conversations here?
+//											var c = container.conversation;
+//											c.activeModalities.video.when(true, function() {
+//										    c.videoService.stop();
+//											});
+//											c.activeModalities.audio.when(true, function() {
+//										    c.audioService.stop();
+//											});
+//											c.activeModalities.chat.when(true, function() {
+//										    c.chatService.stop();
+//											});
 										}
 										container.hide();
 									});
@@ -1365,7 +1381,7 @@
 									if (typeof(chatsZ) == "Number") {
 										chatsZ++;
 									} else {
-										chatsZ = 9999;
+										chatsZ = 999;
 									}
 									$container.css("z-index", chatsZ);
 									$(document.body).append($container);
@@ -1377,20 +1393,17 @@
 								container.onShow(function() {
 									if (!container.resized) {
 										container.resized = true;
-										//setTimeout(function() {
-											alignChatsCallContainer($chats, $container);										
-										//}, 250);
-									}
-									$container.show("fold");
-									setTimeout(function() {
 										alignChatsCallContainer($chats, $container);										
-									}, 250);
-									//$chats.hide();
+									}
+									$container.show();
+									setTimeout(function() {
+										//alignChatsCallContainer($chats, $container);
+										log(">>> aligned call container in chats");
+										$(window).resize();
+									}, 2500);
 								});
 								container.onHide(function() {
-									//$container.height(0);
-									$container.hide("fold");
-									//$chats.show();
+									$container.hide();
 								});
 								$container.data("callcontainer", container);
 								// try login in SfB SDK using saved token
@@ -1414,7 +1427,6 @@
 								  }).fail(function(err) {
 								  	initializer.reject(err);
 								  });
-									//initializer.reject("Login token not found or expired");
 								}
 								initializer.done(function(api, app) {
 									log("Automatic login done.");
@@ -1555,6 +1567,9 @@
 				// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will be able to load after the Enterprise skin
 				videoCalls.loadStyle("/skype/skin/mssfb.css");
 				videoCalls.loadStyle("/skype/skin/mssfb-call.css");
+				if (eXo.env && eXo.env.client && eXo.env.client.skin && eXo.env.client.skin == "Enterprise") {
+					videoCalls.loadStyle("/skype/skin/skype-mssfb-enterprise.css");	
+				}
 			} catch(e) {
 				log("Error loading Skype Call styles (for SfB).", e);
 			}

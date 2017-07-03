@@ -4,3 +4,8 @@
 .uiIconSkypeCall:before, .uiIconMssfbCall:before {
 	top: -1px;
 }
+
+#mssfb-call-container>.actionHover .uiIconClose {
+	top: -4px;
+    left: 0px;
+}
