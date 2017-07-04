@@ -580,28 +580,34 @@
 				};
 				setTimeout(function() {
 					// check if $iframe not stays on MS server: it will mean we need login user explicitly
-					$iframe.load(function(){
-						try {
+					try {
+						//$iframe.ready(function(){
 							var iframeLocation = $iframe.get(0).contentWindow.location;
 							var checkUri = iframeLocation.href.origin + iframeLocation.href.pathname;
 							// if iframe accessed ok, then it's eXo server URL, not MS login
 							log("Login iframe check DONE: " + checkUri);
-						} catch (e) {
-							// it's an error, like DOMException for
-							$iframe.remove();
-							delete provider.loginToken;
-							log("Login iframe check FAILED", e);
-							process.reject("User not logged in");
-						}
-					});
-				}, 2000);
+						//});								
+					} catch (e) {
+						// it's an error, like DOMException for
+						$iframe.remove();
+						delete provider.loginToken;
+						log("Login iframe check FAILED", e);
+						process.reject("User not logged in");
+					}
+				}, 3000);
 				$(document.body).append($iframe);
 				return process.promise();
 			};
 			
 			var getCallId = function(c) {
 				if (c.isGroupConversation()) {
-					return "g/" + c.uri();	
+					var curi = c.uri();
+					if (curi) {
+						return "g/" + curi;
+					} else if (c.state() != "Created") {
+						log(">> ERROR: group conversation not Created but without URI");
+					}
+					return null;
 				} else {
 					var state = c.state();
 					var id = "p/";
@@ -648,7 +654,7 @@
 						container.show();
 						// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
 						var callId = getCallId(conversation);
-						log("Outgoing call " + callId + " " + title);
+						log("Outgoing call " + title + " " + callId ? callId : "");
 						var beforeunloadListener = function(e) {
 							var msg = onClosePage(conversation, app);
 							if (msg) {
@@ -667,8 +673,12 @@
 									log(">>> call " + callId + " ERROR: " + error.reason.subcode + ". " + error.reason.message);
 									videoCalls.showError(title, error.reason.message);
 								} else {
+									// TODO CommandDisabled? AssertionFailed?
 									if (error.code && error.code == "Canceled") {
 										// Do nothing
+									} else if (error.rsp && error.rsp.data && error.rsp.data.code == "Gone" && error.rsp.data.subcode == "TooManyApplications") {
+										log(">>> call " + callId + " ERROR: " + error.rsp.data.code + " " + error.rsp.data.subcode + " " + error.rsp.data.message);
+										videoCalls.showError(title, "Too many applications. " + error.rsp.data.message);
 									} else {
 										videoCalls.showError(title, error);
 									}
@@ -728,9 +738,13 @@
 						try {
 							conversation.topic(title);
 						} catch(e) {
-							log(">>> Error setting conversation topic: " + topic, e);
+							log(">>> Error setting conversation topic: " + title, e);
 						}
-						registerCall();
+						conversation.state.once("Connecting", function() {
+							// generate ID again here for URI of group one
+							callId = getCallId(conversation);
+							registerCall();							
+						});
 						conversation.state.once("Disconnected", function() {
 							log("Disconnected call " + callId + " CONVERSATION state:" + conversation.state());
 							//app.conversationsManager.conversations.remove(conversation);
@@ -917,24 +931,19 @@
 									if (container) {
 										// Call from Chat room on the same page
 										// We will try reuse saved locally SfB token
-										var initializer = $.Deferred();
 										var token = currentToken();
 										if (token && uiApiInstance && uiAppInstance) {
-											initializer.resolve(uiApiInstance, uiAppInstance);
+											//initializer.resolve(uiApiInstance, uiAppInstance);
+											log("Automatic login done.");
+											outgoingCallHandler(uiApiInstance, uiAppInstance, container, title, participants);
+											showWrongUsers(null);
 										} else {
 											// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
 											// FYI this iframe will fail due to 'X-Frame-Options' to 'deny' set by MS
 											// TODO may be another URL found to do this? - see incoming call handler for code
-											initializer.reject("Login token not found or expired");
-										}
-										initializer.done(function(api, app) {
-											log("Automatic login done.");
-											outgoingCallHandler(api, app, container, title, participants);
-											showWrongUsers(null);
-										});
-										initializer.fail(function(err) {
+											//initializer.reject("Login token not found or expired");
 											// need login user explicitly (in a popup)
-											log("Automatic login failed: " + err);
+											log("Automatic login failed: login token not found or expired");
 											loginWindow();
 											provider.loginToken = function(token) {
 												var callback = loginTokenHandler(token);
@@ -951,7 +960,7 @@
 												});
 												return callback.promise();
 											}
-										});
+										}
 									} else {
 										// XXX for calling from spaces and user popovers outside Chat app
 										var callWindow = openCallWindow("_/" + ims.join(";"), title);
