@@ -712,7 +712,7 @@
 			this.isModalityUnsupported = isModalityUnsupported;
 			
 			// target, participants, localConvo
-			var outgoingCallHandler = function(api, app, container, target, participants, conversation) {
+			var outgoingCallHandler = function(api, app, container, currentUser, target, participants, conversation) {
 				var process = $.Deferred();
 				container.init();
 				checkPlugin(app).done(function() {
@@ -758,7 +758,7 @@
 					}
 					api.renderConversation(container.element, options).then(function(conversation) {
 						logConversation(conversation);
-						container.setConversation(conversation, target.title);
+						container.setConversation(conversation, target.id);
 						container.show();
 						// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
 						var callId = getCallId(conversation);
@@ -804,8 +804,14 @@
 							if (!registered && callId != "g/adhoc") {
 								log(">>> Registering " + callId + " > " + new Date().getTime());
 								registered = true;
-								var ownerType = target.type;
-								var ownerId = target.id;
+								var ownerType, ownerId;
+								if (target.group) {
+									ownerType = target.type;
+									ownerId = target.id;									
+								} else {
+									ownerType = "user";
+									ownerId = currentUser.id;
+								}
 								/*if (conversation.isGroupConversation()) {
 									var spaceId = videoCalls.getCurrentSpaceId();
 									if (spaceId != null) {
@@ -1119,7 +1125,7 @@
 										if (token && uiApiInstance && uiAppInstance) {
 											//initializer.resolve(uiApiInstance, uiAppInstance);
 											log("Automatic login done.");
-											outgoingCallHandler(uiApiInstance, uiAppInstance, container, target, participants, localConvo).done(saveConvo);
+											outgoingCallHandler(uiApiInstance, uiAppInstance, container, context.currentUser, target, participants, localConvo).done(saveConvo);
 											showWrongUsers(null);
 										} else {
 											// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
@@ -1134,7 +1140,7 @@
 												callback.done(function(api, app) {
 													log("User login done.");
 													makeCallPopover("Make " + provider.getTitle() + " call?", "Do you want call " + target.title + "?").done(function() {
-														outgoingCallHandler(api, app, container, target, participants, localConvo).done(saveConvo);														
+														outgoingCallHandler(api, app, container, context.currentUser, target, participants, localConvo).done(saveConvo);														
 													}).fail(function() {
 														log("User don't want make a call: " + target.title);
 													});
@@ -1504,18 +1510,21 @@
 			};
 			
 			var alignWindowMiniCallContainer = function($container) {
-				var aw = window.screen.availWidth;
-				var ah = window.screen.availHeight;
+				var aw = $(document).width();
+				var ah = $(document).height();
 				var w, h, top, left;
-				if (aw > 600) {
-					w = 256;
-				  h = 192;
+				if (aw > 760) {
+					w = 280;
+				  h = 140;
+				} else if (aw > 360) {
+					w = 164;
+				  h = 82;
 				} else {
-					w = 64;
+					w = 96;
 				  h = 48;
 				}
 				left = (aw/2)-(w/2);
-			  top = 2;
+			  top = 0;
 				
 				$container.height(h);
 				$container.width(w);
@@ -1536,8 +1545,13 @@
 			  // align Call container to #chats div dimentions
 				var $chats = $("#chat-application #chats");
 				var $container = $("#mssfb-call-container");
+				var container = $container.data("callcontainer");
 				if ($chats.length > 0 && $container.length > 0 && $container.is(":visible")) {
-					alignChatsCallContainer($chats, $container);
+					if (container.isAttached()) {
+						alignChatsCallContainer($chats, $container);
+					} else {
+						alignWindowMiniCallContainer($container);
+					}
 				}
 			});
 			this.init = function(context) {
@@ -1764,30 +1778,44 @@
 								});
 								// If user will click another room during the call, we move the call container to a window top
 								// if user will get back to the active call room, we will resize the container to that call chats
-								var $users = $chat.find("#chat-users");
-								$users.find(".users-online .room-link").click(function() {
-									var $roomLink = $(this);
-									if ($container.is(":visible")) {
-										var roomId = $roomLink.attr("user-data");
-										if (roomId && container.getCallerId()) {
-											if (container.isAttached()) {
-												if (roomId != container.getCallerId()) {
-													// move call container to the window top-center with smaller size
-													log(">>> room not of the call < " + $roomLink.text());
-													alignWindowMiniCallContainer($container);
-													container.detached();
-												} // else, do nothing
-											} else {
-												if (roomId == container.getCallerId()) {
-													// move call container to the current room chats size
-													log(">>> room of the call > " + $roomLink.text());
-													alignChatsCallContainer($chats, $container);
-													container.attached();
-												} // else, do nothing
+								var moveCallContainer = function(forceDetach) {
+									setTimeout(function() {
+										if ($container.is(":visible")) {
+											var roomId = chatApplication.targetUser;
+											var roomTitle = chatApplication.targetFullname;
+											if (roomId && container.getCallerId()) {
+												if (container.isAttached()) {
+													if (forceDetach || roomId != container.getCallerId()) {
+														// move call container to the window top-center with smaller size
+														log(">>> room not of the call < " + roomTitle);
+														alignWindowMiniCallContainer($container);
+														container.detached();
+													} // else, do nothing
+												} else {
+													if (roomId == container.getCallerId()) {
+														// move call container to the current room chats size
+														log(">>> room of the call > " + roomTitle);
+														alignChatsCallContainer($chats, $container);
+														container.attached();
+													} // else, do nothing
+												}
 											}
 										}
-									}
+									}, 1000);
+								};
+								var $users = $chat.find("#chat-users");
+								$users.click(function() {
+									moveCallContainer(false);
 								});
+								$chat.find(".uiRightContainerArea #room-detail>#back").click(function() {
+									moveCallContainer(true);
+								});
+								
+								/*$users.find(".users-online .room-link").click(function() {
+										var $roomLink = $(this);
+										var $roomLink = $(this);
+										var roomId = $roomLink.attr("user-data");
+								});*/
 							} else {
 								log("Cannot find #chats element for calls container");
 							} 
