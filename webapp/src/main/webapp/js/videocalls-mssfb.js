@@ -712,7 +712,7 @@
 			this.isModalityUnsupported = isModalityUnsupported;
 			
 			// target, participants, localConvo
-			var outgoingCallHandler = function(api, app, container, target, participants, conversation) {
+			var outgoingCallHandler = function(api, app, container, target, participants, users, conversation) {
 				var process = $.Deferred();
 				container.init();
 				checkPlugin(app).done(function() {
@@ -742,6 +742,12 @@
 										conversation.participants.add(remoteParty);
 									} catch(e) {
 										log(">>> Error creating group participant " + imId, e);
+										for (var i=0; i<users.length; i++) {
+											if (videoCalls.imAccount(users[i], "mssfb") == imId) {
+												users.splice(i, 1);
+												break;
+											}
+										}
 									}
 								}
 								options.conversation = conversation;
@@ -819,9 +825,9 @@
 								}*/
 								// call creator goes first in the ID of p2p
 								var participants = [];
-								for (var i=0; i<conversation.participantsCount(); i++) {
-									var pid = conversation.participants(i).person.id();
-									participants.push(pid);
+								for (var i=0; i<users.length; i++) {
+									//var pid = conversation.participants(i).person.id();
+									participants.push(users[i].id);
 								}
 								var callInfo = {
 									owner : ownerId,
@@ -1016,6 +1022,7 @@
 							}*/
 							var ims = []; // for call on a new page
 							var participants = []; // for embedded call
+							var participantUsers = [];
 							var wrongUsers = [];
 							var addParticipant = function(user) {
 								//var uskype = videoCalls.imAccount(u, "skype");
@@ -1024,6 +1031,7 @@
 									if (ubusiness.id != context.currentUserSFB.id) {
 										if (EMAIL_PATTERN.test(ubusiness.id)) {
 											participants.push(ubusiness.id);
+											participantUsers.push(user);
 											ims.push(encodeURIComponent(ubusiness.id));
 										} else {
 											wrongUsers.push(ubusiness);
@@ -1111,7 +1119,7 @@
 										if (token && uiApiInstance && uiAppInstance) {
 											//initializer.resolve(uiApiInstance, uiAppInstance);
 											log("Automatic login done.");
-											outgoingCallHandler(uiApiInstance, uiAppInstance, container, target, participants, localConvo).done(saveConvo);
+											outgoingCallHandler(uiApiInstance, uiAppInstance, container, target, participants, participantUsers, localConvo).done(saveConvo);
 											showWrongUsers(null);
 										} else {
 											// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
@@ -1126,7 +1134,7 @@
 												callback.done(function(api, app) {
 													log("User login done.");
 													makeCallPopover("Make " + provider.getTitle() + " call?", "Do you want call " + target.title + "?").done(function() {
-														outgoingCallHandler(api, app, container, target, participants, localConvo).done(saveConvo);														
+														outgoingCallHandler(api, app, container, target, participants, participantUsers, localConvo).done(saveConvo);														
 													}).fail(function() {
 														log("User don't want make a call: " + target.title);
 													});
