@@ -712,7 +712,7 @@
 			this.isModalityUnsupported = isModalityUnsupported;
 			
 			// target, participants, localConvo
-			var outgoingCallHandler = function(api, app, container, target, participants, users, conversation) {
+			var outgoingCallHandler = function(api, app, container, target, participants, conversation) {
 				var process = $.Deferred();
 				container.init();
 				checkPlugin(app).done(function() {
@@ -742,12 +742,12 @@
 										conversation.participants.add(remoteParty);
 									} catch(e) {
 										log(">>> Error creating group participant " + imId, e);
-										for (var i=0; i<users.length; i++) {
+										/*for (var i=0; i<users.length; i++) {
 											if (videoCalls.imAccount(users[i], "mssfb") == imId) {
 												users.splice(i, 1);
 												break;
 											}
-										}
+										}*/
 									}
 								}
 								options.conversation = conversation;
@@ -825,7 +825,7 @@
 								}*/
 								// call creator goes first in the ID of p2p
 								var participants = [];
-								for (var i=0; i<users.length; i++) {
+								for (var i=0; i<conversation.participantsCount(); i++) {
 									var pid = conversation.participants(i).person.id();
 									participants.push(pid);
 								}
