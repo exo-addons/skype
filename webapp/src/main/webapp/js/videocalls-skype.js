@@ -76,41 +76,48 @@
 					var currentUserSkype = videoCalls.imAccount(context.currentUser, "skype");
 					if (currentUserSkype) {
 						context.currentUserSkype = currentUserSkype; 
-						context.participants().done(function(users, convName, convTitle) {
+						context.details().done(function(target) { // users, convName, convTitle
 							var rndText = Math.floor((Math.random() * 1000000) + 1);
-							var linkId = "SkypeCall-" + convName + "-" + rndText;
+							var linkId = "SkypeCall-" + target.id + "-" + rndText;
 							// TODO i18n for title
-							var title;
+							/*var title;
 							if (context.userName) {
 								title = "Call with " + self.getTitle();
 							} else {
 								title = self.getTitle() + " Call";
-							}
+							}*/
 							var ims = [];
 							var wrongUsers = [];
-							for ( var uname in users) {
-								if (users.hasOwnProperty(uname)) {
-									var u = users[uname];
-									var uskype = videoCalls.imAccount(u, "skype");
-									if (uskype && uskype.id != context.currentUserSkype.id) {
-										// extra check for valid skype account: it should not contain whitespaces
-										if (uskype.id && uskype.id.search(NON_WHITESPACE_PATTERN) < 0) {
-											// this is a regular Skype, it cannot call business users
-											ims.push(uskype.id);											
-										} else {
-											wrongUsers.push(u);
-										}
-									} // else, skip this user
-								}
+							var addParticipant = function(user) {
+								var uskype = videoCalls.imAccount(user, "skype");
+								if (uskype && uskype.id != context.currentUserSkype.id) {
+									// extra check for valid skype account: it should not contain whitespaces
+									if (uskype.id && uskype.id.search(NON_WHITESPACE_PATTERN) < 0) {
+										// this is a regular Skype, it cannot call business users
+										ims.push(uskype.id);											
+									} else {
+										wrongUsers.push(user);
+									}
+								} // else, skip this user
+							};
+							if (target.group) {
+								for ( var uname in target.members) {
+									if (target.members.hasOwnProperty(uname)) {
+										var u = target.members[uname];
+										addParticipant(u);
+									}
+								}								
+							} else {
+								addParticipant(target);
 							}
 							if (ims.length > 0) {
 								var userIMs = ims.join(";");
 								// use Skype URI for regular Skype user
 								var link = "skype:" + userIMs + "?call&amp;video=true";
 								if (ims.length > 2) {
-									link += "&amp;topic=" + encodeURIComponent(title);
+									link += "&amp;topic=" + encodeURIComponent(target.title);
 								}
-								var $button = $("<a id='" + linkId + "' title='" + title + "' href='" + link
+								var $button = $("<a id='" + linkId + "' title='" + target.title + "' href='" + link
 											+ "' class='skypeCallAction'>"
 											+ "<i class='uiIconSkypeCall uiIconForum uiIconLightGray'></i>"
 											+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2003-2017 eXo Platform SAS.
  *
@@ -20,63 +19,40 @@
 package org.exoplatform.videocalls;
 
 /**
- * Identity abstraction for conversations in eXo video calls.<br>
- * 
+ * Identity not found.<br>
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: IdentityInfo.java 00000 Mar 3, 2017 pnedonosko $
+ * @version $Id: IdentityNotFound.java 00000 Jul 6, 2017 pnedonosko $
  * 
  */
-public abstract class IdentityInfo {
+public class IdentityNotFound extends VideoCallsException {
 
-  /** The title. */
-  protected final String title;
-
-  /** The id. */
-  protected final String id;
+  /** The Constant serialVersionUID. */
+  private static final long serialVersionUID = 4083029013588721462L;
 
   /**
-   * Instantiates a new identity info.
-   *
-   * @param id the id
-   * @param title the title
+   * Instantiates a new identity not found.
    */
-  public IdentityInfo(String id, String title) {
-    this.id = id;
-    this.title = title;
+  public IdentityNotFound() {
   }
 
   /**
-   * Gets the id.
+   * Instantiates a new identity not found.
    *
-   * @return the id
+   * @param message the message
    */
-  public String getId() {
-    return id;
+  public IdentityNotFound(String message) {
+    super(message);
   }
 
   /**
-   * Gets the title.
+   * Instantiates a new identity not found.
    *
-   * @return the title
+   * @param message the message
+   * @param cause the cause
    */
-  public String getTitle() {
-    return title;
+  public IdentityNotFound(String message, Throwable cause) {
+    super(message, cause);
   }
-
-  /**
-   * Checks if it is a group.
-   *
-   * @return true, if is a group
-   */
-  public abstract boolean isGroup();
-
-  /**
-   * Gets the identity type.
-   *
-   * @return the type
-   */
-  public abstract String getType();
-  
 }

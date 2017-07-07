@@ -37,6 +37,8 @@ import org.exoplatform.services.log.Log;
  */
 public class UserInfo extends IdentityInfo {
 
+  public static final String TYPE_NAME = "user";
+  
   /** The Constant LOG. */
   protected static final Log LOG = ExoLogger.getLogger(UserInfo.class);
 
@@ -105,9 +107,21 @@ public class UserInfo extends IdentityInfo {
    * @param lastName the last type
    */
   public UserInfo(String userId, String firstName, String lastName) {
-    super(userId, new StringBuffer(firstName).append(lastName).toString());
+    super(userId, new StringBuffer(firstName).append(' ').append(lastName).toString());
     this.firstName = firstName;
     this.lastName = lastName;
+  }
+  
+  /**
+   * {@inheritDoc}
+   */
+  public boolean isGroup() {
+    return false;
+  }
+  
+  @Override
+  public String getType() {
+    return TYPE_NAME;
   }
 
   /**

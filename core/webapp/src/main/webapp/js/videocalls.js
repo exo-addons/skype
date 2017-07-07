@@ -357,16 +357,16 @@
 	};
 	
 	var cachedUsers = new Cache();
-	var getUserInfoRequest = function(userName) {
+	var getUserInfoRequest = function(userId) {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
-			url : prefixUrl + "/portal/rest/videocalls/user/" + userName
+			url : prefixUrl + "/portal/rest/videocalls/user/" + userId
 		});
 		return initRequest(request);
 	};
-	var getUserInfo = function(userName) {
-		return getCached(userName, cachedUsers, getUserInfoRequest);
+	var getUserInfo = function(userId) {
+		return getCached(userId, cachedUsers, getUserInfoRequest);
 	};
 
 	/** @Deprecated TODO not yet used */
@@ -413,6 +413,33 @@
 	var getSpaceInfo = function(spaceId) {
 		return getCached(spaceId, cachedSpaces, getSpaceInfoReq);
 	};
+	
+	var cachedRooms = new Cache();
+	var getRoomInfoReq = function(roomRef, title, members) {
+		var q = "";
+		if (title) {
+			q += "?title=" + encodeURIComponent(title); 
+		}
+		if (members && members.length > 0) {
+			if (q.length == 0) {
+				q += "?";
+			} else {
+				q += "&";
+			}
+			q += "members=" + encodeURIComponent(members.join(";"));
+		}
+		var request = $.ajax({
+			async : true,
+			type : "GET",
+			url : prefixUrl + "/portal/rest/videocalls/room/" + roomRef + q
+		});
+		return initRequest(request);
+	};
+	var getRoomInfo = function(id, name, title, members) {
+		return getCached(name + "/" + id, cachedRooms, function(key) {
+			return getRoomInfoReq(key, title, members);
+		});
+	};
 
 	var serviceGet = function(url, data) {
 		var request = $.ajax({
@@ -452,7 +479,7 @@
 				if (addProviders.length > 0) {
 					var buttonClass = "startCallButton";
 					var providerFlag = "hasProvider_";
-					var contextName = (context.spaceId ? context.spaceId : (context.roomTitle ? context.roomTitle : context.userName));
+					var contextName = (context.spaceId ? context.spaceId : (context.roomTitle ? context.roomTitle : context.userId));
 					// 2) if already calling, then need wait for previous call completion and then re-call this method 
 					var prevInitializer = $target.data("callbuttoninit");
 					if (prevInitializer) {
@@ -589,10 +616,11 @@
 							var roomId = chatApplication.targetUser;
 							var roomTitle = chatApplication.targetFullname;
 							log(">>> addRoomButtton [" + roomTitle + "(" + roomId + ")] for " + chatApplication.username);
-							var isSpace = roomId.startsWith("space-");
-							var isTeam = roomId.startsWith("team-");
-							var isGroup = isSpace || isTeam;
 							if (roomId) {
+								var isSpace = roomId.startsWith("space-");
+								var isTeam = roomId.startsWith("team-");
+								var isGroup = isSpace || isTeam;
+								var isP2P = !isGroup;
 								var $teamDropdown = $roomDetail.find(".chat-team-button-dropdown");
 								if ($teamDropdown.length > 0) {
 									var $wrapper = $roomDetail.find(".callButtonContainerWrapper");
@@ -602,20 +630,81 @@
 										$wrapper = $("<div class='callButtonContainerWrapper pull-right' style='display: none;'></div>");
 										$teamDropdown.after($wrapper);
 									}
-									var roomUsers = [];
-									var chatContext = function(roomTitle) {
-										var context = {
-											currentUser : currentUser,
-											roomId : roomId,
-											roomTitle : roomTitle,
-											isIOS : isIOS,
-											isAndroid : isAndroid,
-											isWindowsMobile : isWindowsMobile,
-											participants : function() {
-												var data = $.Deferred();
-												if (roomUsers.length > 0) {
-													data.resolve(roomUsers, roomId, roomTitle);
-												} else if (isGroup) {
+									var roomName = roomTitle.toLowerCase().split(" ").join("_");
+						  		var roomInfo;
+									var chatContext = {
+										currentUser : currentUser,
+										roomId : roomId,
+										roomTitle : roomTitle,
+										isGroup : isGroup,
+										isIOS : isIOS,
+										isAndroid : isAndroid,
+										isWindowsMobile : isWindowsMobile,
+										details : function() {
+											var data = $.Deferred();
+											if (roomInfo) {
+												data.resolve(roomInfo);
+											} else {
+												if (isGroup) {
+													chatApplication.getUsers(roomId, function (resp) {
+														if (resp) {
+															var unames = [];
+															for (var i=0; i<resp.users.length; i++) {
+																var u = resp.users[i];
+																if (u && u.name && u.name != "null") {
+																	unames.push(u.name);
+																}
+															}
+															var room = getRoomInfo(roomId, roomName, roomTitle, unames);
+															room.done(function(info) {
+																roomInfo = info;
+																data.resolve(roomInfo);												
+															});
+															room.fail(function(e, status) {
+																if (typeof(status) == "number" && status == 404) {
+																	var msg = (e.message ? e.message + " " : "Not found ");
+																	log(">> chatContext < ERROR get_room " + roomName + " (" + msg + ") for " + currentUser.id + ": " + (e.message ? e.message + " " : "Not found ") + roomName + ": " + JSON.stringify(e));
+																	data.reject(msg);
+																} else {
+																	log(">> chatContext < ERROR get_room " + roomName + " for " + currentUser.id + ": " + JSON.stringify(e));
+																	data.reject(e);
+																}
+																// TODO notify the user?
+															});																
+														} else {
+															log("ERROR: chatApplication.getUsers() return empty response");
+															data.reject("Error reading Chat users");
+														}
+								          });
+												} else {
+													// roomId is an user name for P2P chats
+													var get = getUserInfo(roomId);
+													get.done(function(user) {
+														roomInfo = {
+										  				id : roomId,
+										  				type : "user", // UserInfo.TYPE_NAME
+										  				isGroup : false,
+										  				name : roomName,
+										  				title : roomTitle,
+										  				callId : null,
+										  				members : { roomId : user }
+										  			};
+														data.resolve(roomInfo);												
+													});
+													get.fail(function(e, status) {
+														if (typeof(status) == "number" && status == 404) {
+															var msg = (e.message ? e.message + " " : "Not found ");
+															log(">> initChat < ERROR get_user " + msg + " for " + currentUser.id + ": " + JSON.stringify(e));
+															data.reject(msg);
+														} else {
+															log(">> initChat < ERROR get_user : " + JSON.stringify(e));
+															data.reject(e);
+															// TODO notify the user?
+														}
+													});
+												}
+												// TODO cleanup
+												/*if (isGroup) {
 													chatApplication.getUsers(roomId, function (resp) {
 														var unames = [];
 														for (var i=0; i<resp.users.length; i++) {
@@ -650,22 +739,23 @@
 													});
 													get.fail(function(e, status) {
 														if (typeof(status) == "number" && status == 404) {
-															log(">> initChat < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + " for " + currentUser.id + ": " + JSON.stringify(e));
+															var msg = (e.message ? e.message + " " : "Not found ");
+															log(">> initChat < ERROR get_user " + msg + " for " + currentUser.id + ": " + JSON.stringify(e));
+															data.reject(msg);
 														} else {
 															log(">> initChat < ERROR get_user : " + JSON.stringify(e));
+															data.reject(e);
 															// TODO notify the user?
 														}
 													});
-												}
-												return data.promise();
+												}*/
 											}
-										};
-										return context;
+											return data.promise();
+										}
 									};
 									
-									var context = chatContext(roomTitle);
 									var addRoomCallButton = function() {
-										var initializer = addCallButton($wrapper, context);
+										var initializer = addCallButton($wrapper, chatContext);
 										initializer.done(function($container) {
 											$container.find(".startCallButton").addClass("chatCall");
 											$container.find(".dropdown-menu").addClass("pull-right");
@@ -685,23 +775,6 @@
 										// here space pretty name is an ID
 										var spaceId = roomTitle.toLowerCase().split(" ").join("_");
 										currentSpaceId = spaceId;
-										/*var get = getSpaceInfo(spaceId);
-										get.done(function(space) {
-											// this variable can be used by call page script
-											currentSpace = space;
-										});
-								  	get.fail(function(e, status) {
-											if (typeof(status) == "number" && status == 404) {
-												log(">>> initChat < ERROR get_space '" + roomTitle + "' for " + currentUser.id + ": " + (e.message ? e.message + " " : "Not found ") + currentSpace.id + ": " + JSON.stringify(e));
-											} else {
-												log(">>> initChat < ERROR get_space '" + roomTitle + "' for " + currentUser.id + ": " + JSON.stringify(e));
-											}
-										});
-								  	get.always(function() {
-								  		// show call button anyway
-								  		addRoomCallButton();
-								  	});
-										return get; //TODO return it ? */
 									} else if (isTeam) {
 										currentSpaceId = null;
 										currentRoomTitle = roomTitle;
@@ -746,20 +819,23 @@
 			var context = {
 				currentUser : currentUser,
 				userId : userId,
+				isGroup : false,
 				isIOS : isIOS,
 				isAndroid : isAndroid,
 				isWindowsMobile : isWindowsMobile,
-				participants : function() {
-					var data = $.Deferred();
-					// access user via property defined below
-					context.user.done(function(user) {
-						// resolve with array of participants, id for DOM elements, title for UI
-						data.resolve([ user ], user.id, user.title);
+				details : function() {
+					var user = getUserInfo(userId);
+					user.fail(function(e, status) {
+						if (typeof(status) == "number" && status == 404) {
+							log(">> userContext < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userId + " for " + currentUser.id + ": " + JSON.stringify(e));
+						} else {
+							log(">> userContext < ERROR get_user : " + JSON.stringify(e));
+						}
 					});
-					return data.promise();
+					return user;
 				}
 			};
-			Object.defineProperty(context, "user", {
+			/*Object.defineProperty(context, "user", {
 			  enumerable: true,
 			  configurable: false,
 			  get: function() {
@@ -778,7 +854,7 @@
 			  	log(">> userContext < ERROR set_user not supported " + userId + " for " + currentUser.id);
 			  	throw "Changing 'user' property not supported";
 			  }
-			});
+			});*/
 			return context;
 		};
 		
@@ -917,20 +993,23 @@
 			var context = {
 				currentUser : currentUser,
 				spaceId : spaceId,
+				isGroup : true,
 				isIOS : isIOS,
 				isAndroid : isAndroid,
 				isWindowsMobile : isWindowsMobile,
-				participants : function() {
-					var data = $.Deferred();
-					// access space via property defined below
-					context.space.done(function(space) {
-						// resolve with array of participants, id for DOM elements, title for UI
-						data.resolve(space.members, space.id, space.title);								
+				details : function() {
+					var space = getSpaceInfo(spaceId);
+			  	space.fail(function(e, status) {
+						if (typeof(status) == "number" && status == 404) {
+							log(">> spaceContext < ERROR get_space " + spaceId + " for " + currentUser.id + ": " + (e.message ? e.message + " " : "Not found ") + spaceId + ": " + JSON.stringify(e));
+						} else {
+							log(">> spaceContext < ERROR get_space " + spaceId + " for " + currentUser.id + ": " + JSON.stringify(e));
+						}
 					});
-					return data.promise();
+					return space;
 				}
 			};
-			Object.defineProperty(context, "space", {
+			/*Object.defineProperty(context, "space", {
 			  enumerable: true,
 			  configurable: false,
 			  get: function() {
@@ -948,7 +1027,7 @@
 			  	log(">> spaceContext < ERROR set_space not supported " + spaceId + " for " + currentUser.id);
 			  	throw "Changing 'space' property not supported";
 			  }
-			});
+			});*/
 			return context;
 		};
 		
@@ -958,10 +1037,10 @@
 				isIOS : isIOS,
 				isAndroid : isAndroid,
 				isWindowsMobile : isWindowsMobile,
-				participants : function() {
+				details : function() {
 					// this method should not be used in this context, thus keep it for unification only
 					var data = $.Deferred();
-					data.resolve([], context.space.id, context.space.id);
+					data.resolve([], context.space.id, context.space.title);
 					return data.promise();
 				}
 			};

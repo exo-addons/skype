@@ -19,6 +19,9 @@
  */
 package org.exoplatform.videocalls;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -32,8 +35,40 @@ import java.util.Map;
  */
 public abstract class GroupInfo extends IdentityInfo {
 
+  /** The group call id. */
+  protected String                      callId;
+
+  /** The members. */
+  protected final Map<String, UserInfo> members = new LinkedHashMap<>();
+
   public GroupInfo(String id, String title) {
     super(id, title);
+  }
+
+  /**
+   * Gets the call id.
+   *
+   * @return the call id
+   */
+  public String getCallId() {
+    return callId;
+  }
+
+
+  /**
+   * {@inheritDoc}
+   */
+  public boolean isGroup() {
+    return true;
+  }
+
+  /**
+   * Sets the call id.
+   *
+   * @param callId the new call id
+   */
+  protected void setCallId(String callId) {
+    this.callId = callId;
   }
 
   /**
@@ -41,6 +76,28 @@ public abstract class GroupInfo extends IdentityInfo {
    *
    * @return the members
    */
-  public abstract Map<String, UserInfo> getMembers();
+  public Map<String, UserInfo> getMembers() {
+    return Collections.unmodifiableMap(members);
+  }
+
+  /**
+   * Adds the member.
+   *
+   * @param user the user
+   */
+  protected void addMember(UserInfo user) {
+    members.put(user.getId(), user);
+  }
+  
+  /**
+   * Adds the members (bulk operation).
+   *
+   * @param users the users
+   */
+  protected void addMembers(Collection<UserInfo> users) {
+    for (UserInfo u : users) {
+      addMember(u);      
+    }
+  }
 
 }

@@ -43,6 +43,7 @@ import org.exoplatform.services.rest.resource.ResourceContainer;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.videocalls.CallInfo;
 import org.exoplatform.videocalls.GroupInfo;
+import org.exoplatform.videocalls.IdentityNotFound;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
 
@@ -132,7 +133,7 @@ public class RESTVideoCallsService implements ResourceContainer {
   @GET
   @RolesAllowed("users")
   @Path("/users")
-  @Deprecated // TODO for future use
+  @Deprecated // TODO not used
   public Response getUsersInfo(@Context UriInfo uriInfo, @QueryParam("names") String names) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
@@ -140,7 +141,7 @@ public class RESTVideoCallsService implements ResourceContainer {
       if (names != null) {
         try {
           Set<UserInfo> users = new LinkedHashSet<>();
-          for (String userName : names.trim().split(",")) {
+          for (String userName : names.trim().split(";")) {
             if (ME.equals(userName)) {
               userName = currentUserName;
             }
@@ -213,6 +214,84 @@ public class RESTVideoCallsService implements ResourceContainer {
       } else {
         return Response.status(Status.BAD_REQUEST)
                        .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+
+  /**
+   * Gets the chat room info.
+   *
+   * @param uriInfo the uri info
+   * @param roomName the room name
+   * @param roomId the room id
+   * @param roomTitle the room title
+   * @return the room info response
+   */
+  @GET
+  @RolesAllowed("users")
+  @Path("/room/{name}/{id}")
+  public Response getRoomInfo(@Context UriInfo uriInfo,
+                              @PathParam("name") String roomName,
+                              @PathParam("id") String roomId,
+                              @QueryParam("title") String roomTitle,
+                              @QueryParam("members") String roomMembers) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      if (roomId != null && roomId.length() > 0) {
+        if (roomName != null && roomName.length() > 0) {
+          if (roomTitle == null || roomTitle.length() == 0) {
+            roomTitle = roomName.replace('_', ' ');
+          }
+          if (roomMembers != null && roomMembers.length() > 0) {
+            try {
+              GroupInfo room = videoCalls.getRoomInfo(roomId,
+                                                      roomName,
+                                                      roomTitle,
+                                                      roomMembers.trim().split(";"));
+              if (room != null) {
+                if (room.getMembers().containsKey(currentUserName)) {
+                  return Response.ok().entity(room).build();
+                } else {
+                  return Response.status(Status.FORBIDDEN)
+                                 .entity(ErrorInfo.accessError("Not room member"))
+                                 .build();
+                }
+              } else {
+                // FYI this will not happen until we don't request chat server database
+                return Response.status(Status.NOT_FOUND)
+                               .entity(ErrorInfo.notFoundError("Room not found or not accessible"))
+                               .build();
+              }
+            } catch (IdentityNotFound e) {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Room member not found", e);
+              }
+              return Response.status(Status.NOT_FOUND)
+                             .entity(ErrorInfo.notFoundError(e.getMessage()))
+                             .build();
+            } catch (Throwable e) {
+              LOG.error("Error reading room info of '" + roomName + "' by '" + currentUserName + "'", e);
+              return Response.serverError()
+                             .entity(ErrorInfo.serverError("Error reading room " + roomName))
+                             .build();
+            }
+          } else {
+            return Response.status(Status.BAD_REQUEST)
+                           .entity(ErrorInfo.clientError("Wrong request parameters: members"))
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST)
+                         .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: id"))
                        .build();
       }
     } else {

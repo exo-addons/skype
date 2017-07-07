@@ -41,6 +41,10 @@
 			var onMssfbCallShow = [];
 			var onMssfbCallHide = [];
 			
+			var conversation = null;
+			var callerId = null;
+			var attached = true;
+			
 			var self = this;
 			self.$container = $container;
 			self.$element = null;
@@ -55,8 +59,6 @@
 			};
 			//initElement();
 			
-			this.conversation = null;
-			
 			var callHandlers = function(handrels) {
 				for (var i=0; i<handrels.length; i++) {
 					handrels[i](self.$element);
@@ -65,7 +67,35 @@
 			
 			this.init = function() {
 				initElement();
+				conversation = null;
+				callerId = null;
+				attached = true;
 				return this;
+			};
+			
+			this.getConversation = function() {
+				return conversation;
+			};
+			
+			this.getCallerId = function() {
+				return callerId;
+			};
+			
+			this.setConversation = function(convoInstance, caller) {
+				conversation = convoInstance;
+				callerId = caller;
+			};
+			
+			this.isAttached = function() {
+				return attached;
+			};
+			
+			this.attached = function() {
+				attached = true;
+			};
+			
+			this.detached = function() {
+				attached = false;
 			};
 			
 			this.show = function() {
@@ -104,6 +134,8 @@
 			var settings, currentKey;
 			var apiInstance, appInstance, uiApiInstance, uiAppInstance;
 			
+			var localConvos = {};
+			
 			var isMac = navigator.userAgent.toUpperCase().indexOf("MAC") >= 0;
 			var isWindows = navigator.userAgent.toUpperCase().indexOf("WINDOWS") >= 0;
 			
@@ -116,13 +148,12 @@
 					// proceeded and the call ended.
 					// In IE and FF (but not for video/audio in FF currently, Apr 26 2017), this code will be
 					// executed by the browser and call rejected or stopped.
-					log("<<<< Leave conversation");
 					conversation.leave().then(function() {
 						app.conversationsManager.conversations.remove(conversation);
 						log("<<<< conversation leaved");
 						isClosed = true;
 					});
-					conversation.selfParticipant.reset();
+					//conversation.selfParticipant.reset();
 					// TODO what a right approach to leave the convo? 
 					// conversation.videoService.stop();
 					// conversation.audioService.stop();
@@ -164,8 +195,22 @@
 				}
 			};
 			
+			var tokenHashInfo = function(hline) {
+				var tokenEnd = hline.indexOf("&token_type");
+				if (tokenEnd > 0) {
+					var start = tokenEnd - 7;
+					if (hline.length - start > 0) {
+						return hline.substring(start);
+					} else {
+						log(">> tokenHashInfo: unexpected hash line format: " + hline);
+					}
+				}
+				return hline; 
+			};
+			this.tokenHashInfo = tokenHashInfo;
+			
 			var saveLocalToken = function(token) {
-				log(">> saveLocalToken: " + JSON.stringify(token));
+				log(">> saveLocalToken: " + tokenHashInfo(token.hash_line));
 				if (typeof(Storage) !== "undefined") {
 			    // Code for localStorage/sessionStorage.
 			  	localStorage.setItem(TOKEN_STORE, JSON.stringify(token));
@@ -213,7 +258,7 @@
 						token = null;
 					} else {
 						// else, we can use current token
-						log(">> currentToken: " + JSON.stringify(token));
+						log(">> currentToken: " + tokenHashInfo(token.hash_line));
 					}
 				}
 				return token;
@@ -252,6 +297,20 @@
 					// open SfB login window with redirect to the call URI
 					var uri = callUri(callId, title);
 					return authRedirectWindow(title, settings.clientId, uri, "https://webdir.online.lync.com");
+				}
+			};
+			
+			var getSDKErrorData = function(sdkErr) {
+				var r = sdkErr ? (sdkErr.rsp ? sdkErr.rsp : (sdkErr.req ? sdkErr.req : null)) : null;
+				return r && r.data ? r.data : null;
+			};
+			
+			var handleErrorData = function(callId, title, errData) {
+				log(">>> call " + callId + " ERROR: " + errData.code + " " + (errData.subcode ? errData.subcode + " " : "") + errData.message);
+				if (errData.code == "Gone" && errData.subcode == "TooManyApplications") {
+					videoCalls.showError(title, "Too many applications. " + errData.message);	
+				} else {
+					videoCalls.showError(title, "[" + errData.code + "] " + errData.message);
 				}
 			};
 			
@@ -337,9 +396,6 @@
 								// ensure local and remote users are of the same account in MS
 								var exoUserSFB = videoCalls.imAccount(user, "mssfb");
 								var mssfbUserId = app.personsAndGroupsManager.mePerson.id(); // sip:email...
-								if (mssfbUserId.startsWith("sip:")) {
-									mssfbUserId = mssfbUserId.slice(4);
-								}
 								if (exoUserSFB && exoUserSFB.id != mssfbUserId) {
 									// bad, we cannot proceed - need ask local user login with his account in MS
 									log("Skype user and local eXo user have different Microsoft IDs: " + mssfbUserId + " vs " + exoUserSFB.id);
@@ -409,9 +465,6 @@
 								// ensure local and remote users are of the same account in MS
 								var exoUserSFB = videoCalls.imAccount(user, "mssfb");
 								var mssfbUserId = app.personsAndGroupsManager.mePerson.id(); // sip:email...
-								if (mssfbUserId.startsWith("sip:")) {
-									mssfbUserId = mssfbUserId.slice(4);
-								}
 								if (exoUserSFB && exoUserSFB.id != mssfbUserId) {
 									// bad, we cannot proceed - need ask local user login with his account in MS
 									log("Skype user and local eXo user have different Microsoft IDs: " + mssfbUserId + " vs " + exoUserSFB.id);
@@ -583,7 +636,7 @@
 					try {
 						//$iframe.ready(function(){
 							var iframeLocation = $iframe.get(0).contentWindow.location;
-							var checkUri = iframeLocation.href.origin + iframeLocation.href.pathname;
+							var checkUri = iframeLocation.origin + iframeLocation.pathname;
 							// if iframe accessed ok, then it's eXo server URL, not MS login
 							log("Login iframe check DONE: " + checkUri);
 						//});								
@@ -611,50 +664,99 @@
 				} else {
 					var state = c.state();
 					var id = "p/";
+					var creatorId = c.creator.id();
+					var myId = c.selfParticipant.person.id();
 					var p1 = c.participants(0);
 					if (p1) {
-						if (state === "Incoming") {
-							id += p1.person.id() + ";" + c.selfParticipant.person.id();
+						var p1Id = p1.person.id();
+						if (creatorId != p1Id) {
+							id += creatorId + ";" + p1Id;	
+						} else if (creatorId != myId) {
+							id += creatorId + ";" + myId;
 						} else {
-							id += c.selfParticipant.person.id() + ";" + p1.person.id() ;
+							id += creatorId;
 						}
 					} else {
-						id += c.selfParticipant.person.id();
+						id += myId;
 					}
 					return id;
 				}
 			};
+			this.getCallId = getCallId;
+			var logging = {};
 			var logConversation = function(c, key, index) {
-				if (c.__isTrackedByExo) {
-					// already tracked
-					log(">>> Log (already) CONVERSATION " + getCallId(c) + " key:" + key + " index:" + index);
-				} else {
-					log(">>> Log CONVERSATION " + getCallId(c) + " key:" + key + " index:" + index);
-					c.state.changed(function(newValue, reason, oldValue) {
-						log(">> CONVERSATION " + getCallId(c) + " (key:" + key + ") state: " + oldValue + "->" + newValue + " reason:" + reason);
-					});					
+				var key = key ? key : (c.id ? c.id() : null);
+				if (key) { 
+					if (logging[key]) {
+						// already tracked
+						log(">> Log (already) CONVERSATION " + getCallId(c) + " state:" + c.state() + (key ? " key:" + key : "") + (index ? " index:" + index : ""));
+						return;
+					} else {
+						logging[key] = true;
+					}
 				}
+				log(">> Log CONVERSATION " + getCallId(c) + (key ? " key:" + key : "") + (index ? " index:" + index : ""));
+				c.state.changed(function(newValue, reason, oldValue) {
+					log(">>> CONVERSATION " + getCallId(c) + (key ? " (" + key + ")" : "") + " state: " + oldValue + "->" + newValue + " reason:" + reason);
+				});					
 			};
+			this.logConversation = logConversation;
 			var isModalityUnsupported = function(error) {
-				if (error.code == "CommandDisabled" || (error.code == "InvitationFailed" && error.reason.subcode == "UnsupportedMediaType")) {
+				// TODO CommandDisabled also will appear for state of previously disconnected convo
+				// AssertionFailed happens in Chrome when Video cannot be rendered
+				if (error.code == "CommandDisabled" || error.code == "AssertionFailed" || (error.code == "InvitationFailed" && error.reason.subcode == "UnsupportedMediaType")) {
 					return true;
 				}
 				return false;
 			};
+			this.isModalityUnsupported = isModalityUnsupported;
 			
-			var outgoingCallHandler = function(api, app, container, title, participants) {
+			// target, participants, localConvo
+			var outgoingCallHandler = function(api, app, container, target, participants, conversation) {
+				var process = $.Deferred();
 				container.init();
 				checkPlugin(app).done(function() {
 					var options = {
-						participants : participants,
-						modalities : [ "Chat" ]
+								modalities : [ "Chat" ]
 					};
+					if (conversation) {
+						// it's existing conversation, it was running in this app/page
+						options.conversation = conversation;
+					} else {
+						if (target.group) {
+							if (target.callId) {
+								// reuse existing group convo: cut 'g/' from the call id - it's a SIP URI
+								var conversation = app.conversationsManager.getConversationByUri(target.callId.substring(2));
+								if (conversation) {
+									options.conversation = conversation;								
+								} else {
+									log("Group conversation not found " + target.callId + " for call '" + target.title + "'");
+									options.participants = participants;
+								}
+							} else {
+								var conversation = app.conversationsManager.createConversation();
+								for (var i=0; i<participants.length; i++) {
+									var imId = participants[i];
+									try {
+										var remoteParty = conversation.createParticipant(imId);
+										conversation.participants.add(remoteParty);
+									} catch(e) {
+										log(">>> Error creating group participant " + imId, e);
+									}
+								}
+								options.conversation = conversation;
+							}
+						} else {
+							options.participants = participants;
+						}
+					}
 					api.renderConversation(container.element, options).then(function(conversation) {
-						container.conversation = conversation;
+						logConversation(conversation);
+						container.setConversation(conversation, target.title);
 						container.show();
 						// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
 						var callId = getCallId(conversation);
-						log("Outgoing call " + title + " " + callId ? callId : "");
+						log("Outgoing call '" + target.title + "' " + callId);
 						var beforeunloadListener = function(e) {
 							var msg = onClosePage(conversation, app);
 							if (msg) {
@@ -673,106 +775,158 @@
 									log(">>> call " + callId + " ERROR: " + error.reason.subcode + ". " + error.reason.message);
 									videoCalls.showError(title, error.reason.message);
 								} else {
-									// TODO CommandDisabled? AssertionFailed?
+									// TODO {"code":"CommandDisabled"}? 
+									// {"code":"AssertionFailed"}? happens in Chrome when Video cannot be rendered
 									if (error.code && error.code == "Canceled") {
 										// Do nothing
-									} else if (error.rsp && error.rsp.data && error.rsp.data.code == "Gone" && error.rsp.data.subcode == "TooManyApplications") {
-										log(">>> call " + callId + " ERROR: " + error.rsp.data.code + " " + error.rsp.data.subcode + " " + error.rsp.data.message);
-										videoCalls.showError(title, "Too many applications. " + error.rsp.data.message);
 									} else {
-										videoCalls.showError(title, error);
+										var errData = getSDKErrorData(error);
+										if (errData) {
+											handleErrorData(callId, title, errData);
+										} else {
+											videoCalls.showError(title, error);
+										}
 									}
 								}
 							}
+							// For a case when Disconnected will not happen
 							window.removeEventListener("beforeunload", beforeunloadListener);
 							window.removeEventListener("unload", unloadListener);
 						};
+						var registered = false;
 						var registerCall = function() {
-							var ownerId, ownerType;
-							if (conversation.isGroupConversation()) {
-								var spaceId = videoCalls.getCurrentSpaceId();
-								if (spaceId != null) {
-									ownerId = spaceId;
-									ownerType = "space";
-								} else {
-									var roomTitle = videoCalls.getCurrentRoomTitle();
-									if (roomTitle != null) {
-										ownerId = roomTitle;
-										ownerType = "chat_room";
+							if (!registered && callId != "g/adhoc") {
+								log(">>> Registering " + callId + " > " + new Date().getTime());
+								registered = true;
+								var ownerType = target.type;
+								var ownerId = target.id;
+								/*if (conversation.isGroupConversation()) {
+									var spaceId = videoCalls.getCurrentSpaceId();
+									if (spaceId != null) {
+										ownerId = spaceId;
+										ownerType = "space";
+									} else {
+										var roomTitle = videoCalls.getCurrentRoomTitle();
+										if (roomTitle != null) {
+											ownerId = roomTitle;
+											ownerType = "chat_room";
+										}
 									}
+									// we assume it's custom Chat room
+								} else {
+									ownerId = videoCalls.getUser().id;
+									ownerType = "user";
+								}*/
+								// call creator goes first in the ID of p2p
+								var participants = [];
+								for (var i=0; i<conversation.participantsCount(); i++) {
+									var pid = conversation.participants(i).person.id();
+									participants.push(pid);
 								}
-								// we assume it's custom Chat room
-							} else {
-								ownerId = videoCalls.getUser().id;
-								ownerType = "user";
+								var callInfo = {
+									owner : ownerId,
+									ownerType : ownerType,  
+									provider : provider.getType(),
+									title : conversation.topic(),
+									participants : participants.join(";")
+								};
+								videoCalls.registerCall(callId, callInfo).done(function(call) {
+									log(">>> Registered " + callId + " > " + new Date().getTime());
+								}).fail(function(err) {
+									registered = false;
+									log(">>> ERROR registering " + callId + ": " + JSON.stringify(err));
+								});
 							}
-							// call creator goes first in the ID of p2p
-							var participants = [];
-							for (var i=0; i<conversation.participantsCount(); i++) {
-								var pid = conversation.participants(i).person.id();
-								if (pid.startsWith("sip:")) {
-									pid = pid.substring(4);
-								}
-								participants.push(pid);
-							}
-							var callInfo = {
-								owner : ownerId,
-								ownerType : ownerType,  
-								provider : provider.getType(),
-								title : conversation.topic(),
-								participants : participants.join(";")
-							};
-							videoCalls.registerCall(callId, callInfo).done(function(call) {
-								log(">>> call " + callId + " registered");
-							}).fail(function(err) {
-								log(">>> call " + callId + " registration failed " + JSON.stringify(err));
-							});
 						};
 						var unregisterCall = function() {
-							videoCalls.unregisterCall(callId).done(function(call) {
-								log("<<< call " + callId + " unregistered");
-							}).fail(function(err) {
-								log("<<< call " + callId + " unregistration failed " + JSON.stringify(err));
-							});
+							if (registered) {
+								log(">>> Unregistering " + callId + " > " + new Date().getTime());
+								videoCalls.unregisterCall(callId).done(function(call) {
+									log("<<< Unregistered " + callId + " > " + new Date().getTime());
+									registered = false;
+								}).fail(function(err) {
+									log("<<< ERROR unregistering " + callId + ": " + JSON.stringify(err));
+								});								
+							}
 						};
-						try {
-							conversation.topic(title);
-						} catch(e) {
-							log(">>> Error setting conversation topic: " + title, e);
+						if (target.group && conversation.selfParticipant.person.id() == conversation.creator.id()) {
+							// set topic only if a creator and of a group call, 
+							// otherwise it's R/O property for other parts and for p2p we don't want set any topic now
+							try {
+								conversation.topic(target.title);
+							} catch(e) {
+								log(">>> Error setting conversation topic: " + target.title, e);
+							}
 						}
-						conversation.state.once("Connecting", function() {
-							// generate ID again here for URI of group one
-							callId = getCallId(conversation);
-							registerCall();							
-						});
-						conversation.state.once("Disconnected", function() {
-							log("Disconnected call " + callId + " CONVERSATION state:" + conversation.state());
-							//app.conversationsManager.conversations.remove(conversation);
-							window.removeEventListener("beforeunload", beforeunloadListener);
-							window.removeEventListener("unload", unloadListener);
-							//container.hide();
-						});
+						if (callId && callId.indexOf("sip:") > 0) {
+							registerCall();
+						} else {
+							log(">>> Call ID not complete: " + callId);
+						}
+						var started = false;
+						var startingCall = function(stateName) {
+							if (!started) {
+								started = true;
+								callId = getCallId(conversation);
+								log(">>> " + stateName + " outgoing " + callId);
+								registerCall();
+								process.resolve(callId, conversation);
+								/*conversation.state.once("Connected", function() {
+									// FIXME several such listeners may register if convo was declined remotely or filed to connect
+									log(">>> Connected outgoing " + callId);
+									process.resolve(callId, conversation);
+								});*/
+								conversation.state.once("Disconnected", function() {
+									log("<<< Disconnected outgoing " + callId);
+									unregisterCall();
+									//app.conversationsManager.conversations.remove(conversation);
+									window.removeEventListener("beforeunload", beforeunloadListener);
+									window.removeEventListener("unload", unloadListener);
+									//container.hide();
+									if (process.state() == "pending") {
+										process.reject("disconnected");
+									}
+								});								
+							}
+						};
+						if (conversation.isGroupConversation()) {
+							/*conversation.state.once("Conferencing", function() {
+								startingCall("Conferencing");
+							});							
+							conversation.state.once("Conferenced", function() {
+								startingCall("Conferenced");
+							});*/
+						} else {
+							conversation.state.once("Connecting", function() {
+								startingCall("Connecting");
+							});
+						}
 						conversation.videoService.start().then(function() {
-							log(">>> video STARTED");
+							log(">>> Outgoing video STARTED ");
+							startingCall("Started");
 						}, function(videoError) {
 							// error starting videoService, cancel (by this user) also will go here
-							log("<<< Error starting video: " + JSON.stringify(videoError));
+							log("<<< Error starting outgoing video: " + JSON.stringify(videoError));
 							var finisWithError = function(error) {
-								unregisterCall();
+								unregisterCall(); // TODO don't need it here, will it be done on Disconnected state?
 								handleError(error);
+								if (process.state() == "pending") {
+									process.reject(error);
+								}
 							};
 							if (isModalityUnsupported(videoError)) {
 								// ok, try audio
 								conversation.audioService.start().then(function() {
-									log(">>> audio STARTED");
+									log(">>> Outgoing audio STARTED ");
+									startingCall("Started");
 								}, function(audioError) {
-									log("<<< Error starting audio: " + JSON.stringify(audioError));
+									log("<<< Error starting outgoing audio: " + JSON.stringify(audioError));
 									if (isModalityUnsupported(audioError)) {
 										// well, it will be chat (it should work everywhere)
 										conversation.chatService.start().then(function() {
-											log(">>> chat STARTED");
+											log(">>> Outgoing chat STARTED ");
 										}, function(chatError) {
-											log("<<< Error starting chat: " + JSON.stringify(chatError));
+											log("<<< Error starting outgoing chat: " + JSON.stringify(chatError));
 											// we show original error
 											finisWithError(videoError);
 										});
@@ -788,17 +942,20 @@
 						window.addEventListener("unload", unloadListener);
 					}, function(err) {
 						// error rendering Conversation Control
+						container.hide();
+						process.reject(err);
 						if (err.name && err.message) {
-							log(">>> conversation rendering error: " + err.name + " " + err.message, err);
+							log("<<< conversation rendering error: " + err.name + " " + err.message, err);
 							videoCalls.showError(err.name, err.message);
 						} else {
-							log(">>> conversation rendering error: " + JSON.stringify(err));
+							log("<<< conversation rendering error: " + JSON.stringify(err));
 						}
-						container.hide();
 					});					
 				}).fail(function() {
 					container.$element.append($("<div><div class='pluginError'>Please install Skype web plugin.</div></div>"));
+					process.reject("plugin error");
 				});
+				return process.promise();
 			};
 			
 			var makeCallPopover = function(title, message) {
@@ -846,45 +1003,87 @@
 					var currentUserSFB = videoCalls.imAccount(context.currentUser, "mssfb");
 					if (currentUserSFB) {
 						context.currentUserSFB = currentUserSFB;
-						context.participants().done(function(users, convName, convTitle) {
-							var rndText = Math.floor((Math.random() * 1000000) + 1);
-							var linkId = "SkypeCall-" + convName + "-" + rndText;
+						context.details().done(function(target) { // users, convName, convTitle
+							//var rndText = Math.floor((Math.random() * 1000000) + 1);
+							//var linkId = "SkypeCall-" + target.name + "-" + rndText;
 							// TODO i18n for title
-							var title;
-							if (context.userName) {
-								title = "Call with " + self.getTitle();
-							} else if (context.spaceId) {
-								title = context.space.title + " Call";
-							} else if (context.roomTitle) {
-								title = context.roomTitle + " Call";
-							} else {
-								title = self.getTitle() + " Call";
-							}
-							var ims = [];
-							var participants = [];
+							/*var title = target.title;
+							var groupCallId;
+							if (context.spaceId) {
+								groupCallId = context.target.callId;
+							} else if (context.roomId && context.isGroup) {
+								groupCallId = context.target.callId;									
+							}*/
+							var ims = []; // for call on a new page
+							var participants = []; // for embedded call
 							var wrongUsers = [];
-							for ( var uname in users) {
-								if (users.hasOwnProperty(uname)) {
-									var u = users[uname];
-									//var uskype = videoCalls.imAccount(u, "skype");
-									var ubusiness = videoCalls.imAccount(u, "mssfb");
-									if (ubusiness) {
-										if (ubusiness.id != context.currentUserSFB.id) {
-											if (EMAIL_PATTERN.test(ubusiness.id)) {
-												participants.push(ubusiness.id);
-												ims.push(encodeURIComponent(ubusiness.id));
-											} else {
-												wrongUsers.push(u);
-											}
+							var addParticipant = function(user) {
+								//var uskype = videoCalls.imAccount(u, "skype");
+								var ubusiness = videoCalls.imAccount(user, "mssfb");
+								if (ubusiness) {
+									if (ubusiness.id != context.currentUserSFB.id) {
+										if (EMAIL_PATTERN.test(ubusiness.id)) {
+											participants.push(ubusiness.id);
+											ims.push(encodeURIComponent(ubusiness.id));
+										} else {
+											wrongUsers.push(ubusiness);
 										}
 									}
-								}
+								} // else, skip this user
+							};
+							if (target.group) {
+								for ( var uname in target.members) {
+									if (target.members.hasOwnProperty(uname)) {
+										var u = target.members[uname];
+										addParticipant(u);
+									}
+								}								
+							} else {
+								addParticipant(target);
 							}
+							var showWrongUsers = function(callWindow) {
+								if (wrongUsers.length > 0) {
+									var userNames = "";
+									for (var i=0; i<wrongUsers.length; i++) {
+										if (i > 0) {
+											userNames += ", ";
+										}
+										var wu = wrongUsers[i];
+										userNames += wu.firstName + " " + wu.lastName;
+									}
+									var s, have, who; 
+									if (wrongUsers.length > 1) {
+										s = "s";
+										have = "have";
+										who = "They were";
+									} else {
+										s = "";
+										have = "has";
+										who = "It was";
+									}
+									var title = "Wrong Skype account" + s;
+									var message = "Following user" + s + " " + have + " wrong business account: " + 
+										userNames + ". " + who + " not added to the call.";
+									log(title, message);
+									if (callWindow) {
+										// inform the caller in call window
+										$(callWindow).on("load", function() {
+											notifyCaller(callWindow, title, message);
+										});
+									} else {
+										// inform on this page
+										videoCalls.showWarn(title, message);
+									}
+								}
+							};
 							if (participants.length > 0) {
-								var $button = $("<a id='" + linkId + "' title='" + title
+								var $button = $("<a title='" + target.title // id='" + linkId + "' 
 											+ "' href='javascript:void(0);' class='mssfbCallAction'>"
 											+ "<i class='uiIconMssfbCall uiIconForum uiIconLightGray'></i>"
 													+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");
+								if (target.callId) {
+									$button.data("callid", target.callId);
+								}
 								setTimeout(function() {
 									if (!$button.hasClass("btn")) {
 										// in dropdown show longer description
@@ -892,41 +1091,18 @@
 									}
 								}, 1000);
 								$button.click(function() {
-									var showWrongUsers = function(callWindow) {
-										if (wrongUsers.length > 0) {
-											var userNames = "";
-											for (var i=0; i<wrongUsers.length; i++) {
-												if (i > 0) {
-													userNames += ", ";
-												}
-												var wu = wrongUsers[i];
-												userNames += wu.firstName + " " + wu.lastName;
-											}
-											var s, have, who; 
-											if (wrongUsers.length > 1) {
-												s = "s";
-												have = "have";
-												who = "They were";
-											} else {
-												s = "";
-												have = "has";
-												who = "It was";
-											}
-											var title = "Wrong Skype account" + s;
-											var message = "Following user" + s + " " + have + " wrong business account: " + 
-												userNames + ". " + who + " not added to the call.";
-											log(title, message);
-											if (callWindow) {
-												// inform the caller in call window
-												$(callWindow).on("load", function() {
-													notifyCaller(callWindow, title, message);
-												});
-											} else {
-												// inform on this page
-												videoCalls.showWarn(title, message);
-											}
-										}
+									// find if it's not locally run convo
+									//app.conversationsManager.conversations();
+									var saveConvo = function(callId, conversation) {
+										log(">>> saveConvo: " + callId);
+										localConvos[callId] = conversation;
+										$button.data("callid", callId);
 									};
+									var localConvo;
+									var callId = $button.data("callid");
+									if (callId) {
+										localConvo = localConvos[callId];
+									}
 									var container = $("#mssfb-call-container").data("callcontainer");
 									if (container) {
 										// Call from Chat room on the same page
@@ -935,7 +1111,7 @@
 										if (token && uiApiInstance && uiAppInstance) {
 											//initializer.resolve(uiApiInstance, uiAppInstance);
 											log("Automatic login done.");
-											outgoingCallHandler(uiApiInstance, uiAppInstance, container, title, participants);
+											outgoingCallHandler(uiApiInstance, uiAppInstance, container, target, participants, localConvo).done(saveConvo);
 											showWrongUsers(null);
 										} else {
 											// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
@@ -949,10 +1125,10 @@
 												var callback = loginTokenHandler(token);
 												callback.done(function(api, app) {
 													log("User login done.");
-													makeCallPopover("Make " + provider.getTitle() + " call?", "Do you want make " + title + "?").done(function() {
-														outgoingCallHandler(api, app, container, title, participants);														
+													makeCallPopover("Make " + provider.getTitle() + " call?", "Do you want call " + target.title + "?").done(function() {
+														outgoingCallHandler(api, app, container, target, participants, localConvo).done(saveConvo);														
 													}).fail(function() {
-														log("User don't want make a call: " + title);
+														log("User don't want make a call: " + target.title);
 													});
 												});
 												callback.fail(function(err) {
@@ -963,7 +1139,7 @@
 										}
 									} else {
 										// XXX for calling from spaces and user popovers outside Chat app
-										var callWindow = openCallWindow("_/" + ims.join(";"), title);
+										var callWindow = openCallWindow("_/" + ims.join(";"), target.title + " call");
 										showWrongUsers(callWindow);
 									}
 								});
@@ -997,9 +1173,14 @@
 					$call.remove();
 				}
 				$call = $("<div class='uiIncomingCall' title='" + provider.getTitle() + " call'></div>");
-				$call.append($("<p><span class='ui-icon messageIcon' style='float:left; margin:12px 12px 20px 0;'></span>"
-					+ "<a target='_self' href='" + callerLink + "'><img src='" + callerAvatar + "'></a>"
-					+ "<div class='messageText'>" + callerMessage + "</div></p>"));
+				//<span class='ui-icon messageIcon' style='float:left; margin:12px 12px 20px 0;'></span>
+				$call.append($("<div class='messageAuthor'><a target='_blank' href='" + callerLink + "' class='avatarMedium'>"
+					+ "<img src='" + callerAvatar + "'></a></div>"
+					+ "<div class='messageBody'><div class='messageText'>" + callerMessage + "</div></div>"));
+				// eXo UX guides way
+				//$call.append($("<ul class='singleMessage popupMessage'><li><span class='messageAuthor'>"
+				//		+ "<a class='avatarMedium'><img src='" + callerAvatar + "'></a></span>"
+				//		+ "<span class='messageText'>" + callerMessage + "</span></li></ul>"));
 				$(document.body).append($call);
 				$call.dialog({
 		      resizable: false,
@@ -1022,75 +1203,98 @@
 			};
 			
 			var incomingCallHandler = function(api, app, tokenHash, container) {
+				// We want handle both "Incoming" added by remote part and "Created" added here as outgoing and later re-used as "Incoming"
 				checkPlugin(app).done(function() {
 					app.conversationsManager.conversations.removed(function (conversation, key, index) {
-						logConversation(conversation, key, index);					
+						var callId = getCallId(conversation);
+						delete localConvos[callId];
+						delete logging[key];
 					});
 					app.conversationsManager.conversations.added(function (conversation, key, index) {
-						logConversation(conversation, key, index);
 						var callId = getCallId(conversation);
+						logConversation(conversation, key, index);
 						var state = conversation.state();
-						if (state === "Incoming") {
-							var callerMessage, callerLink, callerAvatar;
-							var options = {
-								conversation : conversation,
-								modalities : [ "Chat" ]
-							};
-							var title = conversation.topic();
-							if (conversation.isGroupConversation()) {
-								callerMessage = conversation.topic();
-								callerLink = ""; // /portal/g/:spaces:marketing_team/marketing_team
-								callerAvatar = ""; // /rest/social/identity/space/marketing_team/avatar
-							} else {
-								var caller = conversation.participants(0).person;
-								// remote participant it's call creator, it goes first in the ID
-								callerMessage = caller.displayName() + " is calling.";
-								callerLink = ""; // /portal/intranet/profile/patrice
-								callerAvatar = caller.avatarUrl(); // /rest/social/identity/organization/patrice/avatar
+						log(state + " call: " + callId);
+						var beforeunloadListener = function(e) {
+							var msg = onClosePage(conversation, app);
+							if (msg) {
+								e.returnValue = msg; // Gecko, Trident, Chrome 34+
+								return msg; // Gecko, WebKit, Chrome <34
 							}
-							log(state + " call: " + callId);
-							
-							var beforeunloadListener = function(e) {
-								var msg = onClosePage(conversation, app);
-								if (msg) {
-									e.returnValue = msg; // Gecko, Trident, Chrome 34+
-									return msg; // Gecko, WebKit, Chrome <34
-								}
-							};
-							var unloadListener = function(e) {
-								onClosePage(conversation, app);
-							};
-							var pluginError;
-							var handleError = function(error) {
-								var title = "Error starting call";
-								if (error) {
-									if (error.reason && error.reason.subcode && error.reason.message) {
-										log(">>> call " + callId + " ERROR: " + error.reason.subcode + ". " + error.reason.message);
-										videoCalls.showError(title, error.reason.message);
+						};
+						var unloadListener = function(e) {
+							onClosePage(conversation, app);
+						};
+						var handleError = function(error) {
+							var title = "Error starting call";
+							if (error) {
+								if (error.reason && error.reason.subcode && error.reason.message) {
+									log(">>> call " + callId + " ERROR: " + error.reason.subcode + ". " + error.reason.message);
+									videoCalls.showError(title, error.reason.message);
+								} else {
+									if (error.code && error.code == "Canceled") {
+										// Do nothing
 									} else {
-										if (error.code && error.code == "Canceled") {
-											// Do nothing
+										var errData = getSDKErrorData(error);
+										if (errData) {
+											handleErrorData(callId, title, errData);
 										} else {
 											videoCalls.showError(title, error);
 										}
 									}
 								}
-								window.removeEventListener("beforeunload", beforeunloadListener);
-								window.removeEventListener("unload", unloadListener);
+							}
+							window.removeEventListener("beforeunload", beforeunloadListener);
+							window.removeEventListener("unload", unloadListener);
+						};
+						var handleIncoming = function() {
+							var callerMessage, callerLink, callerAvatar, callerId;
+							var options = {
+								conversation : conversation,
+								modalities : [ "Chat" ]
 							};
-							conversation.state.once("Connecting", function() {
-								log("Connecting " + callId + " '" + callerMessage + "' state:" + conversation.state());
-								window.addEventListener("beforeunload", beforeunloadListener);
-								window.addEventListener("unload", unloadListener);
-							});
-							conversation.state.once("Disconnected", function() {
-								log("Disconnected " + callId + " '" + callerMessage + "' state:" + conversation.state());
+							if (conversation.isGroupConversation()) {
+								callerId = conversation.topic(); // this not true, need space/room title
+								callerMessage = callerId; 
+								callerLink = ""; // /portal/g/:spaces:marketing_team/marketing_team
+								callerAvatar = ""; // /rest/social/identity/space/marketing_team/avatar
+							} else {
+								// remote participant it's who is calling to
+								var caller = conversation.participants(0).person;
+								callerId = caller.displayName();
+								callerMessage = caller.displayName() + " is calling.";
+								callerLink = ""; // /portal/intranet/profile/patrice
+								callerAvatar = caller.avatarUrl(); // /rest/social/identity/organization/patrice/avatar
+							}
+							
+							var accept = null;
+							if (conversation.isGroupConversation()) {
+								conversation.state.when("Conferencing", function() {
+									log(">>> Conferencing incoming " + callId);
+								});
+								conversation.state.when("Conferenced", function() {
+									log(">>> Conferenced incoming " + callId);
+									window.addEventListener("beforeunload", beforeunloadListener);
+									window.addEventListener("unload", unloadListener);
+								});
+							} else {
+								conversation.state.when("Connecting", function() {
+									log(">>> Connecting incoming " + callId);
+									window.addEventListener("beforeunload", beforeunloadListener);
+									window.addEventListener("unload", unloadListener);
+								});
+								conversation.state.when("Connected", function() {
+									log(">>> Connected incoming " + callId);
+								});
+							}
+							conversation.state.when("Disconnected", function() {
+								log("<<< Disconnected incoming " + callId);
+								accept = null;
 								//app.conversationsManager.conversations.remove(conversation);
 								window.removeEventListener("beforeunload", beforeunloadListener);
 								window.removeEventListener("unload", unloadListener);
 							});
 							
-							var accept = null;
 							// this method may be invoked several times by the above SDK conversation's services accept callback
 							// be we want ask an user once per a call, thus we will reset the worked deferred object in a seconds
 							var acceptCall = function() {
@@ -1099,23 +1303,31 @@
 									var showCallPopover = function() {
 										var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
 										popover.progress(function($call) {
-											conversation.state.changed(function(newValue, reason, oldValue) {
-												if (newValue == "Disconnected" && $call.is(":visible")) {
+											conversation.state.once("Disconnected", function() {
+												if ($call.is(":visible")) {
 													$call.dialog("close");
 												}
 											});
 										}); 
 										popover.done(function(msg) {
-											log(">>> conversation " + callId + " " + msg);
+											log(">>> user " + msg + " call " + callId);
 											//var callWindow = openCallWindow(callId, title ? title : provider.getTitle() + " call", tokenHash);
-											// use $container to place a call CC UI
 											if (container) {
+												// switch to the call room in the Chat
+												if (typeof(chatApplication) == "object" && chatApplication) {
+													var $chat = $("#chat-application");
+													if ($chat.length > 0) {
+														var $users = $chat.find("#chat-users");
+														var $rooms = $users.find(".users-online .room-link[user-data='" + callerId  + "']");
+														$rooms.click();
+													}
+												}
 												container.init();
 												api.renderConversation(container.element, options).then(function(conversation) {
-													container.conversation = conversation;
+													container.setConversation(conversation, callerId);
 													container.show();
 													// TODO check this working in FF where no video/audio supported
-													conversation.selfParticipant.chat.state.changed(function(newValue, reason, oldValue) {
+													conversation.selfParticipant.chat.state.changed(function listener(newValue, reason, oldValue) {
 														log(">>> CHAT state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																	+ " CONVERSATION state: " + conversation.state());
 														if (newValue === "Notified") {
@@ -1126,9 +1338,14 @@
 																log("<<< Error accepting chat: " + JSON.stringify(chatError));
 																//handleError(chatError);
 															});
+														} else if (newValue === "Disconnected") {
+															log("<<< CHAT disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+															if (oldValue === "Connected" || oldValue === "Connecting") {
+																conversation.selfParticipant.chat.state.changed.off(listener);
+															}
 														}
 													});
-													conversation.selfParticipant.audio.state.changed(function(newValue, reason, oldValue) {
+													conversation.selfParticipant.audio.state.changed(function listener(newValue, reason, oldValue) {
 														log(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																	+ " CONVERSATION state: " + conversation.state());
 														if (newValue === "Notified") {
@@ -1140,14 +1357,17 @@
 																//handleError(audioError);
 															});
 														} else if (newValue === "Disconnected") {
-															log("Disconnected audio for call " + callId + " CONVERSATION state: " + conversation.state());
-															if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
-																videoCalls.showError("Skype Plugin Not Initialized", 
-																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
+															log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+															if (oldValue === "Connected" || oldValue === "Connecting") {
+																conversation.selfParticipant.audio.state.changed.off(listener);
+																if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
+																	videoCalls.showError("Skype Plugin Not Initialized", 
+																				"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
+																}
 															}
 														}
 													});
-													conversation.selfParticipant.video.state.changed(function(newValue, reason, oldValue) {
+													conversation.selfParticipant.video.state.changed(function listener(newValue, reason, oldValue) {
 														// 'Notified' indicates that there is an incoming call
 														log(">>> VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																	+ " CONVERSATION state: " + conversation.state());
@@ -1159,55 +1379,27 @@
 															}, function(videoError) {
 																// error starting videoService, cancel (by this user) also will go here
 																log("<<< Error accepting video: " + JSON.stringify(videoError));
-																/*if (isModalityUnsupported(videoError)) {
-																	// ok, try audio
-																	conversation.audioService.accept().then(function() {
-																		log(">>> Incoming AUDIO ACCEPTED");
-																		accept.resolve("audio");
-																	}, function(audioError) {
-																		log("<<< Error accepting audio: " + JSON.stringify(audioError));
-																		if (isModalityUnsupported(audioError)) {
-																			// well, it will be chat (it should work everywhere)
-																			conversation.chatService.accept().then(function() {
-																				log(">>> Incoming CHAT ACCEPTED");
-																				accept.resolve("chat");
-																			}, function(chatError) {
-																				log("<<< Error accepting chat: " + JSON.stringify(chatError));
-																				// we show original error
-																				handleError(videoError);
-																			});
-																		} else {
-																			handleError(videoError);
-																		}
-																	});
-																} else {
-																	handleError(videoError);
-																}*/
 															});
 															//window.addEventListener("beforeunload", beforeunloadListener);
 															//window.addEventListener("unload", unloadListener);
 														} else if (newValue === "Disconnected") {
-															log("Disconnected video for call " + callId + " CONVERSATION state: " + conversation.state());
-															//app.conversationsManager.conversations.remove(conversation);
-															//window.removeEventListener("beforeunload", beforeunloadListener);
-															//window.removeEventListener("unload", unloadListener);
-															//container.hide();
-															//if (oldValue === "Connected" || oldValue === "Connecting") {
-																// TODO
-															//}
-															if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
-																videoCalls.showError("Skype Plugin Not Initialized", 
-																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
+															log("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+															if (oldValue === "Connected" || oldValue === "Connecting") {
+																conversation.selfParticipant.video.state.changed.off(listener);
+																if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
+																	videoCalls.showError("Skype Plugin Not Initialized", 
+																				"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
+																}
 															}
 														}
 													});
 												}, function(err) {
 													// error rendering Conversation Control
 													if (err.name && err.message) {
-														log(">>> conversation rendering error: " + err.name + " " + err.message, err);
+														log("<<< conversation rendering error: " + err.name + " " + err.message, err);
 														videoCalls.showError(err.name, err.message);
 													} else {
-														log(">>> conversation rendering error: " + JSON.stringify(err));
+														log("<<< conversation rendering error: " + JSON.stringify(err));
 													}
 													container.hide();
 													accept.reject("conversation error");
@@ -1217,17 +1409,36 @@
 											}
 										});
 										popover.fail(function(err) {
+											log("<<< user " + err + " call " + callId);
 											accept.reject(err);
 										});
+										popover.always(function() {
+											if (accept.state() == "pending") {
+												setTimeout(function() {
+													if (accept && accept.state() == "pending") {
+														log(">>> accept STILL pending - null it");
+														// if in 15sec no one conversation service was accepted, we reject it
+														try {
+															accept.reject("timeout");															
+														} catch(e) {
+															// was null due to below timer?
+														}
+													}
+												}, 15000);	
+											}
+										});
 									}
+									log(">>> Get registered " + callId + " > " + new Date().getTime());
 									var callInfo = videoCalls.getRegisteredCall(callId);
 									callInfo.done(function(call) {
+										log(">>> Got registered " + callId + " > " + new Date().getTime());
+										callerId = call.owner.id;
 										callerLink = call.ownerLink;
-										callerAvatar = call.ownerAvatar;
+										callerAvatar = call.avatarLink;
 										showCallPopover();
 									});
 									callInfo.fail(function(err, status) {
-										log("Call info error: " + JSON.stringify(err) + " (" + status + ")");
+										log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
 										if (typeof(status) == "number" && status == 404) {
 											// Call not registered, we treat it as a call started outside Video Calls
 											showCallPopover();	
@@ -1245,30 +1456,35 @@
 								return accept.promise();
 							};
 							conversation.videoService.accept.enabled.when(true, function() {
-								log(">>>> videoService ACCEPT: " + callId);
+								log(">> videoService ACCEPT: " + callId);
 								acceptCall().fail(function(err) {
 									conversation.videoService.reject();
-									log("<<<< videoService REJECTED " + callId + ": " + err);
+									log("<< videoService REJECTED " + callId + ": " + err);
 								});
 							});
 							conversation.audioService.accept.enabled.when(true, function() {
-								log(">>>> audioService ACCEPT: " + callId);
+								log(">> audioService ACCEPT: " + callId);
 								acceptCall().fail(function(err) {
 									conversation.audioService.reject();
-									log("<<<< audioService REJECTED " + callId + ": " + err);
+									log("<< audioService REJECTED " + callId + ": " + err);
 								});
 							});
 							conversation.chatService.accept.enabled.when(true, function() {
-								log(">>>> chatService ACCEPT: " + callId);
+								log(">> chatService ACCEPT: " + callId);
 								// TODO chat needs specific handling
-//								acceptCall().fail(function(err) {
-//									conversation.chatService.reject();
-//									log("<<<< chatService REJECTED " + callId + ": " + err);
-//								});
 							});
 							// TODO audioPhoneService accept?
-						} else {
-							log(">> " + state + " call: " + callId);
+						};
+						if (state == "Incoming") {
+							handleIncoming();
+						} else if (state == "Created") {
+							// Late it may become Incoming
+							conversation.state.once("Incoming", function() {
+								// Update call ID as it will change after first Connecting
+								callId = getCallId(conversation);
+								log(">>> Created > Incoming " + callId);
+								handleIncoming(); 
+							});
 						}
 					});
 				}).fail(function() {
@@ -1277,8 +1493,30 @@
 						container.$element.append($("<div><div class='pluginError'>Please install Skype web plugin.</div></div>"));
 					} // else, user aleeady notified in pnotify warning 
 				});
-			}; 
+			};
 			
+			var alignWindowMiniCallContainer = function($container) {
+				var aw = window.screen.availWidth;
+				var ah = window.screen.availHeight;
+				var w, h, top, left;
+				if (aw > 600) {
+					w = 256;
+				  h = 192;
+				} else {
+					w = 64;
+				  h = 48;
+				}
+				left = (aw/2)-(w/2);
+			  top = 2;
+				
+				$container.height(h);
+				$container.width(w);
+				$container.offset({
+					left: left,
+					top: top
+				});
+				//$container.find("#chatInputContainer").width("100%");
+			};
 			var alignChatsCallContainer = function($chats, $container) {
 				var chatsPos = $chats.offset();
 				$container.height($chats.height());
@@ -1337,9 +1575,6 @@
 									      }
 									    });
 										});
-										callback.always(function() {
-											delete provider.loginToken;
-										});
 										return callback.promise();
 									}
 									$settings.dialog( "close" );
@@ -1360,7 +1595,6 @@
 							var $chats = $chat.find("#chats");
 							if ($chats.length > 0) {
 								var $container = $("#mssfb-call-container");
-								//var $convo;
 								if ($container.length == 0) {
 									$container = $("<div id='mssfb-call-container' style='display: none;'></div>");
 									var $closeHover = $("<a class='actionHover ' href='#' data-placement='bottom' rel='tooltip' data-original-title='Close'>" +
@@ -1369,23 +1603,26 @@
 									$closeHover.click(function() {
 										// leave conversation here
 										var container = $container.data("callcontainer");
-										if (container && container.conversation) {
+										if (container && container.getConversation()) {
 											// TODO ask user for confirmation of leaving the call
-											container.conversation.leave(); // TODO need remove from conversations here?
-//											var c = container.conversation;
-//											c.activeModalities.video.when(true, function() {
-//										    c.videoService.stop();
-//											});
-//											c.activeModalities.audio.when(true, function() {
-//										    c.audioService.stop();
-//											});
-//											c.activeModalities.chat.when(true, function() {
-//										    c.chatService.stop();
-//											});
+											// TODO what about group convos, will user be removed from its participants also?
+											var c = container.getConversation();
+											var cstate = c.state();
+											if (cstate == "Connecting" || cstate == "Connected" || cstate == "Conferenced") {
+												c.leave();
+												/* c.activeModalities.video.when(true, function() {
+											    c.videoService.stop();
+												});
+												c.activeModalities.audio.when(true, function() {
+											    c.audioService.stop();
+												});
+												c.activeModalities.chat.when(true, function() {
+											    c.chatService.stop();
+												}); */
+											}
 										}
 										container.hide();
 									});
-									//$chats.before($container);
 									var chatsZ = $chats.css("z-index");
 									if (typeof(chatsZ) == "Number") {
 										chatsZ++;
@@ -1406,10 +1643,9 @@
 									}
 									$container.show();
 									setTimeout(function() {
-										//alignChatsCallContainer($chats, $container);
 										log(">>> aligned call container in chats");
 										$(window).resize();
-									}, 2500);
+									}, 2000);
 								});
 								container.onHide(function() {
 									$container.hide();
@@ -1422,11 +1658,9 @@
 									// we reuse saved token on the Chat page
 									var callback = loginTokenHandler(token);
 									callback.done(function(api, app) {
-										delete provider.loginToken;
 										initializer.resolve(api, app);
 									});
 									callback.fail(function(err) {
-										delete provider.loginToken;
 										initializer.reject(err);
 									});
 								} else {
@@ -1451,11 +1685,9 @@
 											var callback = loginTokenHandler(token);
 											callback.done(function(api, app) {
 												log("User login done.");
-												delete provider.loginToken;
 												incomingCallHandler(api, app, token.hash_line, container);
 											});
 											callback.fail(function(err) {
-												delete provider.loginToken;
 												videoCalls.showError(provider.getTitle() + " error", "Unable sign in your " + provider.getTitle() + " account. " + err);
 											});
 											return callback.promise();
@@ -1521,6 +1753,32 @@
 										}
 									};
 									addLoginWarn(true);
+								});
+								// If user will click another room during the call, we move the call container to a window top
+								// if user will get back to the active call room, we will resize the container to that call chats
+								var $users = $chat.find("#chat-users");
+								$users.find(".users-online .room-link").click(function() {
+									var $roomLink = $(this);
+									if ($container.is(":visible")) {
+										var roomId = $roomLink.attr("user-data");
+										if (roomId && container.getCallerId()) {
+											if (container.isAttached()) {
+												if (roomId != container.getCallerId()) {
+													// move call container to the window top-center with smaller size
+													log(">>> room not of the call < " + $roomLink.text());
+													alignWindowMiniCallContainer($container);
+													container.detached();
+												} // else, do nothing
+											} else {
+												if (roomId == container.getCallerId()) {
+													// move call container to the current room chats size
+													log(">>> room of the call > " + $roomLink.text());
+													alignChatsCallContainer($chats, $container);
+													container.attached();
+												} // else, do nothing
+											}
+										}
+									}
 								});
 							} else {
 								log("Cannot find #chats element for calls container");

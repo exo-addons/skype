@@ -21,6 +21,34 @@
 	margin-bottom: 30px !important;
 }
 
+.uiIncomingCall .messageAuthor {
+	display: inline-block;
+	margin: 5px;
+}
+
+.uiIncomingCall .messageBody {
+	display: inline-block;
+}
+
+.uiIncomingCall .messageText {
+	position: relative;
+    top: -5px;
+    display: inline-block;
+    margin: 5px;
+}
+
+.uiIncomingCall .messageAuthor a>img {
+	max-height: 64px;
+    max-width: 64px;
+    height: 64px;
+    margin: 0;
+    padding: 0;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+    display: block;
+}
+
 .mssfbLoginWarningContainer {
 	/*margin-top: 15px;
     margin-right: 5px;

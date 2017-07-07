@@ -274,6 +274,25 @@ public class SkypeBusinessProvider extends SkypeProvider {
    */
   @Override
   public IMInfo getIMInfo(String imId) throws VideoCallsProviderException {
+    // Person ID in SfB should start with sip: 
+    // TODO what about other schemes business: msteams: skype: live: im:
+    int colonIndex = imId.indexOf(":");
+    int atIndex = imId.indexOf("@");
+    int slashIndex = imId.indexOf("/");
+    if (colonIndex > 0) {
+      if ((atIndex > 0 ? colonIndex < atIndex : true) && (slashIndex > 0 ? colonIndex < slashIndex : true)) {
+        // It seems the ID already has a scheme
+      } else if (!imId.startsWith("sip:")) {
+        // If not starts with sip: then add it - a colon
+        imId = "sip:" + imId;
+      }
+    } else if (colonIndex == 0) {
+      // XXX Is it true assumption? 
+      imId = "sip" + imId;
+    } else {
+      // Otherwise prepend with sip:
+      imId = "sip:" + imId;
+    }
     return new SkypeBusinessIMInfo(imId);
   }
 

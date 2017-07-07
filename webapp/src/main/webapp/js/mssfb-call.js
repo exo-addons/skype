@@ -20,8 +20,9 @@ if (eXo.videoCalls) {
 		
 		var mssfb = videoCalls.getProvider("mssfb");
 		if (mssfb) {
-			var hasToken = /#access_token=/.test(location.hash);
-			var hasError = /#error=/.test(location.hash);
+			var hashLine = location.hash;
+			var hasToken = /#access_token=/.test(hashLine);
+			var hasError = /#error=/.test(hashLine);
 			var isLogin = /\/login/.test(location.pathname);
 			var isNewCall = /\/_\//.test(location.pathname); // need make an outgoing call
 			var isP2PCall = /\/p\//.test(location.pathname); // incoming p2p call 
@@ -161,26 +162,25 @@ if (eXo.videoCalls) {
 			
 			if (isLogin) {
 				// FYI it's what WebSDK calls an "empty page"
-				log(">> MSSFB login: " + location.hash);
+				log(">> MSSFB login: " + mssfb.tokenHashInfo(hashLine));
 				$(function() {
 					alignLoader();
 				});
 				var parent = window.opener ? window.opener : (window.parent ? window.parent : null);
 				if (hasToken) {
-					var hline = location.hash;
 					// FYI we assume expiration time in seconds
 					var expiresIn;
 					try {
-						expiresIn = parseInt(getParameterByName("expires_in", hline));
+						expiresIn = parseInt(getParameterByName("expires_in", hashLine));
 					} catch(e) {
 						log("Error parsing token expiration time: " + e);
 						expiresIn = 0;
 					}
 					var token = {
-						"access_token" : getParameterByName("access_token", hline),
-						"token_type" : getParameterByName("token_type", hline),
-						"session_state" : getParameterByName("session_state", hline),
-						"hash_line" : hline,
+						"access_token" : getParameterByName("access_token", hashLine),
+						"token_type" : getParameterByName("token_type", hashLine),
+						"session_state" : getParameterByName("session_state", hashLine),
+						"hash_line" : hashLine,
 						"expires_in" : expiresIn,
 						"created" : Math.floor(new Date().getTime()/1000)
 					};
@@ -208,7 +208,7 @@ if (eXo.videoCalls) {
 						if (parent.eXo.videoCalls.mssfb.loginToken) {
 							log(">>> use parent.eXo.videoCalls.mssfb.loginToken()");
 							parent.eXo.videoCalls.mssfb.loginToken(token).always(function() {
-								showStarted("Successfully autorized in " + mssfb.getTitle() + " account."); // TODO is it correct sentense?
+								showStarted("Successfully authorized in " + mssfb.getTitle() + " account."); // TODO is it correct sentense?
 								setTimeout(function() {
 									window.close();
 								}, 2500);
@@ -243,7 +243,14 @@ if (eXo.videoCalls) {
 					};
 					
 					if (isCall) {
-						log(">> MSSFB call " + location.href);
+						log(">> MSSFB call: " + location.origin + location.pathname);
+						var pageCallId;
+						var ciIndex = location.pathname.indexOf("call/") + 5;
+						if (ciIndex > 5 && location.pathname.length > ciIndex) {
+							pageCallId = decodeURIComponent(location.pathname.substring(ciIndex));
+						} else {
+							pageCallId = "???" + location.pathname;
+						}
 						// TODO care if multiple convos were running in this page (others started directly from CC UI)
 						var currentConversation;
 						// it's call window, user may be already authenticated, but may be not
@@ -260,8 +267,7 @@ if (eXo.videoCalls) {
 										$convo = $("<div id='mssfb-call-conversation'></div>");
 										addToContainer($convo);
 									}
-									var callRef = location.pathname.substring(location.pathname.indexOf("call/") + 7);
-									log(">>> MSSFB conversation is creating in " + $convo.get(0) + " participants/callId: " + callRef);
+									log(">>> MSSFB conversation is creating in " + $convo.get(0) + " " + pageCallId);
 									
 									var beforeunloadListener = function(e) {
 										if (currentConversation) {
@@ -274,21 +280,6 @@ if (eXo.videoCalls) {
 										if (currentConversation) {
 											onClosePage(currentConversation, uiApp);
 										}
-									};
-									var getCallId = function(c) {
-										var p1 = c.participants(0);
-										if (p1) {
-											p1 = ";" + p1.person.id();
-										} else {
-											p1 = "";
-										}
-										return c.isGroupConversation() ? "g/" + c.uri() : "p/" + c.selfParticipant.person.id() + p1;
-									};
-									var isModalityUnsupported = function(error) {
-										if (error.code == "CommandDisabled" || (error.code == "InvitationFailed" && error.reason.subcode == "UnsupportedMediaType")) {
-											return true;
-										}
-										return false;
 									};
 									var handleError = function(error) {
 										if (error) {
@@ -305,195 +296,22 @@ if (eXo.videoCalls) {
 										window.removeEventListener("beforeunload", beforeunloadListener);
 										window.removeEventListener("unload", unloadListener);
 									};
-									var trackConversation = function(c) {
-	//									c.state.once("Disconnected", function() {
-	//										log(">>>> MSSFB conversation Disconnected: " + callRef);
-	//										//uiApp.conversationsManager.conversations.remove(conversation);
-	//									});
-										c.state.changed(function(newValue, reason, oldValue) {
-											log(">>> MSSFB conversation [" + getCallId(c) + "] state:" + oldValue + "->" + newValue + " reason:" + reason);
-										});
-									};
 									
 									if (isP2PCall || isGroupCall) {
 										// it's incoming call
-										var incomingConversation = function(options) {
-											options.modalities = [ "Chat" ]; // , "Video"
-											api.renderConversation($convo.get(0), options).then(function(conversation) {
-												// log(">>>> MSSFB conversation rendered successfully: " + conversation);
-												currentConversation = conversation;
-												trackConversation(conversation);
-												//conversation.videoService.accept.enabled.when(true, function() {
-												conversation.selfParticipant.video.state.changed(function(newValue, reason, oldValue) {
-													// 'Notified' indicates that there is an incoming call
-													log(">>>> MSSFB conversation [" + getCallId(conversation) + "] state changed:" + oldValue + "->" + newValue + " reason:" + reason);
-													//log(">>>>> MSSFB conversation [" + getCallId(conversation) + "] ACCEPTing");
-													if (newValue === "Notified") {
-														//setTimeout(function() {
-															// This accepts an incoming call with audio
-															//conversation.videoService.accept();
-															// TODO in case of video error, but audio or chat success - show a hint message to an user and
-															// auto-hide it
-															conversation.videoService.accept().then(function() {
-																log(">>>> MSSFB video ACCEPTED");
-															}, function(videoError) {
-																// error starting videoService, cancel (by this user) also will go here
-																log("<<<< Error accepting MSSFB video: " + JSON.stringify(videoError));
-																if (isModalityUnsupported(videoError)) {
-																	// ok, try audio
-																	conversation.audioService.accept().then(function() {
-																		log(">>>> MSSFB audio ACCEPTED");
-																	}, function(audioError) {
-																		log("<<<< Error accepting MSSFB audio: " + JSON.stringify(audioError));
-																		if (isModalityUnsupported(audioError)) {
-																			// well, it will be chat (it should work everywhere)
-																			conversation.chatService.accept().then(function() {
-																				log(">>>> MSSFB chat ACCEPTED");
-																			}, function(chatError) {
-																				log("<<<< Error accepting MSSFB chat: " + JSON.stringify(chatError));
-																				// we show original error
-																				handleError(videoError);
-																			});
-																		} else {
-																			handleError(videoError);
-																		}
-																	});
-																} else {
-																	handleError(videoError);
-																}
-															});
-															window.addEventListener("beforeunload", beforeunloadListener);
-															window.addEventListener("unload", unloadListener);
-														//}, 0);
-													}
-												});
-											}, function(err) {
-												// error rendering Conversation Control
-												if (err.name && err.message) {
-													log(">>> MSSFB conversation rendering error: " + err.name + " " + err.message, err);
-													showError(err.name, err.message);
-												} else {
-													log(">>> MSSFB conversation rendering error: " + JSON.stringify(err));
-												}
-											});
-										};
-										
-										log(">>> MSSFB conversation is an incoming call: " + callRef);
-	//									var canRender = true;
-	//									var renderIncomingConversation = function(conversation) {
-	//										if (canRender) {
-	//											canRender = false;
-	//											var options = {};
-	//											if (conversation.isGroupConversation()) {
-	//												options.conversationId = conversation.uri();
-	//											} else {
-	//												var participants = [];
-	//												participants.push(conversation.participants(0).person.id());
-	//												options.participants = participants;
-	//											}
-	//											options.modalities = [ "Chat" ];
-	//											incomingConversation(options);
-	//										}
-	//									};
-	//									var acceptConversation = function(conversation) {
-	//										renderIncomingConversation(conversation);
-	//										conversation.videoService.accept.enabled.when(true, function() {
-	//											log(">>>> MSSFB conversation videoService ACCEPT: " + callRef);
-	//											renderIncomingConversation(conversation);
-	//										});
-	//										conversation.audioService.accept.enabled.when(true, function() {
-	//											log(">>>> MSSFB conversation audioService ACCEPT: " + callRef);
-	//											renderIncomingConversation(conversation);
-	//										});
-	//										conversation.chatService.accept.enabled.when(true, function() {
-	//											log(">>>> MSSFB conversation chatService ACCEPT: " + callRef);
-	//											renderIncomingConversation(conversation);
-	//										});
-	//									};
-										uiApp.conversationsManager.conversations.added(function(c) {
-											// conversation.activeModalities.audio.when(true, function () {
-											// conversation.audioService.start();
-											// });
-											log(">>> MSSFB conversation added OK: " + getCallId(c) + " state:" + c.state() + " creator:" + c.creator.displayName());
-											//acceptConversation(conversation);
-										});
-	//									var callId = decodeURIComponent(callRef);
-	//									var conversation;
-	//									if (isP2PCall) {
-	//										var ownerSip = callId.split(";")[0];
-	//										log(">>>>> MSSFB conversations: " + uiApp.conversationsManager.conversations.size());
-	//										uiApp.conversationsManager.conversations.get(function(all) {
-	//											for (var i=0; i<all.length; i++) {
-	//												var c = all[i];
-	//												log(">>>>> MSSFB conversation [" + i + "] " + getCallId(c) + " state:" + c.state() + " creator:" + c.creator.displayName());
-	//											}
-	//										});
-	//										conversation = uiApp.conversationsManager.getConversation(ownerSip);
-	//										log(">>>> MSSFB P2P conversation found OK: " + ownerSip + " state:" + conversation.state());
-	//									} else { // if (isGroupCall) 
-	//										conversation = uiApp.conversationsManager.getConversationByUri(callId);
-	//										log(">>>> MSSFB Group conversation found OK: " + conversation.uri() + " state:" + conversation.state());
-	//									}
-										//if (conversation) {
-											//acceptConversation(conversation);
-	//										var options = {};
-	//										if (isGroupCall) {
-	//											options.conversationId = decodeURIComponent(callRef);
-	//										} else {
-	//											var participants = [];
-	//											// first user here it is a creator of the call
-	//											participants.push(decodeURIComponent(callRef).split(";")[0]);
-	//											options.participants = participants;
-	//										}
-											parentConversation.done(function(c) {
-												var callId = decodeURIComponent(callRef);
-												var ownerId = callId.split(";")[0];
-												uiApp.conversationsManager.conversations.filter(function(c) {
-													if (c.state() == "Incoming") {
-														if (c.isGroupConversation() && c.uri() == callId) {
-															return true;
-														} else if (c.creator.id() == ownerId) {
-															return true;
-														}
-													}
-													return false;
-												}).get(function(all) {
-													for (var i=0; i<all.length; i++) {
-														var c = all[i];
-														log(">>>> MSSFB conversation [" + i + "] " + getCallId(c) + " state:" + c.state() + " creator:" + c.creator.displayName());
-													}
-												});
-												var options = {
-													conversation : c
-												};
-												incomingConversation(options);											
-											}); 
-										//} else {
-										//	log(">>>> MSSFB conversation NOT found: " + callRef);
-										//}
-										/*var options = {};
-										if (isGroupCall) {
-											options.conversationId = decodeURIComponent(callRef);
-										} else {
-											var participants = [];
-											// first user here it is a creator of the call
-											participants.push(decodeURIComponent(callRef).split(";")[0]);
-											options.participants = participants;
-										}
-										options.modalities = [ "Chat" ];
-										renderConversation(options);*/
+										log(">>> Incoming calls not supported on this page: " + pageCallId);
 									} else {
 										// it's a new outgoing call
 										var outgoingConversation = function(options) {
 											options.modalities = [ "Chat" ]; // , "Video"
 											api.renderConversation($convo.get(0), options).then(function(conversation) {
 												currentConversation = conversation;
-												trackConversation(conversation);
+												mssfb.logConversation(conversation);
 												if (mssfbCallTitle) {
 													conversation.topic(mssfbCallTitle);
 												}
 												// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
-												var callId = getCallId(conversation);
+												var callId = mssfb.getCallId(conversation);
 												var registerCall = function() {
 													var ownerId, ownerType;
 													if (conversation.isGroupConversation()) {
@@ -517,9 +335,6 @@ if (eXo.videoCalls) {
 													var participants = [];
 													for (var i=0; i<conversation.participantsCount(); i++) {
 														var pid = conversation.participants(i).person.id();
-														if (pid.startsWith("sip:")) {
-															pid = pid.substring(4);
-														}
 														participants.push(pid);
 													}
 													var callInfo = {
@@ -527,7 +342,7 @@ if (eXo.videoCalls) {
 														ownerType : ownerType,  
 														provider : mssfb.getType(),
 														title : conversation.topic(),
-														participants : participants.join(";")
+														participants : participants.join("+")
 													};
 													videoCalls.registerCall(callId, callInfo).done(function(call) {
 														log(">>>> MSSFB call " + callId + " registered");
@@ -552,13 +367,13 @@ if (eXo.videoCalls) {
 														unregisterCall();
 														handleError(error);
 													};
-													if (isModalityUnsupported(videoError)) {
+													if (mssfb.isModalityUnsupported(videoError)) {
 														// ok, try audio
 														conversation.audioService.start().then(function() {
 															log(">>>> MSSFB audio STARTED");
 														}, function(audioError) {
 															log("<<<< Error starting MSSFB audio: " + JSON.stringify(audioError));
-															if (isModalityUnsupported(audioError)) {
+															if (mssfb.isModalityUnsupported(audioError)) {
 																// well, it will be chat (it should work everywhere)
 																conversation.chatService.start().then(function() {
 																	log(">>>> MSSFB chat STARTED");
@@ -587,7 +402,8 @@ if (eXo.videoCalls) {
 												}
 											});
 										};
-										var participants = decodeURIComponent(callRef).split(";");
+										// TODO for group calls use its URI stored in space/room
+										var participants = pageCallId.substring(2).split("+");
 										var options = {
 											participants : participants
 										};
@@ -605,15 +421,15 @@ if (eXo.videoCalls) {
 							});
 						}
 						if (hasError) {
-							log(">>> MSSFB call error: " + location.hash);
+							log("<<< MSSFB call error: " + location.hash); // show fill hash, it contains an error
 							handleError();
 						}
 						log("<< MSSFB call");
 					} else {
-						log(">> MSSFB default page " + location.href);
-						var hasIdToken = /#id_token=/.test(location.hash);
+						log(">> MSSFB default page " + location.origin + location.pathname);
+						var hasIdToken = /#id_token=/.test(hashLine);
 						if (hasIdToken && location.hash.indexOf("admin_consent=True") >= 0) {
-							log(">>> MSSFB admin consent: " + location.hash);
+							log(">>> MSSFB admin consent: " + mssfb.tokenHashInfo(hashLine));
 							var $root = $("#mssfb-call-root");
 							if ($root.length == 0) {
 								$root = $("<div id='mssfb-call-root'></div>");
@@ -635,7 +451,7 @@ if (eXo.videoCalls) {
 							addToContainer($("<p><a href='/portal'>Home</a></p>"));
 						}
 						if (hasToken) {
-							log(">>> MSSFB token: " + location.hash);
+							log(">>> MSSFB token: " + mssfb.tokenHashInfo(hashLine));
 							var $root = $("#mssfb-call-root");
 							if ($root.length == 0) {
 								$root = $("<div id='mssfb-call-root'></div>");
@@ -645,7 +461,7 @@ if (eXo.videoCalls) {
 							addToContainer($("<div><a href='/portal'>Home</a></div>"));
 						}
 						if (hasError) {
-							log(">>> MSSFB error: " + location.hash);
+							log("<<< MSSFB error: " + location.hash);
 							handleError();
 						}
 						log("<< MSSFB default page");

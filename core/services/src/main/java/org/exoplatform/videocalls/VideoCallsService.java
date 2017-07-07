@@ -20,9 +20,7 @@
 package org.exoplatform.videocalls;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,16 +54,17 @@ import org.picocontainer.Startable;
  */
 public class VideoCallsService implements Startable {
 
+  public static final String SPACE_TYPE_NAME     = "space";
+
+  public static final String CHAT_ROOM_TYPE_NAME = "chat_room";
+
   /**
    * The Class SpaceInfo.
    */
   public class SpaceInfo extends GroupInfo {
 
     /** The space group id. */
-    protected final String                groupId;
-
-    /** The members. */
-    protected final Map<String, UserInfo> members = new LinkedHashMap<>();
+    protected final String groupId;
 
     /**
      * Instantiates a new space info.
@@ -78,29 +77,20 @@ public class VideoCallsService implements Startable {
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Map<String, UserInfo> getMembers() {
-      return Collections.unmodifiableMap(members);
-    }
-
-    /**
-     * Adds the member.
-     *
-     * @param user the user
-     */
-    protected void addMember(UserInfo user) {
-      members.put(user.getId(), user);
-    }
-
-    /**
      * Gets the group id of the space.
      *
      * @return the groupId
      */
     public String getGroupId() {
       return groupId;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getType() {
+      return SPACE_TYPE_NAME;
     }
   }
 
@@ -109,34 +99,36 @@ public class VideoCallsService implements Startable {
    */
   public class RoomInfo extends GroupInfo {
 
-    /** The members. */
-    protected final Map<String, UserInfo> members = new LinkedHashMap<>();
+    /** The pretty name. */
+    protected final String name;
 
     /**
      * Instantiates a new room info.
      *
      * @param id the id
-     * @param name the name
+     * @param name the name, it's pretty name of the room (like what spaces have)
+     * @param title the title
      */
-    public RoomInfo(String id, String name) {
-      super(id, name);
+    public RoomInfo(String id, String name, String title) {
+      super(id, title);
+      this.name = name;
+    }
+
+    /**
+     * Gets the pretty name.
+     *
+     * @return the name
+     */
+    public String getName() {
+      return name;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Map<String, UserInfo> getMembers() {
-      return Collections.unmodifiableMap(members);
-    }
-
-    /**
-     * Adds the member.
-     *
-     * @param user the user
-     */
-    protected void addMember(UserInfo user) {
-      members.put(user.getId(), user);
+    public String getType() {
+      return CHAT_ROOM_TYPE_NAME;
     }
   }
 
@@ -179,6 +171,9 @@ public class VideoCallsService implements Startable {
 
   /** The active calls. */
   protected final Map<String, CallInfo>           calls               = new ConcurrentHashMap<>();
+
+  /** The group calls. */
+  protected final Map<String, String>             groupCalls          = new ConcurrentHashMap<>();
 
   /**
    * Instantiates a new VideoCalls service.
@@ -273,6 +268,7 @@ public class VideoCallsService implements Startable {
         space.addMember(user);
       }
     }
+    space.setCallId(groupCalls.get(spacePrettyName));
     return space;
   }
 
@@ -280,11 +276,27 @@ public class VideoCallsService implements Startable {
    * Gets the room info.
    *
    * @param id the id
+   * @param name the name
    * @param title the title
+   * @param members the room members
    * @return the room info
+   * @throws Exception the exception
    */
-  public RoomInfo getRoomInfo(String id, String title) {
-    return new RoomInfo(id, title);
+  public RoomInfo getRoomInfo(String id, String name, String title, String[] members) throws Exception {
+    RoomInfo room = new RoomInfo(id, name, title);
+    for (String userName : members) {
+      UserInfo user = getUserInfo(userName);
+      if (user != null) {
+        room.addMember(user);
+      } else {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Skipped not found user: " + userName);
+        }
+        throw new IdentityNotFound("User " + userName + " not found or not accessible");
+      }
+    }
+    room.setCallId(groupCalls.get(id)); // groupCalls.clear();
+    return room;
   };
 
   /**
@@ -313,7 +325,7 @@ public class VideoCallsService implements Startable {
       UserInfo userInfo = getUserInfo(ownerId);
       if (userInfo == null) {
         // if owner user not found, it's possibly an external user, thus treat it as a chat room
-        owner = new RoomInfo(ownerId, title);
+        owner = new RoomInfo(ownerId, ownerId, title);
         ownerUri = ParticipantInfo.EMPTY_NAME;
         ownerAvatar = LinkProvider.PROFILE_DEFAULT_AVATAR_URL;
       } else {
@@ -335,15 +347,17 @@ public class VideoCallsService implements Startable {
         }
       } else {
         LOG.warn("Cannot find call's owner space " + ownerId);
-        owner = new RoomInfo(ownerId, title);
+        owner = new RoomInfo(ownerId, ownerId, title);
         ownerUri = ParticipantInfo.EMPTY_NAME;
         ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
       }
+      groupCalls.put(ownerId, id);
     } else {
       // XXX We assume it's custom Chat room
-      owner = new RoomInfo(ownerId, title);
+      owner = new RoomInfo(ownerId, ownerId, title);
       ownerUri = ParticipantInfo.EMPTY_NAME;
       ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
+      groupCalls.put(ownerId, id);
     }
     CallInfo call = new CallInfo(providerType, title, owner, ownerType, ownerUri, ownerAvatar);
     for (String pid : parts) {
