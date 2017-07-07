@@ -680,15 +680,16 @@
 													// roomId is an user name for P2P chats
 													var get = getUserInfo(roomId);
 													get.done(function(user) {
-														roomInfo = {
+														/*roomInfo = {
 										  				id : roomId,
 										  				type : "user", // UserInfo.TYPE_NAME
 										  				isGroup : false,
 										  				name : roomName,
 										  				title : roomTitle,
 										  				callId : null,
-										  				members : { roomId : user }
-										  			};
+										  				members : members
+										  			};*/
+														roomInfo = user;
 														data.resolve(roomInfo);												
 													});
 													get.fail(function(e, status) {
