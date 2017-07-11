@@ -1700,11 +1700,11 @@
 									var addLoginWarn = function(wait) {
 										var $wrapper = $roomDetail.find(".callButtonContainerWrapper");
 										if ($wrapper.length == 0 && wait) {
-											if (attemtCount < 50) {
+											if (attemtCount < 30) {
 												// wait a bit and try again
 												attemtCount++;
 												setTimeout(function() {
-													addLoginWarn(attemtCount < 50);
+													addLoginWarn(attemtCount < 30);
 												}, 250);										
 											} else {
 												// TODO this code never works (see wait flag above)
