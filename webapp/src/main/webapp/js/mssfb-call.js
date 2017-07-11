@@ -16,7 +16,7 @@ if (eXo.videoCalls) {
 				}
 			}
 		};
-		log("> Loading at " + location.origin + location.pathname);
+		//log("> Loading at " + location.origin + location.pathname);
 		
 		var mssfb = videoCalls.getProvider("mssfb");
 		if (mssfb) {
@@ -162,7 +162,7 @@ if (eXo.videoCalls) {
 			
 			if (isLogin) {
 				// FYI it's what WebSDK calls an "empty page"
-				log(">> MSSFB login: " + mssfb.tokenHashInfo(hashLine));
+				//log(">> MSSFB login: " + mssfb.tokenHashInfo(hashLine));
 				$(function() {
 					alignLoader();
 				});
@@ -213,14 +213,9 @@ if (eXo.videoCalls) {
 									window.close();
 								}, 2500);
 							});	
-						} else {
-							//log(">>> use parent.eXo.videoCalls.mssfb.saveToken()");
-							//parent.eXo.videoCalls.mssfb.saveToken(token);
 						}
 					} else {
 						log(">>> login has no opener or not initialized for callback token");
-						// , use mssfb.saveToken()
-						//mssfb.saveToken(token);
 					}
 				}
 				if (hasError) {
@@ -232,18 +227,8 @@ if (eXo.videoCalls) {
 				$(function() {
 					alignLoader();
 					var clientId = mssfb.getClientId();
-					
-					/* TODO not used */
-					window.notifyUser = function(message) {
-						if (typeof(message) == "object") {
-							videoCalls.showWarn(message.title, message.text);
-						} else {
-							videoCalls.showWarn("Warning", message);
-						}
-					};
-					
 					if (isCall) {
-						log(">> MSSFB call: " + location.origin + location.pathname);
+						//log(">> MSSFB call: " + location.origin + location.pathname);
 						var pageCallId;
 						var ciIndex = location.pathname.indexOf("call/") + 5;
 						if (ciIndex > 5 && location.pathname.length > ciIndex) {
@@ -251,7 +236,6 @@ if (eXo.videoCalls) {
 						} else {
 							pageCallId = "???" + location.pathname;
 						}
-						// TODO care if multiple convos were running in this page (others started directly from CC UI)
 						var currentConversation;
 						// it's call window, user may be already authenticated, but may be not
 						if (hasToken) {
@@ -268,7 +252,6 @@ if (eXo.videoCalls) {
 										addToContainer($convo);
 									}
 									log(">>> MSSFB conversation is creating in " + $convo.get(0) + " " + pageCallId);
-									
 									var beforeunloadListener = function(e) {
 										if (currentConversation) {
 											var msg = onClosePage(currentConversation, uiApp);
@@ -326,7 +309,6 @@ if (eXo.videoCalls) {
 																ownerType = "chat_room";
 															}
 														}
-														// we assume it's custom Chat room
 													} else {
 														ownerId = videoCalls.getUser().id;
 														ownerType = "user";

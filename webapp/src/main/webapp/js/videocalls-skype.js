@@ -16,7 +16,7 @@
 			}
 		}
 	};
-	log("> Loading at " + location.origin + location.pathname);
+	//log("> Loading at " + location.origin + location.pathname);
 
 	var globalVideoCalls = typeof eXo != "undefined" && eXo && eXo.videoCalls ? eXo.videoCalls : null;
 	
@@ -80,12 +80,6 @@
 							var rndText = Math.floor((Math.random() * 1000000) + 1);
 							var linkId = "SkypeCall-" + target.id + "-" + rndText;
 							// TODO i18n for title
-							/*var title;
-							if (context.userName) {
-								title = "Call with " + self.getTitle();
-							} else {
-								title = self.getTitle() + " Call";
-							}*/
 							var ims = [];
 							var wrongUsers = [];
 							var addParticipant = function(user) {

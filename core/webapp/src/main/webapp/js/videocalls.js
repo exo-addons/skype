@@ -17,7 +17,7 @@
 			}
 		}
 	};
-	log("> Loading at " + location.origin + location.pathname);
+	//log("> Loading at " + location.origin + location.pathname);
 
 	// Returns the version of Windows Internet Explorer or a -1
 	// (indicating the use of another browser).
@@ -494,10 +494,10 @@
 						});
 					} else {
 						$target.data("callbuttoninit", initializer);
-						log(">>> addCallButton > init " + contextName + " providers: " + addProviders.length);
+						//log(">>> addCallButton > init " + contextName + " providers: " + addProviders.length);
 						initializer.always(function() {
 							$target.removeData("callbuttoninit");
-							log("<<< addCallButton < init " + contextName + " providers: " + addProviders.length);
+							//log("<<< addCallButton < init " + contextName + " providers: " + addProviders.length);
 						});
 						// Do the main work here
 						var $container = $target.find(".callButtonContainer");
@@ -516,21 +516,21 @@
 						var workers = [];
 						var buttons = [];
 						function addProviderButton(provider, button) {
-							log(">>> addCallButton > adding > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.id);
+							//log(">>> addCallButton > adding > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.id);
 							// need do this in a function to keep worker variable in the scope of given button when it will be done 
 							var bworker = $.Deferred();
 							button.done(function($button) {
 								// TODO reorder buttons in business priority 
 								if ($dropdown.length > 0) {
 									// add in dropdown
-									log(">>> addCallButton > add in dropdown > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.id);
+									//log(">>> addCallButton > add in dropdown > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.id);
 									$button.addClass(buttonClass);
 									var $li = $("<li></li>");
 									$li.append($button)
 									$dropdown.append($li);	
 								} else {
 									// add first & default button
-									log(">>> addCallButton > add first & default button > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.id);
+									//log(">>> addCallButton > add first & default button > " + contextName + "(" + provider.getTitle() + ") for " + context.currentUser.id);
 									$button.addClass("btn " + buttonClass); // btn btn-primary actionIcon 
 									$container.append($button);
 									$dropdown = $("<ul class='dropdown-menu'></ul>");
@@ -551,10 +551,10 @@
 							workers.push(bworker.promise());
 						}
 						// we have an one button for each provider
-						log(">>> addCallButton > " + contextName + " for " + context.currentUser.id + " providers: " + addProviders.length);
+						//log(">>> addCallButton > " + contextName + " for " + context.currentUser.id + " providers: " + addProviders.length);
 						for (var i = 0; i < addProviders.length; i++) {
 							var p = addProviders[i];
-							log(">>> addCallButton > next provider > " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.id + " providers: " + addProviders.length);
+							//log(">>> addCallButton > next provider > " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.id + " providers: " + addProviders.length);
 							if ($container.data(providerFlag + p.getType())) {
 								log("<<< addCallButton DONE (already) < " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.id);
 							} else {
@@ -607,7 +607,7 @@
 				var $chat = $("#chat-application");
 				// chatApplication is a global on chat app page
 				if (typeof(chatApplication) == "object" && chatApplication && $chat.length > 0) {
-					log(">> initChat " + chatApplication.username);
+					log(">> initChat for " + chatApplication.username);
 					var $roomDetail = $chat.find("#room-detail");
 					
 					var addRoomButtton = function() {
@@ -615,7 +615,7 @@
 						setTimeout(function() {
 							var roomId = chatApplication.targetUser;
 							var roomTitle = chatApplication.targetFullname;
-							log(">>> addRoomButtton [" + roomTitle + "(" + roomId + ")] for " + chatApplication.username);
+							//log(">>> addRoomButtton [" + roomTitle + "(" + roomId + ")] for " + chatApplication.username);
 							if (roomId) {
 								var isSpace = roomId.startsWith("space-");
 								var isTeam = roomId.startsWith("team-");
@@ -680,15 +680,6 @@
 													// roomId is an user name for P2P chats
 													var get = getUserInfo(roomId);
 													get.done(function(user) {
-														/*roomInfo = {
-										  				id : roomId,
-										  				type : "user", // UserInfo.TYPE_NAME
-										  				isGroup : false,
-										  				name : roomName,
-										  				title : roomTitle,
-										  				callId : null,
-										  				members : members
-										  			};*/
 														roomInfo = user;
 														data.resolve(roomInfo);												
 													});
@@ -704,52 +695,6 @@
 														}
 													});
 												}
-												// TODO cleanup
-												/*if (isGroup) {
-													chatApplication.getUsers(roomId, function (resp) {
-														var unames = [];
-														for (var i=0; i<resp.users.length; i++) {
-															var u = resp.users[i];
-															if (u && u.name && u.name != "null") {
-																unames.push(u.name);
-															}
-														}
-														var get = getUsersInfo(unames);
-														get.done(function(users) {
-															roomUsers = users;
-															data.resolve(users, roomId, roomTitle);												
-														});
-														get.fail(function(e, status) {
-															if (typeof(status) == "number" && status == 404) {
-																var msg = (e.message ? e.message + " " : "Not found ");
-																log(">> initChat < ERROR get_users " + msg + " for " + currentUser.id + ": " + JSON.stringify(e));
-																data.reject(msg);
-															} else {
-																log(">> initChat < ERROR get_users : " + JSON.stringify(e));
-																data.reject(e);
-																// TODO notify the user?
-															}
-														});
-								          });
-												} else {
-													// we assume it's one-on-one room
-													var get = getUserInfo(roomId);
-													get.done(function(user) {
-														roomUsers = [ user ];
-														data.resolve(roomUsers, roomId, roomTitle);												
-													});
-													get.fail(function(e, status) {
-														if (typeof(status) == "number" && status == 404) {
-															var msg = (e.message ? e.message + " " : "Not found ");
-															log(">> initChat < ERROR get_user " + msg + " for " + currentUser.id + ": " + JSON.stringify(e));
-															data.reject(msg);
-														} else {
-															log(">> initChat < ERROR get_user : " + JSON.stringify(e));
-															data.reject(e);
-															// TODO notify the user?
-														}
-													});
-												}*/
 											}
 											return data.promise();
 										}
@@ -782,12 +727,12 @@
 									}
 									addRoomCallButton();
 								} else {
-									log("Chat team dropdown not found");
+									log("ERROR: Chat team dropdown not found");
 									$roomDetail.removeData("roomcallinitialized");
 								}
 							} else {
 								currentSpaceId = currentRoomTitle = null;
-								log("Chat room not found");
+								log("ERROR: Chat room not found");
 								$roomDetail.removeData("roomcallinitialized");
 							}
 						}, 1000); // XXX whoIsOnline may run 500-750ms on eXo Tribe
@@ -797,7 +742,7 @@
 						$roomDetail.data("roomcallinitialized", true);
 						addRoomButtton();
 					} else {
-						log("Chat room already initialized");
+						log("WARN: Chat room already initialized");
 					}
 					
 					// User popovers in right panel
@@ -836,26 +781,6 @@
 					return user;
 				}
 			};
-			/*Object.defineProperty(context, "user", {
-			  enumerable: true,
-			  configurable: false,
-			  get: function() {
-			  	var get = getUserInfo(userId);
-					get.fail(function(e, status) {
-						if (typeof(status) == "number" && status == 404) {
-							log(">> userContext < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userId + " for " + currentUser.id + ": " + JSON.stringify(e));
-						} else {
-							log(">> userContext < ERROR get_user : " + JSON.stringify(e));
-							// TODO notify the user?
-						}
-					});
-					return get;
-			  },
-			  set: function() {
-			  	log(">> userContext < ERROR set_user not supported " + userId + " for " + currentUser.id);
-			  	throw "Changing 'user' property not supported";
-			  }
-			});*/
 			return context;
 		};
 		
@@ -1010,25 +935,6 @@
 					return space;
 				}
 			};
-			/*Object.defineProperty(context, "space", {
-			  enumerable: true,
-			  configurable: false,
-			  get: function() {
-			  	var get = getSpaceInfo(spaceId);
-			  	get.fail(function(e, status) {
-						if (typeof(status) == "number" && status == 404) {
-							log(">> spaceContext < ERROR get_space " + spaceId + " for " + currentUser.id + ": " + (e.message ? e.message + " " : "Not found ") + cid + ": " + JSON.stringify(e));
-						} else {
-							log(">> spaceContext < ERROR get_space " + spaceId + " for " + currentUser.id + ": " + JSON.stringify(e));
-						}
-					});
-					return get;
-			  },
-			  set: function() {
-			  	log(">> spaceContext < ERROR set_space not supported " + spaceId + " for " + currentUser.id);
-			  	throw "Changing 'space' property not supported";
-			  }
-			});*/
 			return context;
 		};
 		

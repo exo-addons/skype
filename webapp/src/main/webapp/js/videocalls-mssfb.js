@@ -16,7 +16,7 @@
 			}
 		}
 	};
-	log("> Loading at " + location.origin + location.pathname);
+	//log("> Loading at " + location.origin + location.pathname);
 	
 	/** 
 	 * Polyfill ECMAScript 2015's String.startsWith().
@@ -210,7 +210,8 @@
 			this.tokenHashInfo = tokenHashInfo;
 			
 			var saveLocalToken = function(token) {
-				log(">> saveLocalToken: " + tokenHashInfo(token.hash_line));
+				//log(">> saveLocalToken: " + tokenHashInfo(token.hash_line));
+				log("Using new login token");
 				if (typeof(Storage) !== "undefined") {
 			    // Code for localStorage/sessionStorage.
 			  	localStorage.setItem(TOKEN_STORE, JSON.stringify(token));
@@ -258,7 +259,8 @@
 						token = null;
 					} else {
 						// else, we can use current token
-						log(">> currentToken: " + tokenHashInfo(token.hash_line));
+						//log(">> currentToken: " + tokenHashInfo(token.hash_line));
+						log("Using existing login token");
 					}
 				}
 				return token;
@@ -451,7 +453,7 @@
 							if (!redirectUri) {
 								redirectUri = redirectUri ? redirectUri : settings.redirectUri; 
 							}
-							log("uiApp redirectUri='" + redirectUri + "'");
+							//log("uiApp redirectUri='" + redirectUri + "'");
 							log("uiApp clientId='" + settings.clientId + "'");
 							app.signInManager.signIn({
 								"client_id" : settings.clientId,
@@ -582,7 +584,7 @@
 					location.hash = token.hash_line;
 					var appInitializer = provider.uiApplication(loginUri);
 					appInitializer.done(function(api, app) {
-						// TODO save token in the server-side for late use
+						// TODO save token in the server-side for late use?
 					  log("Login OK, app created OK");
 					  // Save the token hash in local storage for later use
 					  location.hash = prevHash;
@@ -591,7 +593,7 @@
 					  // Remove warnings if any
 					  // TODO check exactly that the SfB authorized 
 						$(".mssfbLoginWarningContainer").remove();
-					  // TODO care about token renewal
+					  // And care about token renewal
 						loginTokenUpdater = setTimeout(function() {
 							loginTokenUpdater = null;
 							loginIframe().done(function() {
@@ -634,12 +636,10 @@
 				setTimeout(function() {
 					// check if $iframe not stays on MS server: it will mean we need login user explicitly
 					try {
-						//$iframe.ready(function(){
-							var iframeLocation = $iframe.get(0).contentWindow.location;
-							var checkUri = iframeLocation.origin + iframeLocation.pathname;
-							// if iframe accessed ok, then it's eXo server URL, not MS login
-							log("Login iframe check DONE: " + checkUri);
-						//});								
+						var iframeLocation = $iframe.get(0).contentWindow.location;
+						var checkUri = iframeLocation.origin + iframeLocation.pathname;
+						// if iframe accessed ok, then it's eXo server URL, not MS login
+						log("Login iframe check DONE: " + checkUri);
 					} catch (e) {
 						// it's an error, like DOMException for
 						$iframe.remove();
@@ -658,7 +658,7 @@
 					if (curi) {
 						return "g/" + curi;
 					} else if (c.state() != "Created") {
-						log(">> ERROR: group conversation not Created but without URI");
+						log(">> ERROR: group conversation state not 'Created' but without URI, state was: " + c.state());
 					}
 					return null;
 				} else {
@@ -742,12 +742,7 @@
 										conversation.participants.add(remoteParty);
 									} catch(e) {
 										log(">>> Error creating group participant " + imId, e);
-										/*for (var i=0; i<users.length; i++) {
-											if (videoCalls.imAccount(users[i], "mssfb") == imId) {
-												users.splice(i, 1);
-												break;
-											}
-										}*/
+										// TODO notify user
 									}
 								}
 								options.conversation = conversation;
@@ -802,7 +797,7 @@
 						var registered = false;
 						var registerCall = function() {
 							if (!registered && callId != "g/adhoc") {
-								log(">>> Registering " + callId + " > " + new Date().getTime());
+								//log(">>> Registering " + callId + " > " + new Date().getTime());
 								registered = true;
 								var ownerType, ownerId;
 								if (target.group) {
@@ -812,23 +807,6 @@
 									ownerType = "user";
 									ownerId = currentUser.id;
 								}
-								/*if (conversation.isGroupConversation()) {
-									var spaceId = videoCalls.getCurrentSpaceId();
-									if (spaceId != null) {
-										ownerId = spaceId;
-										ownerType = "space";
-									} else {
-										var roomTitle = videoCalls.getCurrentRoomTitle();
-										if (roomTitle != null) {
-											ownerId = roomTitle;
-											ownerType = "chat_room";
-										}
-									}
-									// we assume it's custom Chat room
-								} else {
-									ownerId = videoCalls.getUser().id;
-									ownerType = "user";
-								}*/
 								// call creator goes first in the ID of p2p
 								var participants = [];
 								for (var i=0; i<conversation.participantsCount(); i++) {
@@ -852,7 +830,7 @@
 						};
 						var unregisterCall = function() {
 							if (registered) {
-								log(">>> Unregistering " + callId + " > " + new Date().getTime());
+								//log(">>> Unregistering " + callId + " > " + new Date().getTime());
 								videoCalls.unregisterCall(callId).done(function(call) {
 									log("<<< Unregistered " + callId + " > " + new Date().getTime());
 									registered = false;
@@ -902,6 +880,8 @@
 							}
 						};
 						if (conversation.isGroupConversation()) {
+							// FYI This doesn't work for group calls, at this stage a newly created convo will not have an URI, 
+							// thus the call ID will be like g/adhoc, not what other parts will see in added one
 							/*conversation.state.once("Conferencing", function() {
 								startingCall("Conferencing");
 							});							
@@ -1007,6 +987,42 @@
 				return process.promise();
 			};
 			
+			var showWrongUsers = function(callWindow, wrongUsers) {
+				if (wrongUsers.length > 0) {
+					var userNames = "";
+					for (var i=0; i<wrongUsers.length; i++) {
+						if (i > 0) {
+							userNames += ", ";
+						}
+						var wu = wrongUsers[i];
+						userNames += wu.firstName + " " + wu.lastName;
+					}
+					var s, have, who; 
+					if (wrongUsers.length > 1) {
+						s = "s";
+						have = "have";
+						who = "They were";
+					} else {
+						s = "";
+						have = "has";
+						who = "It was";
+					}
+					var title = "Wrong Skype account" + s;
+					var message = "Following user" + s + " " + have + " wrong business account: " + 
+						userNames + ". " + who + " not added to the call.";
+					log(title, message);
+					if (callWindow) {
+						// inform the caller in call window
+						$(callWindow).on("load", function() {
+							notifyCaller(callWindow, title, message);
+						});
+					} else {
+						// inform on this page
+						videoCalls.showWarn(title, message);
+					}
+				}
+			};
+			
 			this.callButton = function(context) {
 				var button = $.Deferred();
 				if (settings && context && context.currentUser) {
@@ -1015,123 +1031,68 @@
 					var currentUserSFB = videoCalls.imAccount(context.currentUser, "mssfb");
 					if (currentUserSFB) {
 						context.currentUserSFB = currentUserSFB;
-						context.details().done(function(target) { // users, convName, convTitle
-							//var rndText = Math.floor((Math.random() * 1000000) + 1);
-							//var linkId = "SkypeCall-" + target.name + "-" + rndText;
-							// TODO i18n for title
-							/*var title = target.title;
-							var groupCallId;
-							if (context.spaceId) {
-								groupCallId = context.target.callId;
-							} else if (context.roomId && context.isGroup) {
-								groupCallId = context.target.callId;									
-							}*/
-							var ims = []; // for call on a new page
-							var participants = []; // for embedded call
-							//var participantUsers = [];
-							var wrongUsers = [];
-							var addParticipant = function(user) {
-								//var uskype = videoCalls.imAccount(u, "skype");
-								var ubusiness = videoCalls.imAccount(user, "mssfb");
-								if (ubusiness) {
-									if (ubusiness.id != context.currentUserSFB.id) {
-										if (EMAIL_PATTERN.test(ubusiness.id)) {
-											participants.push(ubusiness.id);
-											//participantUsers.push(user);
-											ims.push(encodeURIComponent(ubusiness.id));
-										} else {
-											wrongUsers.push(ubusiness);
-										}
-									}
-								} // else, skip this user
-							};
-							if (target.group) {
-								for ( var uname in target.members) {
-									if (target.members.hasOwnProperty(uname)) {
-										var u = target.members[uname];
-										addParticipant(u);
-									}
-								}								
-							} else {
-								addParticipant(target);
+						var fullTitle = self.getTitle() + " " + self.getCallTitle();
+						var $button = $("<a title='" + fullTitle + "' href='javascript:void(0);' class='mssfbCallAction'>"
+									+ "<i class='uiIconMssfbCall uiIconForum uiIconLightGray'></i>"
+									+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");
+						setTimeout(function() {
+							if (!$button.hasClass("btn")) {
+								// in dropdown show longer description
+								$button.find(".callTitle").text(fullTitle);
 							}
-							var showWrongUsers = function(callWindow) {
-								if (wrongUsers.length > 0) {
-									var userNames = "";
-									for (var i=0; i<wrongUsers.length; i++) {
-										if (i > 0) {
-											userNames += ", ";
+						}, 1000);
+						$button.click(function() {
+							context.details().done(function(target) { // users, convName, convTitle
+								var ims = []; // for call on a new page
+								var participants = []; // for embedded call
+								var wrongUsers = [];
+								var addParticipant = function(user) {
+									//var uskype = videoCalls.imAccount(u, "skype");
+									var ubusiness = videoCalls.imAccount(user, "mssfb");
+									if (ubusiness) {
+										if (ubusiness.id != context.currentUserSFB.id) {
+											if (EMAIL_PATTERN.test(ubusiness.id)) {
+												participants.push(ubusiness.id);
+												//participantUsers.push(user);
+												ims.push(encodeURIComponent(ubusiness.id));
+											} else {
+												wrongUsers.push(ubusiness);
+											}
 										}
-										var wu = wrongUsers[i];
-										userNames += wu.firstName + " " + wu.lastName;
-									}
-									var s, have, who; 
-									if (wrongUsers.length > 1) {
-										s = "s";
-										have = "have";
-										who = "They were";
-									} else {
-										s = "";
-										have = "has";
-										who = "It was";
-									}
-									var title = "Wrong Skype account" + s;
-									var message = "Following user" + s + " " + have + " wrong business account: " + 
-										userNames + ". " + who + " not added to the call.";
-									log(title, message);
-									if (callWindow) {
-										// inform the caller in call window
-										$(callWindow).on("load", function() {
-											notifyCaller(callWindow, title, message);
-										});
-									} else {
-										// inform on this page
-										videoCalls.showWarn(title, message);
-									}
+									} // else, skip this user
+								};
+								if (target.group) {
+									for ( var uname in target.members) {
+										if (target.members.hasOwnProperty(uname)) {
+											var u = target.members[uname];
+											addParticipant(u);
+										}
+									}								
+								} else {
+									addParticipant(target);
 								}
-							};
-							if (participants.length > 0) {
-								var $button = $("<a title='" + target.title // id='" + linkId + "' 
-											+ "' href='javascript:void(0);' class='mssfbCallAction'>"
-											+ "<i class='uiIconMssfbCall uiIconForum uiIconLightGray'></i>"
-													+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");
-								if (target.callId) {
-									$button.data("callid", target.callId);
-								}
-								setTimeout(function() {
-									if (!$button.hasClass("btn")) {
-										// in dropdown show longer description
-										$button.find(".callTitle").text(self.getTitle() + " " + self.getCallTitle());
-									}
-								}, 1000);
-								$button.click(function() {
-									// find if it's not locally run convo
-									//app.conversationsManager.conversations();
-									var saveConvo = function(callId, conversation) {
-										log(">>> saveConvo: " + callId);
-										localConvos[callId] = conversation;
-										$button.data("callid", callId);
-									};
-									var localConvo;
-									var callId = $button.data("callid");
-									if (callId) {
-										localConvo = localConvos[callId];
-									}
+								if (participants.length > 0) {
 									var container = $("#mssfb-call-container").data("callcontainer");
 									if (container) {
 										// Call from Chat room on the same page
+										var saveConvo = function(callId, conversation) {
+											log(">>> saveConvo: " + callId);
+											localConvos[callId] = conversation;
+										};
+										var localConvo;
+										if (target.callId) {
+											localConvo = localConvos[target.callId];
+										}
 										// We will try reuse saved locally SfB token
 										var token = currentToken();
 										if (token && uiApiInstance && uiAppInstance) {
-											//initializer.resolve(uiApiInstance, uiAppInstance);
 											log("Automatic login done.");
 											outgoingCallHandler(uiApiInstance, uiAppInstance, container, context.currentUser, target, participants, localConvo).done(saveConvo);
-											showWrongUsers(null);
+											showWrongUsers(null, wrongUsers);
 										} else {
 											// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
 											// FYI this iframe will fail due to 'X-Frame-Options' to 'deny' set by MS
 											// TODO may be another URL found to do this? - see incoming call handler for code
-											//initializer.reject("Login token not found or expired");
 											// need login user explicitly (in a popup)
 											log("Automatic login failed: login token not found or expired");
 											loginWindow();
@@ -1154,16 +1115,20 @@
 									} else {
 										// XXX for calling from spaces and user popovers outside Chat app
 										var callWindow = openCallWindow("_/" + ims.join(";"), target.title + " call");
-										showWrongUsers(callWindow);
+										showWrongUsers(callWindow, wrongUsers);
 									}
-								});
-								button.resolve($button);
-							} else {
-								button.reject("No " + self.getTitle() + " users found");
-							}
-						}).fail(function(err) {
-							button.reject("Error getting participants for " + self.getTitle() + ": " + err);
+								} else {
+									// TODO cleanup
+									//button.reject("No " + self.getTitle() + " users found");
+									videoCalls.showWarn("Cannot start a call", "No " + self.getTitle() + " users found.");
+								}
+							}).fail(function(err) {
+								// TODO cleanup
+								//button.reject("Error getting details for " + self.getTitle() + ": " + err);
+								videoCalls.showWarn("Error starting a call", err.message);
+							});							
 						});
+						button.resolve($button);
 					} else {
 						button.reject("Not SfB user");
 					}
@@ -1325,7 +1290,6 @@
 										}); 
 										popover.done(function(msg) {
 											log(">>> user " + msg + " call " + callId);
-											//var callWindow = openCallWindow(callId, title ? title : provider.getTitle() + " call", tokenHash);
 											if (container) {
 												// switch to the call room in the Chat
 												if (typeof(chatApplication) == "object" && chatApplication) {
@@ -1394,8 +1358,6 @@
 																// error starting videoService, cancel (by this user) also will go here
 																log("<<< Error accepting video: " + JSON.stringify(videoError));
 															});
-															//window.addEventListener("beforeunload", beforeunloadListener);
-															//window.addEventListener("unload", unloadListener);
 														} else if (newValue === "Disconnected") {
 															log("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 															if (oldValue === "Connected" || oldValue === "Connecting") {
@@ -1442,7 +1404,7 @@
 											}
 										});
 									}
-									log(">>> Get registered " + callId + " > " + new Date().getTime());
+									//log(">>> Get registered " + callId + " > " + new Date().getTime());
 									var callInfo = videoCalls.getRegisteredCall(callId);
 									callInfo.done(function(call) {
 										log(">>> Got registered " + callId + " > " + new Date().getTime());
@@ -1555,7 +1517,7 @@
 				}
 			});
 			this.init = function(context) {
-				log("Init at " + location.origin + location.pathname);
+				//log("Init at " + location.origin + location.pathname);
 				var $control = $(".mssfbControl");
 				if ($control.length > 0) {
 					// in user profile edit page 
@@ -1632,6 +1594,7 @@
 											var cstate = c.state();
 											if (cstate == "Connecting" || cstate == "Connected" || cstate == "Conferenced") {
 												c.leave();
+												// TODO it is a better way to close the call?
 												/* c.activeModalities.video.when(true, function() {
 											    c.videoService.stop();
 												});
@@ -1665,7 +1628,7 @@
 									}
 									$container.show();
 									setTimeout(function() {
-										log(">>> aligned call container in chats");
+										//log(">>> aligned call container in chats");
 										$(window).resize();
 									}, 2000);
 								});
@@ -1736,20 +1699,28 @@
 													});
 												});
 											}
-										} else {
+										} else if (!$wrapper.data("callloginwarned")) {
+											$wrapper.data("callloginwarned", true);
 											// add the link/icon with warning and login popup
 											// this warning will be removed by loginTokenHandler() on done 
 											$chat.find(".mssfbLoginWarningContainer").remove();
-											var $loginLinkContainer = $("<div class='mssfbLoginWarningContainer parentPosition pull-left'></div>");
+											var $loginLinkContainer = $("<div class='mssfbLoginWarningContainer parentPosition'></div>");
 											var $loginLink = $("<a href='#' class='mssfbLoginWarningLink'><i class='uiIconColorWarning'></i></a>");
 											$loginLinkContainer.append($loginLink);
-											$chat.find(".no-user-selection .selectUserStatus+label:first").after($loginLinkContainer);
-											// TODO show in room info near the call button or team dropdown
-											// if ($wrapper.length > 0) {
-											// $wrapper.after($loginLinkContainer);
-											// } else {
-											// $roomDetail.find("#chat-team-button-dropdown").after($loginLinkContainer);
-											// }
+											if ($roomDetail.is(":visible")) {
+												// Show in room info near the call button or team dropdown
+												$loginLinkContainer.addClass("pull-right");
+												if ($wrapper.length > 0) {
+												 $wrapper.after($loginLinkContainer);
+												} else {
+												 $roomDetail.find("#chat-team-button-dropdown").after($loginLinkContainer);
+												}	
+											} else {
+												// Show in .selectUserStatus after the user name
+												$loginLinkContainer.addClass("pull-left");
+												$chat.find(".no-user-selection .selectUserStatus+label:first").after($loginLinkContainer);												
+											}
+											
 											$loginLink.click(function() {
 												userLogin();										
 											});
@@ -1757,7 +1728,7 @@
 											$popoverContainer.append("<div class='popover bottom popupOverContent' style='display: none;'>"
 														+ "<span class='arrow' style='top: -8%;'></span>"
 														+ "<div class='popover-content'>" + provider.getTitle() 
-															+ " authorization required. Click the icon to open " + provider.getTitle() + " sign in window.</div>"
+															+ " authorization required. Click this icon to open sign-in window.</div>"
 														+ "</div>");
 											$loginLinkContainer.append($popoverContainer);
 											var $popover = $popoverContainer.find(".popupOverContent:first");
@@ -1779,6 +1750,7 @@
 								// If user will click another room during the call, we move the call container to a window top
 								// if user will get back to the active call room, we will resize the container to that call chats
 								var moveCallContainer = function(forceDetach) {
+									// TODO is ti possible to get rid the timer and rely on actual DOM update for the chat?
 									setTimeout(function() {
 										if ($container.is(":visible")) {
 											var roomId = chatApplication.targetUser;
@@ -1801,7 +1773,7 @@
 												}
 											}
 										}
-									}, 1000);
+									}, 1200);
 								};
 								var $users = $chat.find("#chat-users");
 								$users.click(function() {
@@ -1810,12 +1782,6 @@
 								$chat.find(".uiRightContainerArea #room-detail>#back").click(function() {
 									moveCallContainer(true);
 								});
-								
-								/*$users.find(".users-online .room-link").click(function() {
-										var $roomLink = $(this);
-										var $roomLink = $(this);
-										var roomId = $roomLink.attr("user-data");
-								});*/
 							} else {
 								log("Cannot find #chats element for calls container");
 							} 
