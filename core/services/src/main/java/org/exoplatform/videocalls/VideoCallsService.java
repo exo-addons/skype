@@ -26,6 +26,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.exoplatform.commons.api.settings.SettingService;
+import org.exoplatform.commons.api.settings.SettingValue;
+import org.exoplatform.commons.api.settings.data.Context;
+import org.exoplatform.commons.api.settings.data.Scope;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.component.ComponentPlugin;
 import org.exoplatform.services.cms.drives.ManageDriveService;
@@ -57,7 +61,9 @@ public class VideoCallsService implements Startable {
   public static final String SPACE_TYPE_NAME     = "space";
 
   public static final String CHAT_ROOM_TYPE_NAME = "chat_room";
-
+  
+  protected static final String CALL_OWNER_SCOPE_NAME = "videocalls.callOwner";
+  
   /**
    * The Class SpaceInfo.
    */
@@ -163,6 +169,9 @@ public class VideoCallsService implements Startable {
   /** The listener service. */
   protected final ListenerService                 listenerService;
 
+  /** The settings service. */
+  protected final SettingService                  settingService;
+
   /** The providers. */
   protected final Map<String, VideoCallsProvider> providers           = new ConcurrentHashMap<>();
 
@@ -173,7 +182,7 @@ public class VideoCallsService implements Startable {
   protected final Map<String, CallInfo>           calls               = new ConcurrentHashMap<>();
 
   /** The group calls. */
-  protected final Map<String, String>             groupCalls          = new ConcurrentHashMap<>();
+  //protected final Map<String, String>             groupCalls          = new ConcurrentHashMap<>();
 
   /**
    * Instantiates a new VideoCalls service.
@@ -185,6 +194,7 @@ public class VideoCallsService implements Startable {
    * @param socialIdentityManager the social identity manager
    * @param driveService the drive service
    * @param listenerService the listener service
+   * @param settingService the settings service
    */
   public VideoCallsService(RepositoryService jcrService,
                            SessionProviderService sessionProviders,
@@ -192,7 +202,8 @@ public class VideoCallsService implements Startable {
                            OrganizationService organization,
                            IdentityManager socialIdentityManager,
                            ManageDriveService driveService,
-                           ListenerService listenerService) {
+                           ListenerService listenerService,
+                           SettingService settingService) {
     this.jcrService = jcrService;
     this.sessionProviders = sessionProviders;
     this.hierarchyCreator = hierarchyCreator;
@@ -200,6 +211,7 @@ public class VideoCallsService implements Startable {
     this.socialIdentityManager = socialIdentityManager;
     this.driveService = driveService;
     this.listenerService = listenerService;
+    this.settingService = settingService;
   }
 
   /**
@@ -268,7 +280,7 @@ public class VideoCallsService implements Startable {
         space.addMember(user);
       }
     }
-    space.setCallId(groupCalls.get(spacePrettyName));
+    space.setCallId(readCallId(spacePrettyName)); // groupCalls.get(spacePrettyName)
     return space;
   }
 
@@ -295,7 +307,7 @@ public class VideoCallsService implements Startable {
         throw new IdentityNotFound("User " + userName + " not found or not accessible");
       }
     }
-    room.setCallId(groupCalls.get(id)); // groupCalls.clear();
+    room.setCallId(readCallId(id)); // groupCalls.clear(); //  groupCalls.get(id)
     return room;
   };
 
@@ -351,13 +363,15 @@ public class VideoCallsService implements Startable {
         ownerUri = ParticipantInfo.EMPTY_NAME;
         ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
       }
-      groupCalls.put(ownerId, id);
+      //groupCalls.put(ownerId, id);
+      saveCallId(ownerId, id);
     } else {
       // XXX We assume it's custom Chat room
       owner = new RoomInfo(ownerId, ownerId, title);
       ownerUri = ParticipantInfo.EMPTY_NAME;
       ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
-      groupCalls.put(ownerId, id);
+      //groupCalls.put(ownerId, id);
+      saveCallId(ownerId, id);
     }
     CallInfo call = new CallInfo(providerType, title, owner, ownerType, ownerUri, ownerAvatar);
     for (String pid : parts) {
@@ -479,6 +493,18 @@ public class VideoCallsService implements Startable {
       spaceMembers.add(sm);
     }
     return spaceMembers;
+  }
+  
+  protected void saveCallId(String ownerId, String callId) {
+    settingService.set(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), ownerId, SettingValue.create(callId));
+  }
+  
+  protected String readCallId(String ownerId) {
+    SettingValue<?> val = settingService.get(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), ownerId);
+    if (val != null) {
+      return String.valueOf(val.getValue());
+    }
+    return null;
   }
 
 }
