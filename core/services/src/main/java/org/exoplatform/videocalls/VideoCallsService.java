@@ -58,12 +58,12 @@ import org.picocontainer.Startable;
  */
 public class VideoCallsService implements Startable {
 
-  public static final String SPACE_TYPE_NAME     = "space";
+  public static final String    SPACE_TYPE_NAME       = "space";
 
-  public static final String CHAT_ROOM_TYPE_NAME = "chat_room";
-  
+  public static final String    CHAT_ROOM_TYPE_NAME   = "chat_room";
+
   protected static final String CALL_OWNER_SCOPE_NAME = "videocalls.callOwner";
-  
+
   /**
    * The Class SpaceInfo.
    */
@@ -182,7 +182,7 @@ public class VideoCallsService implements Startable {
   protected final Map<String, CallInfo>           calls               = new ConcurrentHashMap<>();
 
   /** The group calls. */
-  //protected final Map<String, String>             groupCalls          = new ConcurrentHashMap<>();
+  // protected final Map<String, String> groupCalls = new ConcurrentHashMap<>();
 
   /**
    * Instantiates a new VideoCalls service.
@@ -307,7 +307,7 @@ public class VideoCallsService implements Startable {
         throw new IdentityNotFound("User " + userName + " not found or not accessible");
       }
     }
-    room.setCallId(readCallId(id)); // groupCalls.clear(); //  groupCalls.get(id)
+    room.setCallId(readCallId(id)); // groupCalls.clear(); // groupCalls.get(id)
     return room;
   };
 
@@ -363,14 +363,14 @@ public class VideoCallsService implements Startable {
         ownerUri = ParticipantInfo.EMPTY_NAME;
         ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
       }
-      //groupCalls.put(ownerId, id);
+      // groupCalls.put(ownerId, id);
       saveCallId(ownerId, id);
     } else {
       // XXX We assume it's custom Chat room
       owner = new RoomInfo(ownerId, ownerId, title);
       ownerUri = ParticipantInfo.EMPTY_NAME;
       ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
-      //groupCalls.put(ownerId, id);
+      // groupCalls.put(ownerId, id);
       saveCallId(ownerId, id);
     }
     CallInfo call = new CallInfo(providerType, title, owner, ownerType, ownerUri, ownerAvatar);
@@ -494,17 +494,30 @@ public class VideoCallsService implements Startable {
     }
     return spaceMembers;
   }
-  
+
   protected void saveCallId(String ownerId, String callId) {
-    settingService.set(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), ownerId, SettingValue.create(callId));
-  }
-  
-  protected String readCallId(String ownerId) {
-    SettingValue<?> val = settingService.get(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), ownerId);
-    if (val != null) {
-      return String.valueOf(val.getValue());
+    String initialGlobalId = Scope.GLOBAL.getId();
+    try {
+      settingService.set(Context.GLOBAL,
+                         Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME),
+                         ownerId,
+                         SettingValue.create(callId));
+    } finally {
+      Scope.GLOBAL.id(initialGlobalId);
     }
-    return null;
+  }
+
+  protected String readCallId(String ownerId) {
+    String initialGlobalId = Scope.GLOBAL.getId();
+    try {
+      SettingValue<?> val = settingService.get(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), ownerId);
+      if (val != null) {
+        return String.valueOf(val.getValue());
+      }
+      return null;
+    } finally {
+      Scope.GLOBAL.id(initialGlobalId);
+    }
   }
 
 }

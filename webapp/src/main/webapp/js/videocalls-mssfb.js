@@ -257,6 +257,7 @@
 						// token expired
 						log("Login (saved) token expired");
 						token = null;
+						localStorage.removeItem(TOKEN_STORE);
 					} else {
 						// else, we can use current token
 						//log(">> currentToken: " + tokenHashInfo(token.hash_line));
@@ -608,6 +609,19 @@
 						location.hash = prevHash;
 						process.reject(err);
 					});
+					// it is possible that MS auth will fail silently and we will not receive any status or callback from their SDK
+					// an usecase, logout from MS account, but keep saved login token in this script and try use it, as a result
+					// we'll see an iframe crated by the SDK, it will contain an error about not found tenant and error 400, but error
+					// callback will not be executed in the SDK signIn and the state will stay on "SigningIn".
+					// Thus we'll wait a reasonable time for login and if appInitializer will stay pending - reject it.
+					setTimeout(function() {
+						if (appInitializer.state() == "pending") {
+							location.hash = prevHash;
+							// Force getting of a new token
+							localStorage.removeItem(TOKEN_STORE);
+							process.reject("Application timeout. Please retry.");
+						}
+					},30000);
 				} catch(e) {
 					log("Error handling login token", e);
 					process.reject(e);
@@ -712,7 +726,7 @@
 			this.isModalityUnsupported = isModalityUnsupported;
 			
 			// target, participants, localConvo
-			var outgoingCallHandler = function(api, app, container, currentUser, target, participants, conversation) {
+			var outgoingCallHandler = function(api, app, container, currentUser, target, userIds, participants, conversation) {
 				var process = $.Deferred();
 				container.init();
 				checkPlugin(app).done(function() {
@@ -808,17 +822,17 @@
 									ownerId = currentUser.id;
 								}
 								// call creator goes first in the ID of p2p
-								var participants = [];
+								/*var participants = [];
 								for (var i=0; i<conversation.participantsCount(); i++) {
 									var pid = conversation.participants(i).person.id();
 									participants.push(pid);
-								}
+								}*/
 								var callInfo = {
 									owner : ownerId,
 									ownerType : ownerType,  
 									provider : provider.getType(),
 									title : conversation.topic(),
-									participants : participants.join(";")
+									participants : userIds.join(";") // eXo user ids here
 								};
 								videoCalls.registerCall(callId, callInfo).done(function(call) {
 									log(">>> Registered " + callId + " > " + new Date().getTime());
@@ -1045,6 +1059,7 @@
 							context.details().done(function(target) { // users, convName, convTitle
 								var ims = []; // for call on a new page
 								var participants = []; // for embedded call
+								var users = [];
 								var wrongUsers = [];
 								var addParticipant = function(user) {
 									//var uskype = videoCalls.imAccount(u, "skype");
@@ -1053,7 +1068,7 @@
 										if (ubusiness.id != context.currentUserSFB.id) {
 											if (EMAIL_PATTERN.test(ubusiness.id)) {
 												participants.push(ubusiness.id);
-												//participantUsers.push(user);
+												users.push(user.id);
 												ims.push(encodeURIComponent(ubusiness.id));
 											} else {
 												wrongUsers.push(ubusiness);
@@ -1087,7 +1102,7 @@
 										var token = currentToken();
 										if (token && uiApiInstance && uiAppInstance) {
 											log("Automatic login done.");
-											outgoingCallHandler(uiApiInstance, uiAppInstance, container, context.currentUser, target, participants, localConvo).done(saveConvo);
+											outgoingCallHandler(uiApiInstance, uiAppInstance, container, context.currentUser, target, users, participants, localConvo).done(saveConvo);
 											showWrongUsers(null, wrongUsers);
 										} else {
 											// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
@@ -1101,7 +1116,7 @@
 												callback.done(function(api, app) {
 													log("User login done.");
 													makeCallPopover("Make " + provider.getTitle() + " call?", "Do you want call " + target.title + "?").done(function() {
-														outgoingCallHandler(api, app, container, context.currentUser, target, participants, localConvo).done(saveConvo);														
+														outgoingCallHandler(api, app, container, context.currentUser, target, users, participants, localConvo).done(saveConvo);														
 													}).fail(function() {
 														log("User don't want make a call: " + target.title);
 													});
@@ -1337,7 +1352,7 @@
 														} else if (newValue === "Disconnected") {
 															log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 															if (oldValue === "Connected" || oldValue === "Connecting") {
-																conversation.selfParticipant.audio.state.changed.off(listener);
+																//conversation.selfParticipant.audio.state.changed.off(listener);
 																if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
 																	videoCalls.showError("Skype Plugin Not Initialized", 
 																				"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
@@ -1361,7 +1376,7 @@
 														} else if (newValue === "Disconnected") {
 															log("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 															if (oldValue === "Connected" || oldValue === "Connecting") {
-																conversation.selfParticipant.video.state.changed.off(listener);
+																//conversation.selfParticipant.video.state.changed.off(listener);
 																if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
 																	videoCalls.showError("Skype Plugin Not Initialized", 
 																				"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
@@ -1592,10 +1607,12 @@
 											// TODO what about group convos, will user be removed from its participants also?
 											var c = container.getConversation();
 											var cstate = c.state();
-											if (cstate == "Connecting" || cstate == "Connected" || cstate == "Conferenced") {
+											if (cstate == "Connecting" || cstate == "Connected") {
+												c.leave();
+											} else if (cstate == "Conferenced") {
 												c.leave();
 												// TODO it is a better way to close the call?
-												/* c.activeModalities.video.when(true, function() {
+												/*c.activeModalities.video.when(true, function() {
 											    c.videoService.stop();
 												});
 												c.activeModalities.audio.when(true, function() {
@@ -1603,7 +1620,7 @@
 												});
 												c.activeModalities.chat.when(true, function() {
 											    c.chatService.stop();
-												}); */
+												});*/										
 											}
 										}
 										container.hide();
@@ -1683,11 +1700,11 @@
 									var addLoginWarn = function(wait) {
 										var $wrapper = $roomDetail.find(".callButtonContainerWrapper");
 										if ($wrapper.length == 0 && wait) {
-											if (attemtCount < 20) {
+											if (attemtCount < 50) {
 												// wait a bit and try again
 												attemtCount++;
 												setTimeout(function() {
-													addLoginWarn(attemtCount < 20);
+													addLoginWarn(attemtCount < 50);
 												}, 250);										
 											} else {
 												// TODO this code never works (see wait flag above)
@@ -1806,7 +1823,7 @@
 								});
 								appInitializer.fail(function(err) {
 									log("Login (saved) error: " + JSON.stringify(err));
-									localStorage.removeItem("mssfb_token_hash");
+									localStorage.removeItem(TOKEN_STORE);
 								});
 							} catch(e) {
 								log("Login (saved) parsing error: " + e, e);

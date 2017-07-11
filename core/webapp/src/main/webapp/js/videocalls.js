@@ -631,7 +631,6 @@
 										$teamDropdown.after($wrapper);
 									}
 									var roomName = roomTitle.toLowerCase().split(" ").join("_");
-						  		var roomInfo;
 									var chatContext = {
 										currentUser : currentUser,
 										roomId : roomId,
@@ -642,59 +641,54 @@
 										isWindowsMobile : isWindowsMobile,
 										details : function() {
 											var data = $.Deferred();
-											if (roomInfo) {
-												data.resolve(roomInfo);
-											} else {
-												if (isGroup) {
-													chatApplication.getUsers(roomId, function (resp) {
-														if (resp) {
-															var unames = [];
-															for (var i=0; i<resp.users.length; i++) {
-																var u = resp.users[i];
-																if (u && u.name && u.name != "null") {
-																	unames.push(u.name);
-																}
+										  if (isGroup) {
+												chatApplication.getUsers(roomId, function (resp) {
+													if (resp) {
+														var unames = [];
+														for (var i=0; i<resp.users.length; i++) {
+															var u = resp.users[i];
+															if (u && u.name && u.name != "null") {
+																unames.push(u.name);
 															}
-															var room = getRoomInfo(roomId, roomName, roomTitle, unames);
-															room.done(function(info) {
-																roomInfo = info;
-																data.resolve(roomInfo);												
-															});
-															room.fail(function(e, status) {
-																if (typeof(status) == "number" && status == 404) {
-																	var msg = (e.message ? e.message + " " : "Not found ");
-																	log(">> chatContext < ERROR get_room " + roomName + " (" + msg + ") for " + currentUser.id + ": " + (e.message ? e.message + " " : "Not found ") + roomName + ": " + JSON.stringify(e));
-																	data.reject(msg);
-																} else {
-																	log(">> chatContext < ERROR get_room " + roomName + " for " + currentUser.id + ": " + JSON.stringify(e));
-																	data.reject(e);
-																}
-																// TODO notify the user?
-															});																
-														} else {
-															log("ERROR: chatApplication.getUsers() return empty response");
-															data.reject("Error reading Chat users");
 														}
-								          });
-												} else {
-													// roomId is an user name for P2P chats
-													var get = getUserInfo(roomId);
-													get.done(function(user) {
-														roomInfo = user;
-														data.resolve(roomInfo);												
-													});
-													get.fail(function(e, status) {
-														if (typeof(status) == "number" && status == 404) {
-															var msg = (e.message ? e.message + " " : "Not found ");
-															log(">> initChat < ERROR get_user " + msg + " for " + currentUser.id + ": " + JSON.stringify(e));
-															data.reject(msg);
-														} else {
-															log(">> initChat < ERROR get_user : " + JSON.stringify(e));
-															data.reject(e);
+														//var room = getRoomInfo(roomId, roomName, roomTitle, unames); // TODO use for caching rooms
+														var room = getRoomInfoReq(roomName + "/" + roomId, roomTitle, unames);
+														room.done(function(info) {
+															data.resolve(info);												
+														});
+														room.fail(function(e, status) {
+															if (typeof(status) == "number" && status == 404) {
+																var msg = (e.message ? e.message + " " : "Not found ");
+																log(">> chatContext < ERROR get_room " + roomName + " (" + msg + ") for " + currentUser.id + ": " + (e.message ? e.message + " " : "Not found ") + roomName + ": " + JSON.stringify(e));
+																data.reject(msg);
+															} else {
+																log(">> chatContext < ERROR get_room " + roomName + " for " + currentUser.id + ": " + JSON.stringify(e));
+																data.reject(e);
+															}
 															// TODO notify the user?
-														}
-													});
-												}
+														});																
+													} else {
+														log("ERROR: chatApplication.getUsers() return empty response");
+														data.reject("Error reading Chat users");
+													}
+							          });
+											} else {
+												// roomId is an user name for P2P chats
+												var get = getUserInfo(roomId);
+												get.done(function(user) {
+													data.resolve(user);												
+												});
+												get.fail(function(e, status) {
+													if (typeof(status) == "number" && status == 404) {
+														var msg = (e.message ? e.message + " " : "Not found ");
+														log(">> initChat < ERROR get_user " + msg + " for " + currentUser.id + ": " + JSON.stringify(e));
+														data.reject(msg);
+													} else {
+														log(">> initChat < ERROR get_user : " + JSON.stringify(e));
+														data.reject(e);
+														// TODO notify the user?
+													}
+												});
 											}
 											return data.promise();
 										}
@@ -924,7 +918,7 @@
 				isAndroid : isAndroid,
 				isWindowsMobile : isWindowsMobile,
 				details : function() {
-					var space = getSpaceInfo(spaceId);
+					var space = getSpaceInfoReq(spaceId); // TODO use getSpaceInfo() for caching spaces
 			  	space.fail(function(e, status) {
 						if (typeof(status) == "number" && status == 404) {
 							log(">> spaceContext < ERROR get_space " + spaceId + " for " + currentUser.id + ": " + (e.message ? e.message + " " : "Not found ") + spaceId + ": " + JSON.stringify(e));
