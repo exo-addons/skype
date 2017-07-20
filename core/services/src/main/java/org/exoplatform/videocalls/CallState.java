@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2003-2017 eXo Platform SAS.
  *
@@ -19,34 +18,26 @@
  */
 package org.exoplatform.videocalls;
 
-import org.exoplatform.services.log.ExoLogger;
-import org.exoplatform.services.log.Log;
-
 /**
- * Created by The eXo Platform SAS.
- *
+ * Created by The eXo Platform SAS
+ * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: ParticipantInfo.java 00000 Feb 23, 2017 pnedonosko $
+ * @version $Id: CallState.java 00000 Jul 18, 2017 pnedonosko $
+ * 
  */
-public class ParticipantInfo extends UserInfo {
-
-  public static final String EMPTY_NAME = "".intern();
+public class CallState {
   
-  public static final String TYPE_NAME = "participant".intern();
+  public static final String STARTED = "started";
   
-  /** The Constant LOG. */
-  protected static final Log LOG = ExoLogger.getLogger(ParticipantInfo.class);
+  public static final String STOPPED = "stopped";
   
-  protected ParticipantInfo(String imType, String imId) {
-    super(EMPTY_NAME, imId, EMPTY_NAME);
-    addImAccount(imType, imId);
-  }
+  public static final String PAUSED = "paused";
 
   /**
-   * {@inheritDoc}
+   * 
    */
-  @Override
-  public String getType() {
-    return TYPE_NAME;
+  public CallState() {
+    // TODO Auto-generated constructor stub
   }
+
 }

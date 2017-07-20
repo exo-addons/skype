@@ -120,7 +120,7 @@ public class VideoCallsUtils {
       // TODO do we need a room name? what if chat room?
       spaceRoomName = VideoCallsUtils.spaceRoomName(spacePrettyName);
     } else {
-      spacePrettyName = spaceRoomName = "".intern();
+      spacePrettyName = spaceRoomName = ParticipantInfo.EMPTY_NAME;
     }
     return new ContextInfo(spacePrettyName, spaceRoomName);
   }

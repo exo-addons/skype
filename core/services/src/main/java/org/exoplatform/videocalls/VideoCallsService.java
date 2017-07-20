@@ -21,9 +21,11 @@ package org.exoplatform.videocalls;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.exoplatform.commons.api.settings.SettingService;
@@ -41,6 +43,8 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.organization.User;
+import org.exoplatform.services.security.ConversationState;
+import org.exoplatform.services.security.IdentityConstants;
 import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.identity.model.Profile;
 import org.exoplatform.social.core.identity.provider.OrganizationIdentityProvider;
@@ -58,11 +62,15 @@ import org.picocontainer.Startable;
  */
 public class VideoCallsService implements Startable {
 
-  public static final String    SPACE_TYPE_NAME       = "space";
+  public static final String    SPACE_TYPE_NAME       = "space".intern();
 
-  public static final String    CHAT_ROOM_TYPE_NAME   = "chat_room";
+  public static final String    CHAT_ROOM_TYPE_NAME   = "chat_room".intern();
 
-  protected static final String CALL_OWNER_SCOPE_NAME = "videocalls.callOwner";
+  protected static final String GROUP_CALL_TYPE       = "group".intern();
+
+  protected static final String CALL_OWNER_SCOPE_NAME = "videocalls.callOwner".intern();
+
+  protected static final String USER_CALLS_SCOPE_NAME = "videocalls.user.calls".intern();
 
   /**
    * The Class SpaceInfo.
@@ -138,48 +146,51 @@ public class VideoCallsService implements Startable {
     }
   }
 
-  public static final String                      OWNER_TYPE_USER     = "user";
+  public static final String                             OWNER_TYPE_USER     = "user";
 
-  public static final String                      OWNER_TYPE_SPACE    = "space";
+  public static final String                             OWNER_TYPE_SPACE    = "space";
 
-  public static final String                      OWNER_TYPE_CHATROOM = "chat_room";
+  public static final String                             OWNER_TYPE_CHATROOM = "chat_room";
 
   /** The Constant LOG. */
-  protected static final Log                      LOG                 =
-                                                      ExoLogger.getLogger(VideoCallsService.class);
+  protected static final Log                             LOG                 =
+                                                             ExoLogger.getLogger(VideoCallsService.class);
 
   /** The jcr service. */
-  protected final RepositoryService               jcrService;
+  protected final RepositoryService                      jcrService;
 
   /** The session providers. */
-  protected final SessionProviderService          sessionProviders;
+  protected final SessionProviderService                 sessionProviders;
 
   /** The hierarchy owner. */
-  protected final NodeHierarchyCreator            hierarchyCreator;
+  protected final NodeHierarchyCreator                   hierarchyCreator;
 
   /** The organization. */
-  protected final OrganizationService             organization;
+  protected final OrganizationService                    organization;
 
   /** The social identity manager. */
-  protected final IdentityManager                 socialIdentityManager;
+  protected final IdentityManager                        socialIdentityManager;
 
   /** The drive service. */
-  protected final ManageDriveService              driveService;
+  protected final ManageDriveService                     driveService;
 
   /** The listener service. */
-  protected final ListenerService                 listenerService;
+  protected final ListenerService                        listenerService;
 
   /** The settings service. */
-  protected final SettingService                  settingService;
+  protected final SettingService                         settingService;
 
   /** The providers. */
-  protected final Map<String, VideoCallsProvider> providers           = new ConcurrentHashMap<>();
+  protected final Map<String, VideoCallsProvider>        providers           = new ConcurrentHashMap<>();
 
   /** The space service. */
-  protected SpaceService                          spaceService;
+  protected SpaceService                                 spaceService;
 
   /** The active calls. */
-  protected final Map<String, CallInfo>           calls               = new ConcurrentHashMap<>();
+  protected final Map<String, CallInfo>                  calls               = new ConcurrentHashMap<>();
+
+  /** The user listeners. */
+  protected final Map<String, Set<IncomingCallListener>> userListeners       = new ConcurrentHashMap<>();
 
   /** The group calls. */
   // protected final Map<String, String> groupCalls = new ConcurrentHashMap<>();
@@ -307,7 +318,7 @@ public class VideoCallsService implements Startable {
         throw new IdentityNotFound("User " + userName + " not found or not accessible");
       }
     }
-    room.setCallId(readCallId(id)); // groupCalls.clear(); // groupCalls.get(id)
+    room.setCallId(readCallId(id));
     return room;
   };
 
@@ -330,7 +341,7 @@ public class VideoCallsService implements Startable {
                               Collection<String> parts) throws Exception {
     boolean isUser = OWNER_TYPE_USER.equals(ownerType);
     boolean isSpace = OWNER_TYPE_SPACE.equals(ownerType);
-    // boolean isRoom = OWNER_TYPE_CHATROOM.equals(ownerType);
+    boolean isRoom = OWNER_TYPE_CHATROOM.equals(ownerType);
     String ownerUri, ownerAvatar;
     IdentityInfo owner;
     if (isUser) {
@@ -363,15 +374,23 @@ public class VideoCallsService implements Startable {
         ownerUri = ParticipantInfo.EMPTY_NAME;
         ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
       }
-      // groupCalls.put(ownerId, id);
-      saveCallId(ownerId, id);
-    } else {
-      // XXX We assume it's custom Chat room
+    } else if (isRoom) {
       owner = new RoomInfo(ownerId, ownerId, title);
       ownerUri = ParticipantInfo.EMPTY_NAME;
       ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
-      // groupCalls.put(ownerId, id);
+    } else {
+      throw new CallInfoException("Wrong call owner type: " + ownerType);
+    }
+    if (isSpace || isRoom) {
       saveCallId(ownerId, id);
+      String userId = currentUserId();
+      if (userId != null) {
+        // For starter of a group call we also record this call in its group calls, 
+        // other parties will register in dedicated requests (e.g. when joined)
+        saveUserGroupCallId(userId, id);
+      } else {
+        LOG.warn("Current user not set, but call registered " + id);
+      }
     }
     CallInfo call = new CallInfo(providerType, title, owner, ownerType, ownerUri, ownerAvatar);
     for (String pid : parts) {
@@ -379,6 +398,8 @@ public class VideoCallsService implements Startable {
       if (part != null) {
         // it's eXo user
         call.addParticipant(part);
+        // fire user listener for incoming, except of the caller
+        fireUserCallState(pid, id, CallState.STARTED);
       } else {
         // external participant
         call.addParticipant(new ParticipantInfo(providerType, pid));
@@ -407,7 +428,66 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo removeCallInfo(String id) throws Exception {
-    return calls.remove(id);
+    CallInfo info = calls.remove(id);
+    if (info != null) {
+      for (UserInfo user : info.getParticipants()) {
+        if (user.getType() == UserInfo.TYPE_NAME) {
+          // it's eXo user: fire user listener for stopped call
+          fireUserCallState(user.getId(), id, CallState.STOPPED);
+        }
+      }
+    }
+    return info;
+  }
+
+  /**
+   * Adds the user call.
+   *
+   * @param userId the user id
+   * @param callId the call id
+   */
+  public void addUserCall(String userId, String callId) {
+    // add to user's list of saved calls (group calls)
+    saveUserGroupCallId(null, callId); // TODO use userId
+  }
+
+  /**
+   * Removes the user call.
+   *
+   * @param callId the call id
+   */
+  public void removeUserCall(String userId, String callId) {
+    removeUserGroupCallId(callId); // TODO use userId
+    fireUserCallState(userId, callId, CallState.STOPPED);
+  }
+
+  /**
+   * Gets the user calls.
+   *
+   * @param callId the call id
+   * @return the user calls
+   */
+  public String[] getUserCalls(String userId) {
+    String[] calls = readUserGroupCallIds(); // TODO use userId
+    if (calls == null) {
+      calls = new String[0];
+    }
+    return calls;
+  }
+
+  public void addUserListener(IncomingCallListener listener) {
+    // incomingListener.onCall(callId, callStatus);
+    final String userId = listener.getUserId();
+    userListeners.computeIfAbsent(userId, k -> new LinkedHashSet<>()).add(listener);
+  }
+
+  protected void fireUserCallState(String userId, String callId, String callState) {
+    Set<IncomingCallListener> listeners = userListeners.remove(userId);
+    if (listeners != null) {
+      for (IncomingCallListener listener : listeners) {
+        listener.onCall(callId, callState);
+      }
+    }
   }
 
   /**
@@ -496,7 +576,7 @@ public class VideoCallsService implements Startable {
   }
 
   protected void saveCallId(String ownerId, String callId) {
-    String initialGlobalId = Scope.GLOBAL.getId();
+    final String initialGlobalId = Scope.GLOBAL.getId();
     try {
       settingService.set(Context.GLOBAL,
                          Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME),
@@ -508,9 +588,10 @@ public class VideoCallsService implements Startable {
   }
 
   protected String readCallId(String ownerId) {
-    String initialGlobalId = Scope.GLOBAL.getId();
+    final String initialGlobalId = Scope.GLOBAL.getId();
     try {
-      SettingValue<?> val = settingService.get(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), ownerId);
+      SettingValue<?> val =
+                          settingService.get(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), ownerId);
       if (val != null) {
         return String.valueOf(val.getValue());
       }
@@ -518,6 +599,79 @@ public class VideoCallsService implements Startable {
     } finally {
       Scope.GLOBAL.id(initialGlobalId);
     }
+  }
+
+  protected String[] readUserGroupCallIds() {
+    final String initialGlobalId = Scope.GLOBAL.getId();
+    try {
+      SettingValue<?> val = settingService.get(Context.USER,
+                                               Scope.GLOBAL.id(USER_CALLS_SCOPE_NAME),
+                                               GROUP_CALL_TYPE);
+      if (val != null) {
+        return String.valueOf(val.getValue()).split("\n");
+      }
+      return null;
+    } finally {
+      Scope.GLOBAL.id(initialGlobalId);
+    }
+  }
+
+  protected void saveUserGroupCallId(String userId, String callId) {
+    final String initialGlobalId = Scope.GLOBAL.getId();
+    final Context userContext = Context.USER.id(userId);
+    final Scope userScope = Scope.GLOBAL.id(USER_CALLS_SCOPE_NAME);
+    try {
+      StringBuilder newVal = new StringBuilder();
+      SettingValue<?> val = settingService.get(userContext, userScope, GROUP_CALL_TYPE);
+      if (val != null) {
+        String oldVal = String.valueOf(val.getValue());
+        if (oldVal.indexOf(callId) >= 0) {
+          return; // already contains this call ID
+        } else {
+          newVal.append(oldVal);
+          newVal.append('\n');
+        }
+      }
+      newVal.append(callId);
+      settingService.set(userContext, userScope, GROUP_CALL_TYPE, SettingValue.create(newVal.toString()));
+    } finally {
+      Scope.GLOBAL.id(initialGlobalId);
+    }
+  }
+
+  protected void removeUserGroupCallId(String callId) {
+    final String initialGlobalId = Scope.GLOBAL.getId();
+    final Scope userScope = Scope.GLOBAL.id(USER_CALLS_SCOPE_NAME);
+    try {
+      SettingValue<?> val = settingService.get(Context.USER, userScope, GROUP_CALL_TYPE);
+      if (val != null) {
+        String oldVal = String.valueOf(val.getValue());
+        int start = oldVal.indexOf(callId);
+        if (start >= 0) {
+          StringBuilder newVal = new StringBuilder();
+          newVal.delete(start, start + callId.length() + 1); // also delete a \n as separator
+          settingService.set(Context.USER,
+                             userScope,
+                             GROUP_CALL_TYPE,
+                             SettingValue.create(newVal.toString()));
+        }
+      }
+    } finally {
+      Scope.GLOBAL.id(initialGlobalId);
+    }
+  }
+  
+  /**
+   * Current user id.
+   *
+   * @return the string
+   */
+  protected String currentUserId() {
+    ConversationState contextState = ConversationState.getCurrent();
+    if (contextState != null) {
+      return contextState.getIdentity().getUserId();
+    }
+    return null; // IdentityConstants.ANONIM
   }
 
 }

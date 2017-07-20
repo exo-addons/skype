@@ -10,10 +10,14 @@
 	var objId = Math.floor((Math.random() * 1000) + 1);
 	var logPrefix = "[videocall_" + objId + "] ";
 	var log = function(msg, e) {
-		if ( typeof console != "undefined" && typeof console.log != "undefined") {
-			console.log(logPrefix + msg);
-			if (e && typeof e.stack != "undefined") {
-				console.log(e.stack);
+		if (typeof console != "undefined" && typeof console.log != "undefined") {
+			if (e) {
+				console.log(logPrefix + msg + (typeof e == "string" ? (". Error: " + e) : JSON.stringify(e)));
+				if (typeof e.stack != "undefined") {
+					console.log(e.stack);
+				}
+			} else {
+				console.log(logPrefix + msg);
 			}
 		}
 	};
@@ -217,7 +221,7 @@
 			if (!user502) {
 				map[502] = function() {
 					// treat 502 as request error also
-					process.fail("Bad gateway", 502, "error");
+					process.reject("Bad gateway", 502, "error");
 				};
 			}
 			return jQueryStatusCode(map);
@@ -225,19 +229,6 @@
 
 		request.done(function(data, textStatus, jqXHR) {
 			process.resolve(data, jqXHR.status, textStatus, jqXHR);
-		});
-
-		request.always(function(data, textStatus, errorThrown) {
-			var status;
-			if (data && data.status) {
-				status = data.status;
-			} else if (errorThrown && errorThrown.status) {
-				status = errorThrown.status;
-			} else {
-				status = 200;
-				// what else we could to do
-			}
-			process.always(status, textStatus);
 		});
 
 		// custom Promise target to provide an access to jqXHR object
@@ -356,6 +347,43 @@
 		return initRequest(request);
 	};
 	
+	var postUserCallId = function(callId) {
+		var request = $.ajax({
+			async : true,
+			type : "POST",
+			url : prefixUrl + "/portal/rest/videocalls/user/me/call/" + callId
+		});
+		return initRequest(request);
+	};
+	
+	var deleteUserCallId = function(callId) {
+		var request = $.ajax({
+			async : true,
+			type : "DELETE",
+			url : prefixUrl + "/portal/rest/videocalls/user/me/call/" + callId
+		});
+		return initRequest(request);
+	};
+	
+	var getUserCallIds = function() {
+		var request = $.ajax({
+			async : true,
+			type : "GET",
+			url : prefixUrl + "/portal/rest/videocalls/user/me/calls"
+		});
+		return initRequest(request);
+	};
+	
+	var pollUserUpdates = function(userId) {
+		var request = $.ajax({
+			async : true,
+			type : "GET",
+			url : prefixUrl + "/videocalls/updates/" + userId,
+			timeout : 65000
+		});
+		return initRequest(request);
+	};
+	
 	var cachedUsers = new Cache();
 	var getUserInfoRequest = function(userId) {
 		var request = $.ajax({
@@ -440,7 +468,7 @@
 			return getRoomInfoReq(key, title, members);
 		});
 	};
-
+	
 	var serviceGet = function(url, data) {
 		var request = $.ajax({
 			async : true,
@@ -1085,7 +1113,7 @@
 			if (user) {
 				currentUser = user;
 				prepareUser(currentUser);
-				log("User initialized in Video Calls: " + user.id + ".");
+				log("User initialized in Video Calls: " + user.id + ". ");
 				if (context.spaceId) {
 					currentSpaceId = context.spaceId;
 				} else {
@@ -1174,30 +1202,6 @@
 		};
 		
 		/**
-		 * Register call in server side database.
-		 */
-		this.registerCall = function(id, info) {
-			var post = postCallInfo(id, info);
-			return post.promise();
-		};
-		
-		/**
-		 * Unregister call in server side database.
-		 */
-		this.unregisterCall = function(id) {
-			var del = deleteCallInfo(id);
-			return del.promise();
-		};
-		
-		/**
-		 * Get registered call from server side database.
-		 */
-		this.getRegisteredCall = function(id) {
-			var get = getCallInfo(id);
-			return get.promise();
-		};
-		
-		/**
 		 * Add style to current document (to the end of head).
 		 */
 		this.loadStyle = function(cssUrl) {
@@ -1237,7 +1241,9 @@
 			}
 		  var callWindow = window.open(url, title, "toolbar=no,menubar=no,scrollbars=no,resizable=no,location=no,directories=no,status=no,"
 		  			+ "width=" + w + ",height=" + h + ",top=" + top + ",left=" + left);
-		  callWindow.focus();
+		  if (callWindow) {
+		  	callWindow.focus();
+		  }
 		  return callWindow;
 		};
 		
@@ -1269,6 +1275,26 @@
 		this.showInfo = function(title, text, onInit) {
 			showInfo(title, text, onInit);
 		};
+		
+		/**
+		 * Get registered call from server side database.
+		 */
+		this.getRegisteredCall = getCallInfo;
+		
+		/**
+		 * Unregister call in server side database.
+		 */
+		this.unregisterCall = deleteCallInfo;
+		
+		/**
+		 * Register call in server side database.
+		 */
+		this.registerCall = postCallInfo;
+		
+		this.registerUserCall = postUserCallId;
+		this.unregisterUserCall = deleteUserCallId;
+		this.getUserCalls = getUserCallIds;
+		this.pollUserUpdates = pollUserUpdates;
 	}
 	
 	var videoCalls = new VideoCalls();
@@ -1304,7 +1330,7 @@
 		}
 	});
 
-	log("< Loaded at " + location.origin + location.pathname);
+	log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
 	
 	return videoCalls;
 })($);

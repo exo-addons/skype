@@ -10,9 +10,13 @@ if (eXo.videoCalls) {
 		var logPrefix = "[mssfbcall_" + objId + "] ";
 		var log = function(msg, e) {
 			if (typeof console != "undefined" && typeof console.log != "undefined") {
-				console.log(logPrefix + msg);
-				if (e && typeof e.stack != "undefined") {
-					console.log(e.stack);
+				if (e) {
+					console.log(logPrefix + msg + (typeof e == "string" ? (". Error: " + e) : JSON.stringify(e)));
+					if (typeof e.stack != "undefined") {
+						console.log(e.stack);
+					}
+				} else {
+					console.log(logPrefix + msg);
 				}
 			}
 		};
@@ -453,7 +457,7 @@ if (eXo.videoCalls) {
 		} else {
 			console.log("MSSFB provider not found for mssfb-call.js");
 		}
-		log("< Loaded at " + location.origin + location.pathname);
+		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
 	})(eXo.videoCalls);
 } else {
 	console.log("eXo.videoCalls not defined for mssfb-call.js");

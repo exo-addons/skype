@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2003-2017 eXo Platform SAS.
  *
@@ -19,34 +18,40 @@
  */
 package org.exoplatform.videocalls;
 
-import org.exoplatform.services.log.ExoLogger;
-import org.exoplatform.services.log.Log;
-
 /**
- * Created by The eXo Platform SAS.
- *
+ * Created by The eXo Platform SAS
+ * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: ParticipantInfo.java 00000 Feb 23, 2017 pnedonosko $
+ * @version $Id: IncomingCallListener.java 00000 Jul 18, 2017 pnedonosko $
+ * 
  */
-public class ParticipantInfo extends UserInfo {
+public abstract class IncomingCallListener {
 
-  public static final String EMPTY_NAME = "".intern();
+  /** The user id. */
+  protected final String userId;
   
-  public static final String TYPE_NAME = "participant".intern();
-  
-  /** The Constant LOG. */
-  protected static final Log LOG = ExoLogger.getLogger(ParticipantInfo.class);
-  
-  protected ParticipantInfo(String imType, String imId) {
-    super(EMPTY_NAME, imId, EMPTY_NAME);
-    addImAccount(imType, imId);
+  /**
+   * 
+   */
+  public IncomingCallListener(String userId) {
+    this.userId = userId;
   }
 
   /**
-   * {@inheritDoc}
+   * Gets the user id.
+   *
+   * @return the user id
    */
-  @Override
-  public String getType() {
-    return TYPE_NAME;
+  public String getUserId() {
+    return userId;
   }
+  
+  /**
+   * Notify.
+   *
+   * @param callId the call id
+   * @param callStatus the call status
+   */
+  public abstract void onCall(String callId, String callStatus);
+
 }

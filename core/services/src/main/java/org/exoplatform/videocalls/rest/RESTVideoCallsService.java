@@ -27,6 +27,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -42,6 +43,7 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.videocalls.CallInfo;
+import org.exoplatform.videocalls.CallInfoException;
 import org.exoplatform.videocalls.GroupInfo;
 import org.exoplatform.videocalls.IdentityNotFound;
 import org.exoplatform.videocalls.UserInfo;
@@ -109,6 +111,167 @@ public class RESTVideoCallsService implements ResourceContainer {
           LOG.error("Error reading user info of '" + userName + "' by '" + currentUserName + "'", e);
           return Response.serverError()
                          .entity(ErrorInfo.serverError("Error reading user " + userName))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+
+  /**
+   * Gets the user calls with possibility to filter by call state.
+   *
+   * @param uriInfo the uri info
+   * @param userName the id
+   * @param callState the call state
+   * @return the user calls response
+   */
+  @GET
+  @RolesAllowed("users")
+  @Path("/user/{name}/calls")
+  public Response getUserCalls(@Context UriInfo uriInfo,
+                               @PathParam("name") String userName,
+                               @QueryParam("state") String callState /* TODO not used */) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      if (userName != null) {
+        if (ME.equals(userName)) {
+          userName = currentUserName;
+        }
+        if (userName.equals(currentUserName)) {
+          if (callState != null && callState.length() == 0) {
+            callState = null;
+          }
+          try {
+            String[] calls = videoCalls.getUserCalls(userName);
+            if (calls != null) {
+              return Response.ok().entity(calls).build();
+            } else {
+              return Response.serverError()
+                             .entity(ErrorInfo.serverError("Error reading calls storage (null)"))
+                             .build();
+            }
+          } catch (Throwable e) {
+            LOG.error("Error reading user calls of '" + userName + "' by '" + currentUserName + "'", e);
+            return Response.serverError()
+                           .entity(ErrorInfo.serverError("Error reading user '" + userName + "' calls"))
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST)
+                         .entity(ErrorInfo.clientError("Wrong request parameters: name (does not match)"))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+
+  /**
+   * Add the user calls with possibility to filter by call state.
+   *
+   * @param uriInfo the uri info
+   * @param userName the id
+   * @param callState the call state
+   * @return the user calls response
+   */
+  @POST
+  @RolesAllowed("users")
+  @Path("/user/{name}/call/{type}/{sip}")
+  public Response postUserCall(@Context UriInfo uriInfo,
+                               @PathParam("name") String userName,
+                               @PathParam("type") String type,
+                               @PathParam("sip") String sip,
+                               @FormParam("state") String callState /* TODO not used */) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      if (userName != null) {
+        if (ME.equals(userName)) {
+          userName = currentUserName;
+        }
+        if (userName.equals(currentUserName)) {
+          String callId = callId(type, sip);
+          if (callState != null && callState.length() == 0) {
+            callState = null;
+          }
+          try {
+            videoCalls.addUserCall(userName, callId);
+            return Response.ok().build();
+          } catch (Throwable e) {
+            LOG.error("Error adding user call by '" + currentUserName + "'", e);
+            return Response.serverError()
+                           .entity(ErrorInfo.serverError("Error adding user call for " + userName))
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST)
+                         .entity(ErrorInfo.clientError("Wrong request parameters: name (does not match)"))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+  
+  /**
+   * Delete user call with possibility to filter by call state.
+   *
+   * @param uriInfo the uri info
+   * @param userName the user name
+   * @param type the type
+   * @param sip the sip
+   * @param callState the call state
+   * @return the response
+   */
+  @DELETE
+  @RolesAllowed("users")
+  @Path("/user/{name}/call/{type}/{sip}")
+  public Response deleteUserCall(@Context UriInfo uriInfo,
+                               @PathParam("name") String userName,
+                               @PathParam("type") String type,
+                               @PathParam("sip") String sip,
+                               @FormParam("state") String callState /* TODO not used */) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      if (userName != null) {
+        if (ME.equals(userName)) {
+          userName = currentUserName;
+        }
+        if (userName.equals(currentUserName)) {
+          String callId = callId(type, sip);
+          if (callState != null && callState.length() == 0) {
+            callState = null;
+          }
+          try {
+            videoCalls.removeUserCall(userName, callId);
+            return Response.ok().build();
+          } catch (Throwable e) {
+            LOG.error("Error deleteing user call by '" + currentUserName + "'", e);
+            return Response.serverError()
+                           .entity(ErrorInfo.serverError("Error deleteing user call for " + userName))
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST)
+                         .entity(ErrorInfo.clientError("Wrong request parameters: name (does not match)"))
                          .build();
         }
       } else {
@@ -301,13 +464,13 @@ public class RESTVideoCallsService implements ResourceContainer {
 
   @GET
   @RolesAllowed("users")
-  @Path("/call/{type}/{id}")
+  @Path("/call/{type}/{sip}")
   public Response getCallInfo(@Context UriInfo uriInfo,
                               @PathParam("type") String type,
-                              @PathParam("id") String id) {
+                              @PathParam("sip") String sip) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
-      String callId = callId(type, id);
+      String callId = callId(type, sip);
       String currentUserName = convo.getIdentity().getUserId();
       try {
         CallInfo call = videoCalls.getCallInfo(callId);
@@ -355,10 +518,10 @@ public class RESTVideoCallsService implements ResourceContainer {
 
   @POST
   @RolesAllowed("users")
-  @Path("/call/{type}/{id}")
+  @Path("/call/{type}/{sip}")
   public Response postCallInfo(@Context UriInfo uriInfo,
                                @PathParam("type") String type,
-                               @PathParam("id") String id,
+                               @PathParam("sip") String sip,
                                @FormParam("title") String title,
                                @FormParam("provider") String providerType,
                                @FormParam("owner") String ownerId,
@@ -366,7 +529,7 @@ public class RESTVideoCallsService implements ResourceContainer {
                                @FormParam("participants") String participants) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
-      String callId = callId(type, id);
+      String callId = callId(type, sip);
       if (title != null) {
         if (providerType != null) {
           if (ownerId != null) {
@@ -382,6 +545,10 @@ public class RESTVideoCallsService implements ResourceContainer {
                                                        providerType,
                                                        Arrays.asList(participants.split(";")));
                   return Response.ok().entity(call).build();
+                } catch (CallInfoException e) {
+                  return Response.status(Status.BAD_REQUEST)
+                                 .entity(ErrorInfo.clientError(e.getMessage()))
+                                 .build();
                 } catch (Throwable e) {
                   LOG.error("Error creating call info for '" + callId + "' by '" + currentUserName + "'", e);
                   return Response.serverError()

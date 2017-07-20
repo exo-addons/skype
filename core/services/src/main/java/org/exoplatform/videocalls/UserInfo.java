@@ -37,7 +37,7 @@ import org.exoplatform.services.log.Log;
  */
 public class UserInfo extends IdentityInfo {
 
-  public static final String TYPE_NAME = "user";
+  public static final String TYPE_NAME = "user".intern();
   
   /** The Constant LOG. */
   protected static final Log LOG = ExoLogger.getLogger(UserInfo.class);
@@ -119,6 +119,9 @@ public class UserInfo extends IdentityInfo {
     return false;
   }
   
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String getType() {
     return TYPE_NAME;
