@@ -45,12 +45,15 @@ public class CallInfo {
 
   protected final String        avatarLink;
 
+  protected final String        providerType;
+
   public CallInfo(String id,
                   String title,
                   IdentityInfo owner,
                   String ownerType,
                   String ownerLink,
-                  String avatarLink) {
+                  String avatarLink,
+                  String providerType) {
     super();
     this.id = id;
     this.title = title;
@@ -58,6 +61,7 @@ public class CallInfo {
     this.ownerType = ownerType;
     this.ownerLink = ownerLink;
     this.avatarLink = avatarLink;
+    this.providerType = providerType;
   }
 
   public String getId() {
@@ -86,6 +90,10 @@ public class CallInfo {
 
   public String getAvatarLink() {
     return avatarLink;
+  }
+
+  public String getProviderType() {
+    return providerType;
   }
 
   public void addParticipants(Collection<UserInfo> parts) {

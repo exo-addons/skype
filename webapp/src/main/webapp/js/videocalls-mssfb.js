@@ -858,11 +858,11 @@
 						var unloadListener = function(e) {
 							onClosePage(conversation, app);
 						};
-						var registered = false;
-						var registerCall = function() {
-							if (!registered && callId != "g/adhoc") {
+						var added = false;
+						var addCall = function() {
+							if (!added && callId != "g/adhoc") {
 								//log(">>> Registering " + callId + " > " + new Date().getTime());
-								registered = true;
+								added = true;
 								var ownerType, ownerId;
 								if (target.group) {
 									ownerType = target.type;
@@ -878,24 +878,20 @@
 									title : conversation.topic(),
 									participants : userIds.join(";") // eXo user ids here
 								};
-								videoCalls.registerCall(callId, callInfo).done(function(call) {
-									log(">>> Registered " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+								videoCalls.addCall(callId, callInfo).done(function(call) {
+									log(">>> Added " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 								}).fail(function(err) {
 									registered = false;
-									log(">>> ERROR registering " + callId + ": " + JSON.stringify(err));
+									log(">>> ERROR adding " + callId + ": " + JSON.stringify(err));
 								});
 							}
 						};
-						var unregisterCall = function() {
-							if (registered) {
-								//log(">>> Unregistering " + callId + " > " + new Date().getTime());
-								videoCalls.unregisterCall(callId).done(function(call) {
-									log("<<< Unregistered " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
-									registered = false;
-								}).fail(function(err) {
-									log("<<< ERROR unregistering " + callId + ": " + JSON.stringify(err));
-								});								
-							}
+						var updateCall = function(state) {
+							videoCalls.updateCall(callId, state).done(function(call) {
+								log("<<< " + state + " " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+							}).fail(function(err) {
+								log("<<< ERROR updating to " + state + " " + callId + ": " + JSON.stringify(err));
+							});								
 						};
 						if (target.group && conversation.selfParticipant.person.id() == conversation.creator.id()) {
 							// set topic only if a creator and of a group call, 
@@ -906,18 +902,19 @@
 								log(">>> Error setting conversation topic: " + target.title, e);
 							}
 						}
-						/*if (callId && callId.indexOf("sip:") > 0) {
-							registerCall();
-						} else {
-							log(">>> Call ID not complete: " + callId);
-						}*/
 						var started = false;
 						var startingCall = function(stateName) {
 							if (!started) {
 								started = true;
 								callId = getCallId(conversation);
 								log(">>> " + stateName + " outgoing " + callId);
-								registerCall();
+								if (conversation.isGroupConversation()) {
+									if (target.callId) {
+										updateCall("started");
+									} else {
+										addCall();
+									}
+								}
 								process.resolve(callId, conversation);
 								/*conversation.state.once("Connected", function() {
 									// FIXME several such listeners may register if convo was declined remotely or filed to connect
@@ -926,7 +923,9 @@
 								});*/
 								conversation.state.once("Disconnected", function() {
 									log("<<< Disconnected outgoing " + callId);
-									unregisterCall();
+									if (conversation.isGroupConversation()) {
+										updateCall("stopped");
+									}
 									//app.conversationsManager.conversations.remove(conversation);
 									window.removeEventListener("beforeunload", beforeunloadListener);
 									window.removeEventListener("unload", unloadListener);
@@ -963,7 +962,6 @@
 							// error starting videoService, cancel (by this user) also will go here
 							log("<<< Error starting outgoing video: " + JSON.stringify(videoError));
 							var finisWithError = function(error) {
-								unregisterCall(); // TODO Do need it here? It will be done on Disconnected state also.
 								handleError(callId, error, function(isError, isOutdated) {
 									// For a case when Disconnected will not happen
 									window.removeEventListener("beforeunload", beforeunloadListener);
@@ -975,14 +973,24 @@
 									} 
 									if (isOutdated) {
 										app.conversationsManager.conversations.remove(conversation);
-										setTimeout(function() {
-											target.callId = null;
-											outgoingCallHandler(api, app, container, currentUser, target, userIds, participants, null).done(function(callId, newConvo) {
-												process.resolve(callId, newConvo);
-											}).fail(function(err) {
-												process.reject(err);
-											});											
-										}, 250);
+										// delete this call records in eXo service
+										target.callId = null;
+										videoCalls.deleteCall(callId).always(function() {
+											// Wait a bit for things completion
+											setTimeout(function() {
+												outgoingCallHandler(api, app, container, currentUser, target, userIds, participants, null).done(function(callId, newConvo) {
+													process.resolve(callId, newConvo);
+												}).fail(function(err) {
+													process.reject(err);
+												});											
+											}, 250);
+										}).done(function() {
+											log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+										}).fail(function(err) {
+											log("<<< ERROR deleting " + callId + ": " + JSON.stringify(err));
+										});								
+									} else {
+										unregisterCall(); // TODO Do need it here? It will be done on Disconnected state also.
 									}
 								});
 							};
@@ -1343,12 +1351,6 @@
 											}
 										}
 									});
-									// TODO cleanup
-									/*conversation.state.once("Disconnected", function() {
-										if ($call.is(":visible")) {
-											$call.dialog("close");
-										}
-									});*/
 								}); 
 								popover.done(function(msg) {
 									log(">>> user " + msg + " call " + callId);
@@ -1369,25 +1371,25 @@
 											if (saved) {
 												// When conversation was accepted previously, we just start modality on it
 												conversation.videoService.start().then(function() {
-													log(">>> Incoming video STARTED ");
+													log(">>> Incoming (saved) VIDEO STARTED");
 													accept.resolve("video");
 												}, function(videoError) {
 													// error starting videoService, cancel (by this user) also will go here
-													log("<<< Error starting incoming video: " + JSON.stringify(videoError));
+													log("<<< Error starting incoming (saved) VIDEO: " + JSON.stringify(videoError));
 													if (isModalityUnsupported(videoError)) {
 														// ok, try audio
 														conversation.audioService.start().then(function() {
-															log(">>> Incoming audio STARTED ");
+															log(">>> Incoming (saved) AUDIO STARTED");
 															accept.resolve("audio");
 														}, function(audioError) {
-															log("<<< Error starting incoming audio: " + JSON.stringify(audioError));
+															log("<<< Error starting incoming (saved) AUDIO: " + JSON.stringify(audioError));
 															if (isModalityUnsupported(audioError)) {
 																// well, it will be chat (it should work everywhere)
 																conversation.chatService.start().then(function() {
-																	log(">>> Incoming chat STARTED ");
+																	log(">>> Incoming (saved) CHAT STARTED ");
 																	accept.resolve("chat");
 																}, function(chatError) {
-																	log("<<< Error starting incoming chat: " + JSON.stringify(chatError));
+																	log("<<< Error starting incoming (saved) CHAT: " + JSON.stringify(chatError));
 																	// we deal with original error
 																	accept.reject(videoError);
 																});
@@ -1401,6 +1403,15 @@
 												});
 											} else {
 												// TODO check this working in FF where no video/audio supported
+												var added = false;
+												var addUserGroupCall = function() {
+													if (!added && conversation.isGroupConversation()) {
+														added = true;
+														videoCalls.addUserGroupCall(callId).fail(function(err, status) {
+															log("<<< Error adding user group call: " + callId + ". " + JSON.stringify(err) + " [" + status + "]");
+														});
+													}
+												};
 												conversation.selfParticipant.chat.state.changed(function listener(newValue, reason, oldValue) {
 													log(">>> CHAT state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																+ " CONVERSATION state: " + conversation.state());
@@ -1408,10 +1419,12 @@
 														conversation.chatService.accept().then(function() {
 															log(">>> Incoming CHAT ACCEPTED");
 															accept.resolve("chat");
+															addUserGroupCall();
 														}, function(chatError) {
 															log("<<< Error accepting chat: " + JSON.stringify(chatError));
-															accept.reject(chatError);
-															//handleError(chatError);
+															if (!isModalityUnsupported(chatError)) {
+																accept.reject(chatError);
+															}
 														});
 													} else if (newValue === "Disconnected") {
 														log("<<< CHAT disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
@@ -1427,10 +1440,13 @@
 														conversation.audioService.accept().then(function() {
 															log(">>> Incoming AUDIO ACCEPTED");
 															accept.resolve("audio");
+															addUserGroupCall();
 														}, function(audioError) {
 															log("<<< Error accepting audio: " + JSON.stringify(audioError));
 															accept.reject(audioError);
-															//handleError(audioError);
+															if (!isModalityUnsupported(audioError)) {
+																accept.reject(audioError);
+															}
 														});
 													} else if (newValue === "Disconnected") {
 														log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
@@ -1452,10 +1468,13 @@
 														conversation.videoService.accept().then(function() {
 															log(">>> Incoming VIDEO ACCEPTED");
 															accept.resolve("video");
+															addUserGroupCall();
 														}, function(videoError) {
 															// error starting videoService, cancel (by this user) also will go here
 															log("<<< Error accepting video: " + JSON.stringify(videoError));
-															accept.reject(videoError);
+															if (!isModalityUnsupported(videoError)) {
+																accept.reject(videoError);
+															}
 														});
 													} else if (newValue === "Disconnected") {
 														log("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
@@ -1505,29 +1524,28 @@
 								});
 							}
 							//log(">>> Get registered " + callId + " > " + new Date().getTime());
-							var callInfo = videoCalls.getRegisteredCall(callId);
-							callInfo.done(function(call) {
-								log(">>> Got registered " + callId + " > " + new Date().getTime());
-								callerId = call.owner.id;
-								callerLink = call.ownerLink;
-								callerAvatar = call.avatarLink;
+							if (conversation.isGroupConversation()) {
+							var callInfo = videoCalls.getCall(callId);
+								callInfo.done(function(call) {
+									log(">>> Got registered " + callId + " > " + new Date().getTime());
+									callerId = call.owner.id;
+									callerLink = call.ownerLink;
+									callerAvatar = call.avatarLink;
+									callerMessage = call.title + " conference call.";
+									showCallPopover();
+								});
+								callInfo.fail(function(err, status) {
+									log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
+									if (typeof(status) == "number" && status == 404) {
+										// Call not registered, we treat it as a call started outside Video Calls
+										showCallPopover();	
+									} else {
+										accept.reject("call info error");
+									}
+								});
+							} else {
 								showCallPopover();
-							});
-							callInfo.fail(function(err, status) {
-								log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
-								if (typeof(status) == "number" && status == 404) {
-									// Call not registered, we treat it as a call started outside Video Calls
-									showCallPopover();	
-								} else {
-									accept.reject("call info error");
-								}
-							});
-							/*accept.always(function() {
-								setTimeout(function() {
-									// reset it to make next incoming call able to ask an user in new popover
-									accept = null;
-								}, 1500);
-							});*/
+							}
 						}
 						return accept.promise();
 					};
@@ -1578,53 +1596,64 @@
 							// Late it may become Incoming
 							conversation.state.once("Incoming", function() {
 								// Update call ID as it will change after first Connecting
-								log(">>> Created (added) > Incoming " + getCallId(conversation));
-								handleIncoming(conversation); 
+								if (conversation != container.getConversation()) {
+									log(">>> Created (added) > Incoming " + getCallId(conversation));
+									handleIncoming(conversation);									
+								} else {
+									log(">>> Created (added) < Incoming already handled " + getCallId(conversation));
+								}
 							});
 						}
 					});
 					// We also handle re-established group conferences (while it is not outdated by Skype services)
-					(function poll(prevData, prevStatus) {
-						var timeout = prevStatus == 0 ? 60000 : (prevStatus >= 400 ? 15000 : 250);
-						setTimeout(function() {
-							var userId = videoCalls.getUser().id;
-							videoCalls.pollUserUpdates(userId).done(function(update, status) {
-								if (update.eventType == "call_status") {
-									log(">>> User call status updated: " + JSON.stringify(update) + " [" + status + "]");
-									if (update.callStatus == "started") {
-										var conversation = app.conversationsManager.getConversationByUri(update.callId.substring(2));
-										if (conversation) {
-											logConversation(conversation);
-											var state = conversation.state();
-											// Created - for restored saved
-											// Disconnected - for previously conferenced on this page
-											if (state == "Created" || state == "Disconnected" || state == "Conferenced") {
-												log(">>>> Incoming (saved) " + update.callId);
-												handleIncoming(conversation, true);
-											} else {
-												log("<<<< User call " + update.callId + " not active (" + conversation.state() + ")");
+					videoCalls.getUserGroupCalls().done(function(list) {
+						if (list && list.length > 0) {
+							log(">>> User has registered group calls - start long polling for these calls updates " + JSON.stringify(list));
+							(function poll(prevData, prevStatus) {
+								var timeout = prevStatus == 0 ? 60000 : (prevStatus >= 400 ? 15000 : 250);
+								setTimeout(function() {
+									var userId = videoCalls.getUser().id;
+									videoCalls.pollUserUpdates(userId).done(function(update, status) {
+										if (update.eventType == "call_status") {
+											log(">>> User call status updated: " + JSON.stringify(update) + " [" + status + "]");
+											if (update.callStatus == "started") {
+												var conversation = app.conversationsManager.getConversationByUri(update.callId.substring(2));
+												if (conversation) {
+													logConversation(conversation);
+													var state = conversation.state();
+													// Created - for restored saved, Conferenced - not happens, but if will, it has the same meaning
+													// Disconnected - for previously conferenced on this page
+													if (state == "Created" || state == "Disconnected" || state == "Conferenced") {
+														log(">>>> Incoming (saved) " + update.callId);
+														handleIncoming(conversation, true);
+													} else {
+														log("<<<< User call " + update.callId + " not active (" + conversation.state() + ")");
+													}
+												} else {
+													log("<<<< User call " + update.callId + " not found in conversation manager");
+												}
+											} else if (update.callStatus == "stopped") {
+												// Hide accept popover for this call
+												if ($callPopup && update.callId == $callPopup.callId) {
+													if ($callPopup.is(":visible")) {
+														$callPopup.dialog("close");
+													}
+												}
 											}
+										} else if (update.eventType == "retry") {
+											log("<<< Retry for user updates [" + status + "]");
 										} else {
-											log("<<<< User call " + update.callId + " not found in conversation manager");
+											log("<<< Unexpected user update: " + JSON.stringify(update) + " [" + status + "]");
 										}
-									} else if (update.callStatus == "stopped") {
-										// Hide accept popover for this call
-										if ($callPopup && update.callId == $callPopup.callId) {
-											if ($callPopup.is(":visible")) {
-												$callPopup.dialog("close");
-											}
-										}
-									}
-								} else if (update.eventType == "retry") {
-									log("<<< Retry for user updates [" + status + "]");
-								} else {
-									log("<<< Unexpected user update: " + JSON.stringify(update) + " [" + status + "]");
-								}
-							}).fail(function(data, status, err) {
-								log("<<< User update error: " + JSON.stringify(data) + " [" + status + "] " + err);
-							}).always(poll);
-					  }, timeout);
-					})();
+									}).fail(function(data, status, err) {
+										log("<<< User update error: " + JSON.stringify(data) + " [" + status + "] " + err);
+									}).always(poll);
+							  }, timeout);
+							})();
+						}
+					}).fail(function(err, status) {
+						log("<<< Error getting user group calls: " + JSON.stringify(err) + " [" + status + "]");
+					});
 				}).fail(function() {
 					if (container) {
 						container.init();

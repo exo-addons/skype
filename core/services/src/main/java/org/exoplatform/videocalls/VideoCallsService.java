@@ -19,14 +19,17 @@
  */
 package org.exoplatform.videocalls;
 
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
@@ -44,7 +47,6 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.organization.User;
 import org.exoplatform.services.security.ConversationState;
-import org.exoplatform.services.security.IdentityConstants;
 import org.exoplatform.social.core.identity.model.Identity;
 import org.exoplatform.social.core.identity.model.Profile;
 import org.exoplatform.social.core.identity.provider.OrganizationIdentityProvider;
@@ -52,6 +54,9 @@ import org.exoplatform.social.core.manager.IdentityManager;
 import org.exoplatform.social.core.service.LinkProvider;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.picocontainer.Startable;
 
 /**
@@ -69,6 +74,8 @@ public class VideoCallsService implements Startable {
   protected static final String GROUP_CALL_TYPE       = "group".intern();
 
   protected static final String CALL_OWNER_SCOPE_NAME = "videocalls.callOwner".intern();
+
+  protected static final String CALL_ID_SCOPE_NAME    = "videocalls.callId".intern();
 
   protected static final String USER_CALLS_SCOPE_NAME = "videocalls.user.calls".intern();
 
@@ -146,8 +153,6 @@ public class VideoCallsService implements Startable {
     }
   }
 
-  public static final String                             OWNER_TYPE_USER     = "user";
-
   public static final String                             OWNER_TYPE_SPACE    = "space";
 
   public static final String                             OWNER_TYPE_CHATROOM = "chat_room";
@@ -187,7 +192,7 @@ public class VideoCallsService implements Startable {
   protected SpaceService                                 spaceService;
 
   /** The active calls. */
-  protected final Map<String, CallInfo>                  calls               = new ConcurrentHashMap<>();
+  // protected final Map<String, CallInfo> calls = new ConcurrentHashMap<>();
 
   /** The user listeners. */
   protected final Map<String, Set<IncomingCallListener>> userListeners       = new ConcurrentHashMap<>();
@@ -291,7 +296,7 @@ public class VideoCallsService implements Startable {
         space.addMember(user);
       }
     }
-    space.setCallId(readCallId(spacePrettyName)); // groupCalls.get(spacePrettyName)
+    space.setCallId(readOwnerCallId(spacePrettyName));
     return space;
   }
 
@@ -306,24 +311,12 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public RoomInfo getRoomInfo(String id, String name, String title, String[] members) throws Exception {
-    RoomInfo room = new RoomInfo(id, name, title);
-    for (String userName : members) {
-      UserInfo user = getUserInfo(userName);
-      if (user != null) {
-        room.addMember(user);
-      } else {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Skipped not found user: " + userName);
-        }
-        throw new IdentityNotFound("User " + userName + " not found or not accessible");
-      }
-    }
-    room.setCallId(readCallId(id));
+    RoomInfo room = roomInfo(id, name, title, members, readOwnerCallId(id));
     return room;
   };
 
   /**
-   * Adds the call info.
+   * Adds the call to list of active and fires STARTED event.
    *
    * @param id the id
    * @param ownerId the owner id
@@ -333,17 +326,18 @@ public class VideoCallsService implements Startable {
    * @return the call info
    * @throws Exception the exception
    */
-  public CallInfo addCallInfo(String id,
-                              String ownerId,
-                              String ownerType,
-                              String title,
-                              String providerType,
-                              Collection<String> parts) throws Exception {
-    boolean isUser = OWNER_TYPE_USER.equals(ownerType);
-    boolean isSpace = OWNER_TYPE_SPACE.equals(ownerType);
-    boolean isRoom = OWNER_TYPE_CHATROOM.equals(ownerType);
-    String ownerUri, ownerAvatar;
-    IdentityInfo owner;
+  public CallInfo addCall(String id,
+                          String ownerId,
+                          String ownerType,
+                          String title,
+                          String providerType,
+                          Collection<String> parts) throws Exception {
+    final String userId = currentUserId();
+    final boolean isUser = UserInfo.TYPE_NAME.equals(ownerType);
+    final boolean isSpace = OWNER_TYPE_SPACE.equals(ownerType);
+    final boolean isRoom = OWNER_TYPE_CHATROOM.equals(ownerType);
+    final String ownerUri, ownerAvatar;
+    final IdentityInfo owner;
     if (isUser) {
       UserInfo userInfo = getUserInfo(ownerId);
       if (userInfo == null) {
@@ -354,20 +348,16 @@ public class VideoCallsService implements Startable {
       } else {
         owner = userInfo;
         ownerUri = userInfo.getProfileUri();
-        ownerAvatar = userInfo.getAvatarUri();
-        if (ownerAvatar == null) {
-          ownerAvatar = LinkProvider.PROFILE_DEFAULT_AVATAR_URL;
-        }
+        String avatar = userInfo.getAvatarUri();
+        ownerAvatar = avatar != null ? avatar : LinkProvider.PROFILE_DEFAULT_AVATAR_URL;
       }
     } else if (isSpace) {
       Space space = spaceService.getSpaceByPrettyName(ownerId);
       if (space != null) {
         owner = new SpaceInfo(space);
         ownerUri = space.getUrl();
-        ownerAvatar = space.getAvatarUrl();
-        if (ownerAvatar == null) {
-          ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
-        }
+        String avatar = space.getAvatarUrl();
+        ownerAvatar = avatar != null ? avatar : LinkProvider.SPACE_DEFAULT_AVATAR_URL;
       } else {
         LOG.warn("Cannot find call's owner space " + ownerId);
         owner = new RoomInfo(ownerId, ownerId, title);
@@ -376,64 +366,121 @@ public class VideoCallsService implements Startable {
       }
     } else if (isRoom) {
       owner = new RoomInfo(ownerId, ownerId, title);
+      // XXX room members stay empty
       ownerUri = ParticipantInfo.EMPTY_NAME;
       ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
     } else {
       throw new CallInfoException("Wrong call owner type: " + ownerType);
     }
+    Set<UserInfo> participants = new LinkedHashSet<>();
+    for (String pid : parts) {
+      UserInfo part = getUserInfo(pid);
+      if (part != null) {
+        // it's eXo user
+        participants.add(part);
+      } else {
+        // external participant
+        participants.add(new ParticipantInfo(providerType, pid));
+      }
+    }
+
+    // Save the call
+    /*
+     * CallInfo call = calls.computeIfAbsent(id, k -> {
+     * CallInfo callInfo = new CallInfo(id, title, owner, ownerType, ownerUri, ownerAvatar, providerType);
+     * callInfo.addParticipants(participants);
+     * return callInfo;
+     * });
+     */
+    CallInfo call = new CallInfo(id, title, owner, ownerType, ownerUri, ownerAvatar, providerType);
+    call.addParticipants(participants);
+    saveCall(call);
     if (isSpace || isRoom) {
-      saveCallId(ownerId, id);
-      String userId = currentUserId();
+      // it's group call
+      saveOwnerCallId(ownerId, id);
       if (userId != null) {
-        // For starter of a group call we also record this call in its group calls, 
+        // For starter of a group call we also record this call in its group calls,
         // other parties will register in dedicated requests (e.g. when joined)
         saveUserGroupCallId(userId, id);
       } else {
         LOG.warn("Current user not set, but call registered " + id);
       }
-    }
-    CallInfo call = new CallInfo(providerType, title, owner, ownerType, ownerUri, ownerAvatar);
-    for (String pid : parts) {
-      UserInfo part = getUserInfo(pid);
-      if (part != null) {
-        // it's eXo user
-        call.addParticipant(part);
-        // fire user listener for incoming, except of the caller
-        fireUserCallState(pid, id, CallState.STARTED);
-      } else {
-        // external participant
-        call.addParticipant(new ParticipantInfo(providerType, pid));
+      // fire group's user listener for incoming, except of the caller
+      for (UserInfo part : participants) {
+        if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId()))  {
+          fireUserCallState(part.getId(), id, CallState.STARTED);
+        }
       }
     }
-    calls.put(id, call);
+
     return call;
   }
 
   /**
-   * Gets the call info.
+   * Gets an active call info.
    *
    * @param id the id
-   * @return the call info
+   * @return the call info or <code>null</code> if call not found
    * @throws Exception the exception
    */
-  public CallInfo getCallInfo(String id) throws Exception {
-    return calls.get(id);
+  public CallInfo getCall(String id) throws Exception {
+    // return calls.get(id);
+    return readCallById(id);
   }
 
   /**
-   * Removes the call info.
+   * Removes the call info from active and fires STOPPED event.
    *
    * @param id the id
-   * @return the call info
+   * @return the call info or <code>null</code> if call not found
    * @throws Exception the exception
    */
-  public CallInfo removeCallInfo(String id) throws Exception {
-    CallInfo info = calls.remove(id);
+  public CallInfo stopCall(String id, boolean remove) throws Exception {
+    String userId = currentUserId();
+    CallInfo info = readCallById(id);
     if (info != null) {
-      for (UserInfo user : info.getParticipants()) {
-        if (user.getType() == UserInfo.TYPE_NAME) {
-          // it's eXo user: fire user listener for stopped call
-          fireUserCallState(user.getId(), id, CallState.STOPPED);
+      if (remove) {
+        deleteCall(info);
+      }
+      if (info.getOwner().isGroup()) {
+        String callId = info.getId();
+        for (UserInfo part : info.getParticipants()) {
+          if (part.getType() == UserInfo.TYPE_NAME) {
+            // it's eXo user: fire user listener for stopped call, but to the stopper (current user)
+            if (!userId.equals(part.getId())) {
+              fireUserCallState(part.getId(), id, CallState.STOPPED);
+            }
+            if (remove) {
+              // remove from participant's group calls
+              removeUserGroupCallId(part.getId(), callId);
+            }
+          }
+        }
+      }
+    } else if (remove) {
+      // XXX for a case of previous version storage format, cleanup saved call ID
+      if (userId != null) {
+        removeUserGroupCallId(userId, id);
+      }
+    }
+    return info;
+  }
+
+  /**
+   * Removes the call info from active and fires STOPPED event.
+   *
+   * @param id the id
+   * @return the call info or <code>null</code> if call not found
+   * @throws Exception the exception
+   */
+  public CallInfo startCall(String id) throws Exception {
+    CallInfo info = readCallById(id);
+    if (info != null && info.getOwner().isGroup()) {
+      String userId = currentUserId();
+      for (UserInfo part : info.getParticipants()) {
+        if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId())) {
+          // it's eXo user: fire user listener for started call, but not to the starter (current user)
+          fireUserCallState(part.getId(), id, CallState.STARTED);
         }
       }
     }
@@ -448,7 +495,7 @@ public class VideoCallsService implements Startable {
    */
   public void addUserCall(String userId, String callId) {
     // add to user's list of saved calls (group calls)
-    saveUserGroupCallId(null, callId); // TODO use userId
+    saveUserGroupCallId(userId, callId);
   }
 
   /**
@@ -457,7 +504,7 @@ public class VideoCallsService implements Startable {
    * @param callId the call id
    */
   public void removeUserCall(String userId, String callId) {
-    removeUserGroupCallId(callId); // TODO use userId
+    removeUserGroupCallId(userId, callId);
     fireUserCallState(userId, callId, CallState.STOPPED);
   }
 
@@ -468,7 +515,7 @@ public class VideoCallsService implements Startable {
    * @return the user calls
    */
   public String[] getUserCalls(String userId) {
-    String[] calls = readUserGroupCallIds(); // TODO use userId
+    String[] calls = readUserGroupCallIds(userId);
     if (calls == null) {
       calls = new String[0];
     }
@@ -476,13 +523,18 @@ public class VideoCallsService implements Startable {
   }
 
   public void addUserListener(IncomingCallListener listener) {
-    // incomingListener.onCall(callId, callStatus);
     final String userId = listener.getUserId();
-    userListeners.computeIfAbsent(userId, k -> new LinkedHashSet<>()).add(listener);
+    synchronized (userListeners) {
+      userListeners.computeIfAbsent(userId, k -> new LinkedHashSet<>()).add(listener);
+    }
   }
 
   protected void fireUserCallState(String userId, String callId, String callState) {
-    Set<IncomingCallListener> listeners = userListeners.remove(userId);
+    // Synchronize on userListeners to have a consistent list of listeners to fire
+    Set<IncomingCallListener> listeners;
+    synchronized (userListeners) {
+      listeners = userListeners.remove(userId);
+    }
     if (listeners != null) {
       for (IncomingCallListener listener : listeners) {
         listener.onCall(callId, callState);
@@ -575,7 +627,167 @@ public class VideoCallsService implements Startable {
     return spaceMembers;
   }
 
-  protected void saveCallId(String ownerId, String callId) {
+  protected JSONObject callToJSON(CallInfo call) throws JSONException {
+    // We follow a minimal data required to restore the persisted call
+
+    JSONObject json = new JSONObject();
+    json.put("id", call.getId());
+    json.put("title", call.getTitle());
+    json.put("avatarLink", call.getAvatarLink());
+    json.put("ownerType", call.getOwnerType());
+    json.put("ownerLink", call.getOwnerLink());
+    json.put("providerType", call.getProviderType());
+
+    // Owner
+    JSONObject jsonOwner = new JSONObject();
+    jsonOwner.put("id", call.getOwner().getId());
+    // jsonOwner.put("title", call.getOwner().getTitle());
+    String ownerType = call.getOwner().getType();
+    jsonOwner.put("type", ownerType);
+    if (OWNER_TYPE_CHATROOM.equals(ownerType)) {
+      RoomInfo room = (RoomInfo) call.getOwner();
+      jsonOwner.put("name", room.getName());
+      jsonOwner.put("title", room.getTitle());
+      // XXX room/space members not interesting in this context
+      // jsonOwner.put("members", ((RoomInfo) call.getOwner()).getMembers().keySet());
+    }
+    // jsonOwner.put("group", call.getOwner().isGroup());
+    json.put("owner", jsonOwner);
+
+    // Participants
+    JSONArray jsonParts = new JSONArray();
+    for (UserInfo p : call.getParticipants()) {
+      JSONObject jsonPart = new JSONObject();
+      jsonPart.put("id", p.getId());
+      jsonPart.put("type", p.getType());
+      jsonParts.put(jsonPart);
+    }
+    json.put("participants", jsonParts);
+
+    return json;
+  }
+
+  protected CallInfo jsonToCall(JSONObject json) throws Exception {
+    String id = json.getString("id");
+    String title = json.getString("title");
+    String avatarLink = json.getString("avatarLink");
+    String ownerType = json.getString("ownerType");
+    String ownerLink = json.getString("ownerLink");
+    String providerType = json.getString("providerType");
+
+    // Owner
+    JSONObject jsonOwner = json.getJSONObject("owner");
+    // String ownerType = jsonOwner.getString("type");
+    String ownerId = jsonOwner.getString("id");
+    IdentityInfo owner;
+    if (OWNER_TYPE_CHATROOM.equals(ownerType)) {
+      // JSONArray jsonMembers = jsonOwner.getJSONArray("members");
+      // String[] members = new String[jsonMembers.length()];
+      // for (int i = 0; i < members.length; i++) {
+      // String mid = jsonMembers.getString(i);
+      // members[i] = mid;
+      // }
+      // XXX room/space members not interesting in this context
+      owner = roomInfo(ownerId, jsonOwner.getString("name"), jsonOwner.getString("title"), new String[0], id);
+    } else if (OWNER_TYPE_SPACE.equals(ownerType)) {
+      owner = getSpaceInfo(ownerId);
+    } else if (UserInfo.TYPE_NAME.equals(ownerType)) {
+      owner = getUserInfo(ownerId);
+    } else {
+      LOG.error("Unexpected call owner, type: " + ownerType + ", id: " + ownerId);
+      throw new CallInfoException("Unexpected call owner: " + ownerId);
+    }
+
+    CallInfo call = new CallInfo(id, title, owner, ownerType, ownerLink, avatarLink, providerType);
+
+    // Participants
+    JSONArray jsonParts = json.getJSONArray("participants");
+    for (int i = 0; i < jsonParts.length(); i++) {
+      JSONObject jsonPart = jsonParts.getJSONObject(i);
+      String partId = jsonPart.getString("id");
+      String partType = jsonPart.getString("type");
+      if (UserInfo.TYPE_NAME.equals(partType)) {
+        UserInfo user = getUserInfo(partId);
+        if (user != null) {
+          call.addParticipant(user);
+        } else {
+          LOG.warn("Cannot add call participant as eXo user: " + partId);
+          call.addParticipant(new ParticipantInfo(providerType, partId));
+        }
+      } else {
+        call.addParticipant(new ParticipantInfo(providerType, partId));
+      }
+    }
+
+    return call;
+  }
+
+  protected void saveCall(CallInfo call) throws Exception {
+    saveOwnerCallId(call.getOwner().getId(), call.getId());
+    final String initialGlobalId = Scope.GLOBAL.getId();
+    try {
+      JSONObject json = callToJSON(call);
+      String safeCallId = URLEncoder.encode(call.getId(), "UTF-8");
+      settingService.set(Context.GLOBAL,
+                         Scope.GLOBAL.id(CALL_ID_SCOPE_NAME),
+                         safeCallId,
+                         SettingValue.create(json.toString()));
+    } finally {
+      Scope.GLOBAL.id(initialGlobalId);
+    }
+  }
+
+  protected CallInfo readCallByOwnerId(String ownerId) throws Exception {
+    String callId = readOwnerCallId(ownerId);
+    if (callId != null) {
+      return readCallById(callId);
+    } else {
+      return null;
+    }
+  }
+
+  protected CallInfo readCallById(String id) throws Exception {
+    final String initialGlobalId = Scope.GLOBAL.getId();
+    try {
+      String safeCallId = URLEncoder.encode(id, "UTF-8");
+      SettingValue<?> val =
+                          settingService.get(Context.GLOBAL, Scope.GLOBAL.id(CALL_ID_SCOPE_NAME), safeCallId);
+      if (val != null) {
+        String str = String.valueOf(val.getValue());
+        if (str.startsWith("{")) {
+          // Assuming it's JSON
+          CallInfo call = jsonToCall(new JSONObject(str));
+          return call;
+        } else {
+          LOG.warn("Cannot parse saved CallInfo: " + str);
+        }
+      }
+      return null;
+    } finally {
+      Scope.GLOBAL.id(initialGlobalId);
+    }
+  }
+
+  protected void deleteCall(CallInfo call) throws Exception {
+    final String initialGlobalId = Scope.GLOBAL.getId();
+    try {
+      String safeCallId = URLEncoder.encode(call.getId(), "UTF-8");
+      settingService.remove(Context.GLOBAL, Scope.GLOBAL.id(CALL_ID_SCOPE_NAME), safeCallId);
+      settingService.remove(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), call.getOwner().getId());
+    } finally {
+      Scope.GLOBAL.id(initialGlobalId);
+    }
+  }
+
+  protected CallInfo deleteCallById(String id) throws Exception {
+    CallInfo call = readCallById(id);
+    if (call != null) {
+      deleteCall(call);
+    }
+    return call;
+  }
+
+  protected void saveOwnerCallId(String ownerId, String callId) {
     final String initialGlobalId = Scope.GLOBAL.getId();
     try {
       settingService.set(Context.GLOBAL,
@@ -587,7 +799,7 @@ public class VideoCallsService implements Startable {
     }
   }
 
-  protected String readCallId(String ownerId) {
+  protected String readOwnerCallId(String ownerId) {
     final String initialGlobalId = Scope.GLOBAL.getId();
     try {
       SettingValue<?> val =
@@ -601,24 +813,36 @@ public class VideoCallsService implements Startable {
     }
   }
 
-  protected String[] readUserGroupCallIds() {
+  protected void deleteOwnerCallId(String ownerId) {
     final String initialGlobalId = Scope.GLOBAL.getId();
     try {
-      SettingValue<?> val = settingService.get(Context.USER,
-                                               Scope.GLOBAL.id(USER_CALLS_SCOPE_NAME),
-                                               GROUP_CALL_TYPE);
-      if (val != null) {
-        return String.valueOf(val.getValue()).split("\n");
-      }
-      return null;
+      settingService.remove(Context.GLOBAL, Scope.GLOBAL.id(CALL_OWNER_SCOPE_NAME), ownerId);
     } finally {
       Scope.GLOBAL.id(initialGlobalId);
     }
   }
 
+  protected String[] readUserGroupCallIds(String userId) {
+    final String initialScopeId = Scope.GLOBAL.getId();
+    final String initialContextId = Context.USER.getId();
+    final Context userContext = userId != null ? Context.USER.id(userId) : Context.USER;
+    final Scope userScope = Scope.GLOBAL.id(USER_CALLS_SCOPE_NAME);
+    try {
+      SettingValue<?> val = settingService.get(userContext, userScope, GROUP_CALL_TYPE);
+      if (val != null) {
+        return String.valueOf(val.getValue()).split("\n");
+      }
+      return null;
+    } finally {
+      Scope.GLOBAL.id(initialScopeId);
+      Context.USER.id(initialContextId);
+    }
+  }
+
   protected void saveUserGroupCallId(String userId, String callId) {
-    final String initialGlobalId = Scope.GLOBAL.getId();
-    final Context userContext = Context.USER.id(userId);
+    final String initialContextId = Context.USER.getId();
+    final String initialScopeId = Scope.GLOBAL.getId();
+    final Context userContext = userId != null ? Context.USER.id(userId) : Context.USER;
     final Scope userScope = Scope.GLOBAL.id(USER_CALLS_SCOPE_NAME);
     try {
       StringBuilder newVal = new StringBuilder();
@@ -635,32 +859,54 @@ public class VideoCallsService implements Startable {
       newVal.append(callId);
       settingService.set(userContext, userScope, GROUP_CALL_TYPE, SettingValue.create(newVal.toString()));
     } finally {
-      Scope.GLOBAL.id(initialGlobalId);
+      Scope.GLOBAL.id(initialScopeId);
+      Context.USER.id(initialContextId);
     }
   }
 
-  protected void removeUserGroupCallId(String callId) {
-    final String initialGlobalId = Scope.GLOBAL.getId();
+  protected void removeUserGroupCallId(String userId, String callId) {
+    final String initialContextId = Context.USER.getId();
+    final String initialScopeId = Scope.GLOBAL.getId();
+    final Context userContext = userId != null ? Context.USER.id(userId) : Context.USER;
     final Scope userScope = Scope.GLOBAL.id(USER_CALLS_SCOPE_NAME);
     try {
-      SettingValue<?> val = settingService.get(Context.USER, userScope, GROUP_CALL_TYPE);
+      SettingValue<?> val = settingService.get(userContext, userScope, GROUP_CALL_TYPE);
       if (val != null) {
         String oldVal = String.valueOf(val.getValue());
         int start = oldVal.indexOf(callId);
         if (start >= 0) {
-          StringBuilder newVal = new StringBuilder();
+          StringBuilder newVal = new StringBuilder(oldVal);
           newVal.delete(start, start + callId.length() + 1); // also delete a \n as separator
-          settingService.set(Context.USER,
-                             userScope,
-                             GROUP_CALL_TYPE,
-                             SettingValue.create(newVal.toString()));
+          settingService.set(userContext, userScope, GROUP_CALL_TYPE, SettingValue.create(newVal.toString()));
         }
       }
     } finally {
-      Scope.GLOBAL.id(initialGlobalId);
+      Scope.GLOBAL.id(initialScopeId);
+      Context.USER.id(initialContextId);
     }
   }
-  
+
+  protected RoomInfo roomInfo(String id,
+                              String name,
+                              String title,
+                              String[] members,
+                              String callId) throws Exception {
+    RoomInfo room = new RoomInfo(id, name, title);
+    for (String userName : members) {
+      UserInfo user = getUserInfo(userName);
+      if (user != null) {
+        room.addMember(user);
+      } else {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Skipped not found user: " + userName);
+        }
+        throw new IdentityNotFound("User " + userName + " not found or not accessible");
+      }
+    }
+    room.setCallId(callId);
+    return room;
+  };
+
   /**
    * Current user id.
    *

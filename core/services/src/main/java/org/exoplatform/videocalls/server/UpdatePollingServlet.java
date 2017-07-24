@@ -48,7 +48,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
   /** The Constant LOG. */
   protected static final Log LOG              = ExoLogger.getLogger(UpdatePollingServlet.class);
 
-  public static final int    DEFAULT_TIMEOUT  = 60000;                                          // 5min:
+  public static final int    DEFAULT_TIMEOUT  = 180000;                                          // 5min:
                                                                                                 // 300000
 
   /**

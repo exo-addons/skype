@@ -347,6 +347,18 @@
 		return initRequest(request);
 	};
 	
+	var putCallInfo = function(id, state) {
+		var request = $.ajax({
+			async : true,
+			type : "PUT",
+			url : prefixUrl + "/portal/rest/videocalls/call/" + id,
+			data : {
+				state : state
+			}
+		});
+		return initRequest(request);
+	};
+	
 	var postUserCallId = function(callId) {
 		var request = $.ajax({
 			async : true,
@@ -1279,21 +1291,27 @@
 		/**
 		 * Get registered call from server side database.
 		 */
-		this.getRegisteredCall = getCallInfo;
+		this.getCall = getCallInfo;
 		
 		/**
-		 * Unregister call in server side database.
+		 * Update call state in server side database.
 		 */
-		this.unregisterCall = deleteCallInfo;
+		this.updateCall = putCallInfo;
+		
+		/**
+		 * Remove call in server side database.
+		 */
+		this.deleteCall = deleteCallInfo;
 		
 		/**
 		 * Register call in server side database.
 		 */
-		this.registerCall = postCallInfo;
+		this.addCall = postCallInfo;
 		
-		this.registerUserCall = postUserCallId;
-		this.unregisterUserCall = deleteUserCallId;
-		this.getUserCalls = getUserCallIds;
+		this.getUserGroupCalls = getUserCallIds;
+		this.addUserGroupCall = postUserCallId;
+		this.removeUserGroupCall = deleteUserCallId; // TODO not used
+		
 		this.pollUserUpdates = pollUserUpdates;
 	}
 	

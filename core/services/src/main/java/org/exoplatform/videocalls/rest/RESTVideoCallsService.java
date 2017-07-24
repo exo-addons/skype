@@ -44,6 +44,7 @@ import org.exoplatform.services.rest.resource.ResourceContainer;
 import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.videocalls.CallInfo;
 import org.exoplatform.videocalls.CallInfoException;
+import org.exoplatform.videocalls.CallState;
 import org.exoplatform.videocalls.GroupInfo;
 import org.exoplatform.videocalls.IdentityNotFound;
 import org.exoplatform.videocalls.UserInfo;
@@ -192,8 +193,8 @@ public class RESTVideoCallsService implements ResourceContainer {
   public Response postUserCall(@Context UriInfo uriInfo,
                                @PathParam("name") String userName,
                                @PathParam("type") String type,
-                               @PathParam("sip") String sip,
-                               @FormParam("state") String callState /* TODO not used */) {
+                               @PathParam("sip") String sip
+                               /*@FormParam("state") String callState*/ /* TODO not used */) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
       String currentUserName = convo.getIdentity().getUserId();
@@ -203,9 +204,9 @@ public class RESTVideoCallsService implements ResourceContainer {
         }
         if (userName.equals(currentUserName)) {
           String callId = callId(type, sip);
-          if (callState != null && callState.length() == 0) {
+          /*if (callState != null && callState.length() == 0) {
             callState = null;
-          }
+          }*/
           try {
             videoCalls.addUserCall(userName, callId);
             return Response.ok().build();
@@ -229,7 +230,7 @@ public class RESTVideoCallsService implements ResourceContainer {
       return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
     }
   }
-  
+
   /**
    * Delete user call with possibility to filter by call state.
    *
@@ -244,10 +245,10 @@ public class RESTVideoCallsService implements ResourceContainer {
   @RolesAllowed("users")
   @Path("/user/{name}/call/{type}/{sip}")
   public Response deleteUserCall(@Context UriInfo uriInfo,
-                               @PathParam("name") String userName,
-                               @PathParam("type") String type,
-                               @PathParam("sip") String sip,
-                               @FormParam("state") String callState /* TODO not used */) {
+                                 @PathParam("name") String userName,
+                                 @PathParam("type") String type,
+                                 @PathParam("sip") String sip,
+                                 @FormParam("state") String callState /* TODO not used */) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
       String currentUserName = convo.getIdentity().getUserId();
@@ -473,7 +474,7 @@ public class RESTVideoCallsService implements ResourceContainer {
       String callId = callId(type, sip);
       String currentUserName = convo.getIdentity().getUserId();
       try {
-        CallInfo call = videoCalls.getCallInfo(callId);
+        CallInfo call = videoCalls.getCall(callId);
         if (call != null) {
           return Response.ok().entity(call).build();
         } else {
@@ -490,16 +491,16 @@ public class RESTVideoCallsService implements ResourceContainer {
 
   @DELETE
   @RolesAllowed("users")
-  @Path("/call/{type}/{id}")
-  public Response deleteCallInfo(@Context UriInfo uriInfo,
-                                 @PathParam("type") String type,
-                                 @PathParam("id") String id) {
+  @Path("/call/{type}/{sip}")
+  public Response deleteCall(@Context UriInfo uriInfo,
+                             @PathParam("type") String type,
+                             @PathParam("sip") String sip) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
-      String callId = callId(type, id);
+      String callId = callId(type, sip);
       String currentUserName = convo.getIdentity().getUserId();
       try {
-        CallInfo call = videoCalls.removeCallInfo(callId);
+        CallInfo call = videoCalls.stopCall(callId, true);
         if (call != null) {
           return Response.ok().entity(call).build();
         } else {
@@ -516,17 +517,61 @@ public class RESTVideoCallsService implements ResourceContainer {
     }
   }
 
+  @PUT
+  @RolesAllowed("users")
+  @Path("/call/{type}/{sip}")
+  public Response putCall(@Context UriInfo uriInfo,
+                          @PathParam("type") String type,
+                          @PathParam("sip") String sip,
+                          @FormParam("state") String state) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String callId = callId(type, sip);
+      String currentUserName = convo.getIdentity().getUserId();
+      try {
+        if (CallState.STOPPED.equals(state)) {
+          CallInfo call = videoCalls.stopCall(callId, false);
+          if (call != null) {
+            return Response.ok().entity(call).build();
+          } else {
+            return Response.status(Status.NOT_FOUND)
+                           .entity(ErrorInfo.notFoundError("Call not found"))
+                           .build();
+          }
+        } else if (CallState.STARTED.equals(state)) {
+          CallInfo call = videoCalls.startCall(callId);
+          if (call != null) {
+            return Response.ok().entity(call).build();
+          } else {
+            return Response.status(Status.NOT_FOUND)
+                           .entity(ErrorInfo.notFoundError("Call not found"))
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST)
+                         .entity(ErrorInfo.clientError("Wrong request parameters: state"))
+                         .build();
+        }
+      } catch (Throwable e) {
+        LOG.error("Error updating call info for '" + callId + "' by '" + currentUserName + "'", e);
+        return Response.serverError().entity(ErrorInfo.serverError("Error updating the call")).build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+
   @POST
   @RolesAllowed("users")
   @Path("/call/{type}/{sip}")
-  public Response postCallInfo(@Context UriInfo uriInfo,
-                               @PathParam("type") String type,
-                               @PathParam("sip") String sip,
-                               @FormParam("title") String title,
-                               @FormParam("provider") String providerType,
-                               @FormParam("owner") String ownerId,
-                               @FormParam("ownerType") String ownerType,
-                               @FormParam("participants") String participants) {
+  public Response postCall(@Context UriInfo uriInfo,
+                           @PathParam("type") String type,
+                           @PathParam("sip") String sip,
+                           @FormParam("title") String title,
+                           @FormParam("provider") String providerType,
+                           @FormParam("owner") String ownerId,
+                           @FormParam("ownerType") String ownerType,
+                           @FormParam("participants") String participants) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
       String callId = callId(type, sip);
@@ -537,13 +582,12 @@ public class RESTVideoCallsService implements ResourceContainer {
               if (participants != null) {
                 String currentUserName = convo.getIdentity().getUserId();
                 try {
-                  CallInfo call =
-                                videoCalls.addCallInfo(callId,
-                                                       ownerId,
-                                                       ownerType,
-                                                       title,
-                                                       providerType,
-                                                       Arrays.asList(participants.split(";")));
+                  CallInfo call = videoCalls.addCall(callId,
+                                                     ownerId,
+                                                     ownerType,
+                                                     title,
+                                                     providerType,
+                                                     Arrays.asList(participants.split(";")));
                   return Response.ok().entity(call).build();
                 } catch (CallInfoException e) {
                   return Response.status(Status.BAD_REQUEST)
