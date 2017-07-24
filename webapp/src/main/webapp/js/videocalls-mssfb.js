@@ -48,6 +48,7 @@
 			var conversation = null;
 			var callerId = null;
 			var attached = true;
+			var shown = false;
 			
 			var self = this;
 			self.$container = $container;
@@ -101,13 +102,19 @@
 				attached = false;
 			};
 			
+			this.isVisible = function() {
+				return shown;
+			};
+			
 			this.show = function() {
 				callHandlers(onMssfbCallShow);
+				shown = true;
 				return this;
 			};
 			
 			this.hide = function() {
 				callHandlers(onMssfbCallHide);
+				shown = false;
 				return this;
 			};
 			
@@ -845,9 +852,9 @@
 						logConversation(conversation);
 						container.setConversation(conversation, target.id);
 						container.show();
-						// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
 						var callId = getCallId(conversation);
 						log("Outgoing call '" + target.title + "' " + callId);
+						// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
 						var beforeunloadListener = function(e) {
 							var msg = onClosePage(conversation, app);
 							if (msg) {
@@ -861,7 +868,7 @@
 						var added = false;
 						var addCall = function() {
 							if (!added && callId != "g/adhoc") {
-								//log(">>> Registering " + callId + " > " + new Date().getTime());
+								log(">>> Adding " + callId + " > " + new Date().getTime());
 								added = true;
 								var ownerType, ownerId;
 								if (target.group) {
@@ -878,7 +885,7 @@
 									title : conversation.topic(),
 									participants : userIds.join(";") // eXo user ids here
 								};
-								videoCalls.addCall(callId, callInfo).done(function(call) {
+								return videoCalls.addCall(callId, callInfo).done(function(call) {
 									log(">>> Added " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 								}).fail(function(err) {
 									registered = false;
@@ -887,11 +894,19 @@
 							}
 						};
 						var updateCall = function(state) {
-							videoCalls.updateCall(callId, state).done(function(call) {
+							return videoCalls.updateCall(callId, state).done(function(call) {
 								log("<<< " + state + " " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 							}).fail(function(err) {
 								log("<<< ERROR updating to " + state + " " + callId + ": " + JSON.stringify(err));
 							});								
+						};
+						var deleteCall = function() {
+							log(">>> Deleting " + callId + " > " + new Date().getTime());
+							return videoCalls.deleteCall(callId).done(function() {
+								log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+							}).fail(function(err) {
+								log("<<< ERROR deleting " + callId + ": " + JSON.stringify(err));
+							});
 						};
 						if (target.group && conversation.selfParticipant.person.id() == conversation.creator.id()) {
 							// set topic only if a creator and of a group call, 
@@ -908,12 +923,10 @@
 								started = true;
 								callId = getCallId(conversation);
 								log(">>> " + stateName + " outgoing " + callId);
-								if (conversation.isGroupConversation()) {
-									if (target.callId) {
-										updateCall("started");
-									} else {
-										addCall();
-									}
+								if (target.callId) {
+									updateCall("started");
+								} else {
+									addCall();
 								}
 								process.resolve(callId, conversation);
 								/*conversation.state.once("Connected", function() {
@@ -925,6 +938,8 @@
 									log("<<< Disconnected outgoing " + callId);
 									if (conversation.isGroupConversation()) {
 										updateCall("stopped");
+									} else {
+										deleteCall();
 									}
 									//app.conversationsManager.conversations.remove(conversation);
 									window.removeEventListener("beforeunload", beforeunloadListener);
@@ -951,6 +966,8 @@
 								log(">>> Added participant to outgoing Conference " + callId + " " + JSON.stringify(person));
 							});*/
 						} else {
+							// XXX For P2P, save in eXo sooner, to let this info be ready when the conva will be fired as 'added' at the other side
+							startingCall(conversation.state());
 							conversation.state.once("Connecting", function() {
 								startingCall("Connecting");
 							});
@@ -975,7 +992,7 @@
 										app.conversationsManager.conversations.remove(conversation);
 										// delete this call records in eXo service
 										target.callId = null;
-										videoCalls.deleteCall(callId).always(function() {
+										deleteCall().always(function() {
 											// Wait a bit for things completion
 											setTimeout(function() {
 												outgoingCallHandler(api, app, container, currentUser, target, userIds, participants, null).done(function(callId, newConvo) {
@@ -984,11 +1001,7 @@
 													process.reject(err);
 												});											
 											}, 250);
-										}).done(function() {
-											log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
-										}).fail(function(err) {
-											log("<<< ERROR deleting " + callId + ": " + JSON.stringify(err));
-										});								
+										});
 									} else {
 										unregisterCall(); // TODO Do need it here? It will be done on Disconnected state also.
 									}
@@ -1344,7 +1357,7 @@
 									$callPopup.callId = callId;
 									conversation.state.changed(function listener(newValue, reason, oldValue) {
 										// convo may be already in Disconnected state for saved calls
-										if (newValue === "Disconnected" && (oldValue === "Connected" || oldValue === "Connecting" || oldValue === "Conferencing" || oldValue === "Conferenced")) {
+										if (newValue === "Disconnected" && (oldValue === "Incoming" || oldValue === "Connected" || oldValue === "Connecting" || oldValue === "Conferencing" || oldValue === "Conferenced")) {
 											conversation.state.changed.off(listener);
 											if ($call.is(":visible")) {
 												$call.dialog("close");
@@ -1360,8 +1373,22 @@
 											var $chat = $("#chat-application");
 											if ($chat.length > 0) {
 												var $users = $chat.find("#chat-users");
-												var $rooms = $users.find(".users-online .room-link[user-data='" + callerId  + "']");
-												$rooms.click();
+												var ownerSelector = ".users-online .room-link[user-data='" + callerId  + "']";
+												var $rooms = $users.find(ownerSelector);
+												if ($rooms.length == 0) {
+													// try find in the history/offline
+													$chat.find(".btn-history:not(.active)").click();
+													setTimeout(function() {
+														$chat.find(".btn-offline:not(.active)").click();
+														setTimeout(function() {
+															$users.find(ownerSelector).first().click();
+														}, 1000);
+													}, 1000);
+													//$chat.find(".btn-history, .btn-offline").filter(":not(.active)").click();
+													// TODO do we want hide opened offline/hostory rooms?
+												} else {
+													$rooms.first().click();
+												}
 											}
 										}
 										container.init();
@@ -1523,29 +1550,25 @@
 									}
 								});
 							}
-							//log(">>> Get registered " + callId + " > " + new Date().getTime());
-							if (conversation.isGroupConversation()) {
-							var callInfo = videoCalls.getCall(callId);
-								callInfo.done(function(call) {
-									log(">>> Got registered " + callId + " > " + new Date().getTime());
-									callerId = call.owner.id;
-									callerLink = call.ownerLink;
-									callerAvatar = call.avatarLink;
+							log(">>> Get registered " + callId + " > " + new Date().getTime());
+							videoCalls.getCall(callId).done(function(call) {
+								log(">>> Got registered " + callId + " > " + new Date().getTime());
+								callerId = call.owner.id;
+								callerLink = call.ownerLink;
+								callerAvatar = call.avatarLink;
+								if (call.owner.group) {
 									callerMessage = call.title + " conference call.";
-									showCallPopover();
-								});
-								callInfo.fail(function(err, status) {
-									log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
-									if (typeof(status) == "number" && status == 404) {
-										// Call not registered, we treat it as a call started outside Video Calls
-										showCallPopover();	
-									} else {
-										accept.reject("call info error");
-									}
-								});
-							} else {
+								} // otherwise, we already have a right message (see above)
 								showCallPopover();
-							}
+							}).fail(function(err, status) {
+								log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
+								if (typeof(status) == "number" && status == 404) {
+									// Call not registered, we treat it as a call started outside Video Calls
+									showCallPopover();	
+								} else {
+									accept.reject("call info error");
+								}
+							});
 						}
 						return accept.promise();
 					};
@@ -1596,7 +1619,7 @@
 							// Late it may become Incoming
 							conversation.state.once("Incoming", function() {
 								// Update call ID as it will change after first Connecting
-								if (conversation != container.getConversation()) {
+								if (!container.isVisible() || conversation != container.getConversation()) {
 									log(">>> Created (added) > Incoming " + getCallId(conversation));
 									handleIncoming(conversation);									
 								} else {

@@ -391,7 +391,7 @@
 			async : true,
 			type : "GET",
 			url : prefixUrl + "/videocalls/updates/" + userId,
-			timeout : 65000
+			timeout : 310000
 		});
 		return initRequest(request);
 	};

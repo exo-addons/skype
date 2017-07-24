@@ -189,11 +189,11 @@ public class RESTVideoCallsService implements ResourceContainer {
    */
   @POST
   @RolesAllowed("users")
-  @Path("/user/{name}/call/{type}/{sip}")
+  @Path("/user/{name}/call/{type}/{id}")
   public Response postUserCall(@Context UriInfo uriInfo,
                                @PathParam("name") String userName,
                                @PathParam("type") String type,
-                               @PathParam("sip") String sip
+                               @PathParam("id") String id
                                /*@FormParam("state") String callState*/ /* TODO not used */) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
@@ -203,7 +203,7 @@ public class RESTVideoCallsService implements ResourceContainer {
           userName = currentUserName;
         }
         if (userName.equals(currentUserName)) {
-          String callId = callId(type, sip);
+          String callId = callId(type, id);
           /*if (callState != null && callState.length() == 0) {
             callState = null;
           }*/
@@ -237,17 +237,17 @@ public class RESTVideoCallsService implements ResourceContainer {
    * @param uriInfo the uri info
    * @param userName the user name
    * @param type the type
-   * @param sip the sip
+   * @param id the id
    * @param callState the call state
    * @return the response
    */
   @DELETE
   @RolesAllowed("users")
-  @Path("/user/{name}/call/{type}/{sip}")
+  @Path("/user/{name}/call/{type}/{id}")
   public Response deleteUserCall(@Context UriInfo uriInfo,
                                  @PathParam("name") String userName,
                                  @PathParam("type") String type,
-                                 @PathParam("sip") String sip,
+                                 @PathParam("id") String id,
                                  @FormParam("state") String callState /* TODO not used */) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
@@ -257,7 +257,7 @@ public class RESTVideoCallsService implements ResourceContainer {
           userName = currentUserName;
         }
         if (userName.equals(currentUserName)) {
-          String callId = callId(type, sip);
+          String callId = callId(type, id);
           if (callState != null && callState.length() == 0) {
             callState = null;
           }
@@ -465,13 +465,13 @@ public class RESTVideoCallsService implements ResourceContainer {
 
   @GET
   @RolesAllowed("users")
-  @Path("/call/{type}/{sip}")
+  @Path("/call/{type}/{id}")
   public Response getCallInfo(@Context UriInfo uriInfo,
                               @PathParam("type") String type,
-                              @PathParam("sip") String sip) {
+                              @PathParam("id") String id) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
-      String callId = callId(type, sip);
+      String callId = callId(type, id);
       String currentUserName = convo.getIdentity().getUserId();
       try {
         CallInfo call = videoCalls.getCall(callId);
@@ -491,13 +491,13 @@ public class RESTVideoCallsService implements ResourceContainer {
 
   @DELETE
   @RolesAllowed("users")
-  @Path("/call/{type}/{sip}")
+  @Path("/call/{type}/{id}")
   public Response deleteCall(@Context UriInfo uriInfo,
                              @PathParam("type") String type,
-                             @PathParam("sip") String sip) {
+                             @PathParam("id") String id) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
-      String callId = callId(type, sip);
+      String callId = callId(type, id);
       String currentUserName = convo.getIdentity().getUserId();
       try {
         CallInfo call = videoCalls.stopCall(callId, true);
@@ -519,14 +519,14 @@ public class RESTVideoCallsService implements ResourceContainer {
 
   @PUT
   @RolesAllowed("users")
-  @Path("/call/{type}/{sip}")
+  @Path("/call/{type}/{id}")
   public Response putCall(@Context UriInfo uriInfo,
                           @PathParam("type") String type,
-                          @PathParam("sip") String sip,
+                          @PathParam("id") String id,
                           @FormParam("state") String state) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
-      String callId = callId(type, sip);
+      String callId = callId(type, id);
       String currentUserName = convo.getIdentity().getUserId();
       try {
         if (CallState.STOPPED.equals(state)) {
@@ -563,10 +563,10 @@ public class RESTVideoCallsService implements ResourceContainer {
 
   @POST
   @RolesAllowed("users")
-  @Path("/call/{type}/{sip}")
+  @Path("/call/{type}/{id}")
   public Response postCall(@Context UriInfo uriInfo,
                            @PathParam("type") String type,
-                           @PathParam("sip") String sip,
+                           @PathParam("id") String id,
                            @FormParam("title") String title,
                            @FormParam("provider") String providerType,
                            @FormParam("owner") String ownerId,
@@ -574,7 +574,7 @@ public class RESTVideoCallsService implements ResourceContainer {
                            @FormParam("participants") String participants) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
-      String callId = callId(type, sip);
+      String callId = callId(type, id);
       if (title != null) {
         if (providerType != null) {
           if (ownerId != null) {

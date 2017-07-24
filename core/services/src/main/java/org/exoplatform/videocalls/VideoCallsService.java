@@ -20,7 +20,6 @@
 package org.exoplatform.videocalls;
 
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -28,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.exoplatform.commons.api.settings.SettingService;
 import org.exoplatform.commons.api.settings.SettingValue;
@@ -407,7 +404,7 @@ public class VideoCallsService implements Startable {
       }
       // fire group's user listener for incoming, except of the caller
       for (UserInfo part : participants) {
-        if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId()))  {
+        if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId())) {
           fireUserCallState(part.getId(), id, CallState.STARTED);
         }
       }
@@ -459,7 +456,7 @@ public class VideoCallsService implements Startable {
       }
     } else if (remove) {
       // XXX for a case of previous version storage format, cleanup saved call ID
-      if (userId != null) {
+      if (userId != null && id.startsWith("g/")) {
         removeUserGroupCallId(userId, id);
       }
     }
@@ -495,7 +492,9 @@ public class VideoCallsService implements Startable {
    */
   public void addUserCall(String userId, String callId) {
     // add to user's list of saved calls (group calls)
-    saveUserGroupCallId(userId, callId);
+    if (callId.startsWith("g/")) {
+      saveUserGroupCallId(userId, callId);
+    } // else, we don't save p2p calls
   }
 
   /**
@@ -504,8 +503,10 @@ public class VideoCallsService implements Startable {
    * @param callId the call id
    */
   public void removeUserCall(String userId, String callId) {
-    removeUserGroupCallId(userId, callId);
-    fireUserCallState(userId, callId, CallState.STOPPED);
+    if (callId.startsWith("g/")) {
+      removeUserGroupCallId(userId, callId);
+      fireUserCallState(userId, callId, CallState.STOPPED);
+    } // else, we don't save p2p calls
   }
 
   /**
