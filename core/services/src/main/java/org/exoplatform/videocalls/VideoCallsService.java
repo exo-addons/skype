@@ -405,7 +405,7 @@ public class VideoCallsService implements Startable {
       // fire group's user listener for incoming, except of the caller
       for (UserInfo part : participants) {
         if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId())) {
-          fireUserCallState(part.getId(), id, CallState.STARTED);
+          fireUserCallState(part.getId(), id, CallState.STARTED, ownerId);
         }
       }
     }
@@ -445,7 +445,7 @@ public class VideoCallsService implements Startable {
           if (part.getType() == UserInfo.TYPE_NAME) {
             // it's eXo user: fire user listener for stopped call, but to the stopper (current user)
             if (!userId.equals(part.getId())) {
-              fireUserCallState(part.getId(), id, CallState.STOPPED);
+              fireUserCallState(part.getId(), id, CallState.STOPPED, info.getOwner().getId());
             }
             if (remove) {
               // remove from participant's group calls
@@ -477,7 +477,7 @@ public class VideoCallsService implements Startable {
       for (UserInfo part : info.getParticipants()) {
         if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId())) {
           // it's eXo user: fire user listener for started call, but not to the starter (current user)
-          fireUserCallState(part.getId(), id, CallState.STARTED);
+          fireUserCallState(part.getId(), id, CallState.STARTED, info.getOwner().getId());
         }
       }
     }
@@ -501,11 +501,16 @@ public class VideoCallsService implements Startable {
    * Removes the user call.
    *
    * @param callId the call id
+   * @throws Exception 
+   * @see {@link #stopCall(String, boolean)}
    */
-  public void removeUserCall(String userId, String callId) {
+  @Deprecated // TODO not used, see stopCall()
+  public void removeUserCall(String userId, String callId) throws Exception {
     if (callId.startsWith("g/")) {
       removeUserGroupCallId(userId, callId);
-      fireUserCallState(userId, callId, CallState.STOPPED);
+      // XXX We don't need notify user itself about just removed call by him
+      //CallInfo call = readCallById(callId);
+      //fireUserCallState(userId, callId, CallState.STOPPED, call != null ? call.getOwner().getId() : null);
     } // else, we don't save p2p calls
   }
 
@@ -530,7 +535,7 @@ public class VideoCallsService implements Startable {
     }
   }
 
-  protected void fireUserCallState(String userId, String callId, String callState) {
+  protected void fireUserCallState(String userId, String callId, String callState, String callerId) {
     // Synchronize on userListeners to have a consistent list of listeners to fire
     Set<IncomingCallListener> listeners;
     synchronized (userListeners) {
@@ -538,7 +543,7 @@ public class VideoCallsService implements Startable {
     }
     if (listeners != null) {
       for (IncomingCallListener listener : listeners) {
-        listener.onCall(callId, callState);
+        listener.onCall(callId, callState, callerId);
       }
     }
   }

@@ -327,6 +327,10 @@
 				}
 			};
 			
+			var callUpdate = function() {
+				// empty by default, may be initialized for chat, space etc.
+			};
+			
 			this.getType = function() {
 				if (settings) {
 					return settings.type;
@@ -865,19 +869,19 @@
 						var unloadListener = function(e) {
 							onClosePage(conversation, app);
 						};
+						var ownerType, ownerId;
+						if (target.group) {
+							ownerType = target.type;
+							ownerId = target.id;
+						} else {
+							ownerType = "user";
+							ownerId = currentUser.id;
+						}
 						var added = false;
 						var addCall = function() {
 							if (!added && callId != "g/adhoc") {
 								log(">>> Adding " + callId + " > " + new Date().getTime());
 								added = true;
-								var ownerType, ownerId;
-								if (target.group) {
-									ownerType = target.type;
-									ownerId = target.id;									
-								} else {
-									ownerType = "user";
-									ownerId = currentUser.id;
-								}
 								var callInfo = {
 									owner : ownerId,
 									ownerType : ownerType,  
@@ -885,6 +889,13 @@
 									title : conversation.topic(),
 									participants : userIds.join(";") // eXo user ids here
 								};
+								callUpdate({ 
+									status : "started",
+									callId : callId,
+									callerId : ownerId,
+									state : conversation.state(),
+									saved : false
+								});
 								return videoCalls.addCall(callId, callInfo).done(function(call) {
 									log(">>> Added " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 								}).fail(function(err) {
@@ -893,15 +904,29 @@
 								});
 							}
 						};
-						var updateCall = function(state) {
-							return videoCalls.updateCall(callId, state).done(function(call) {
-								log("<<< " + state + " " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+						var updateCall = function(status) {
+							callUpdate({ 
+								status : status,
+								callId : callId,
+								callerId : ownerId,
+								state : conversation.state(),
+								saved : false
+							});
+							return videoCalls.updateCall(callId, status).done(function(call) {
+								log("<<< " + status + " " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 							}).fail(function(err) {
-								log("<<< ERROR updating to " + state + " " + callId + ": " + JSON.stringify(err));
+								log("<<< ERROR updating to " + status + " " + callId + ": " + JSON.stringify(err));
 							});								
 						};
 						var deleteCall = function() {
 							log(">>> Deleting " + callId + " > " + new Date().getTime());
+							callUpdate({ 
+								status : "stopped",
+								callId : callId,
+								callerId : ownerId,
+								state : conversation.state(),
+								saved : false
+							});
 							return videoCalls.deleteCall(callId).done(function() {
 								log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 							}).fail(function(err) {
@@ -923,25 +948,23 @@
 								started = true;
 								callId = getCallId(conversation);
 								log(">>> " + stateName + " outgoing " + callId);
-								if (target.callId) {
-									updateCall("started");
-								} else {
-									addCall();
-								}
+								if (conversation.isGroupConversation()) {
+									if (target.callId) {
+										updateCall("started");
+									} else {
+										addCall();
+									}
+								} // P2P call will be saved before the start, see below
 								process.resolve(callId, conversation);
-								/*conversation.state.once("Connected", function() {
-									// FIXME several such listeners may register if convo was declined remotely or filed to connect
-									log(">>> Connected outgoing " + callId);
-									process.resolve(callId, conversation);
-								});*/
 								conversation.state.once("Disconnected", function() {
 									log("<<< Disconnected outgoing " + callId);
 									if (conversation.isGroupConversation()) {
-										updateCall("stopped");
+										if (conversation.participantsCount() <= 0) {
+											updateCall("stopped");											
+										}
 									} else {
 										deleteCall();
 									}
-									//app.conversationsManager.conversations.remove(conversation);
 									window.removeEventListener("beforeunload", beforeunloadListener);
 									window.removeEventListener("unload", unloadListener);
 									//container.hide();
@@ -966,8 +989,9 @@
 								log(">>> Added participant to outgoing Conference " + callId + " " + JSON.stringify(person));
 							});*/
 						} else {
-							// XXX For P2P, save in eXo sooner, to let this info be ready when the conva will be fired as 'added' at the other side
-							startingCall(conversation.state());
+							// XXX For P2P, save in eXo sooner, to let this info be ready when the convo will be fired as 'added' at the other side
+							//startingCall(conversation.state());
+							addCall();
 							conversation.state.once("Connecting", function() {
 								startingCall("Connecting");
 							});
@@ -1312,8 +1336,7 @@
 						callerLink = ""; // /portal/intranet/profile/patrice
 						callerAvatar = caller.avatarUrl(); // /rest/social/identity/organization/patrice/avatar
 					}
-					
-					var accept = null;
+					var accept;
 					if (conversation.isGroupConversation()) {
 						conversation.state.when("Conferencing", function() {
 							log(">>> Conferencing incoming " + callId);
@@ -1339,17 +1362,37 @@
 					}
 					conversation.state.when("Disconnected", function() {
 						log("<<< Disconnected incoming " + callId);
-						accept = null;
-						//app.conversationsManager.conversations.remove(conversation);
+						accept = null; // Release the acceptor for a next call within this convo
+						if (conversation.isGroupConversation() && conversation.participantsCount() <= 0) {
+							videoCalls.updateCall(callId, "stopped").done(function(call) {
+								log("<<< Stopped " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+							}).fail(function(err) {
+								log("<<< ERROR updating to stopped " + callId + ": " + JSON.stringify(err));
+							});
+						}
+						callUpdate({ 
+							status : "stopped",
+							saved : saved,
+							callId : callId,
+							callerId : callerId
+						});
 						window.removeEventListener("beforeunload", beforeunloadListener);
 						window.removeEventListener("unload", unloadListener);
 					});
 					
 					// this method may be invoked several times by the above SDK conversation's services accept callback
-					// be we want ask an user once per a call, thus we will reset the worked deferred object in a seconds
+					// be we want ask an user once per a call, thus we will reset this deferred in seconds
+					// accept variable used by single (!) conversation, but acceptCall() can be invoked several times from the SDK
+					// e.g. on next incoming call
 					var acceptCall = function() {
 						if (!accept) {
 							accept = $.Deferred();
+							accept.always(function() {
+								// wait a bit for latency of video/audio notification in Skype SDK and release it for next attempts
+								setTimeout(function() {
+									accept = null;
+								}, 2500);
+							});
 							var showCallPopover = function() {
 								var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
 								popover.progress(function($call) {
@@ -1535,13 +1578,14 @@
 									accept.reject(err);
 								});
 								popover.always(function() {
-									if (accept.state() == "pending") {
+									if (accept && accept.state() == "pending") {
+										var thisAccept = accept;
 										setTimeout(function() {
-											if (accept && accept.state() == "pending") {
-												log(">>> accept STILL pending - null it");
+											if (thisAccept.state() == "pending") {
+												log(">>> accept STILL pending - reject it");
 												// if in 15sec no one conversation service was accepted, we reject it
 												try {
-													accept.reject("timeout");															
+													thisAccept.reject("timeout");															
 												} catch(e) {
 													// was null due to below timer?
 												}
@@ -1559,6 +1603,12 @@
 								if (call.owner.group) {
 									callerMessage = call.title + " conference call.";
 								} // otherwise, we already have a right message (see above)
+								callUpdate({ 
+									status : "starting",
+									saved : saved,
+									callId : callId,
+									callerId : callerId
+								});
 								showCallPopover();
 							}).fail(function(err, status) {
 								log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
@@ -1569,15 +1619,33 @@
 									accept.reject("call info error");
 								}
 							});
+							accept.done(function(modality) {
+								callUpdate({ 
+									status :  "started",
+									modality : modality,
+									saved : saved,
+									callId : callId,
+									callerId : callerId
+								});
+							});
+							accept.fail(function(err) {
+								var res = {
+									saved : saved,
+									callId : callId,
+									callerId : callerId
+								};
+								if (err == "declined" || err == "timeout") {
+									res.status = "canceled";	
+								} else {
+									res.status = "error";
+									res.error = err;
+								}
+								callUpdate(res);
+							});
 						}
 						return accept.promise();
 					};
 					
-					log(">> selfParticipant: " + conversation.selfParticipant.state());
-					log(">> videoService.accept.enabled: " + conversation.videoService.accept.enabled());
-					log(">> audioService.accept.enabled: " + conversation.audioService.accept.enabled());
-					log(">> videoService.start.enabled: " + conversation.videoService.start.enabled());
-					log(">> audioService.start.enabled: " + conversation.audioService.start.enabled());
 					if (saved) {
 						acceptCall();
 					} else {
@@ -1599,7 +1667,7 @@
 							log(">> chatService ACCEPT: " + callId);
 							// TODO chat needs specific handling
 						});
-						// TODO audioPhoneService accept?						
+						// TODO audioPhoneService accept?
 					}
 				};
 				checkPlugin(app).done(function() {
@@ -1650,7 +1718,7 @@
 														log(">>>> Incoming (saved) " + update.callId);
 														handleIncoming(conversation, true);
 													} else {
-														log("<<<< User call " + update.callId + " not active (" + conversation.state() + ")");
+														log("<<<< User call " + update.callId + " not active (" + state + ")");
 													}
 												} else {
 													log("<<<< User call " + update.callId + " not found in conversation manager");
@@ -1662,6 +1730,13 @@
 														$callPopup.dialog("close");
 													}
 												}
+												callUpdate({ 
+													status : "stopped",
+													callId : update.callId,
+													callerId : update.callerId,
+													state : state,
+													saved : true
+												});
 											}
 										} else if (update.eventType == "retry") {
 											log("<<< Retry for user updates [" + status + "]");
@@ -1681,7 +1756,7 @@
 					if (container) {
 						container.init();
 						container.$element.append($("<div><div class='pluginError'>Please install Skype web plugin.</div></div>"));
-					} // else, user aleeady notified in pnotify warning 
+					} // else, user already notified in pnotify warning
 				});
 			};
 			
@@ -1881,6 +1956,55 @@
 								  	initializer.reject(err);
 								  });
 								}
+								var $users = $chat.find("#chat-users");
+								var userStatus;
+								// Init update procedure common for the whole provider 
+								callUpdate = function(info) {
+									if (info.status) {
+										var isGroup = info.callId.startsWith("g/");
+										if (info.status == "stopped") {
+											// mark Chat room icon normal
+											if (isGroup) {
+												var $room = $users.find("#users-online-" + info.callerId);
+												$room.removeClass("activeCall");
+												$room.removeClass("incomingCall");
+											}
+											if (userStatus) {
+												// set user status to a previous one
+												chatApplication.setStatus(userStatus);
+												userStatus = null;
+											}
+										} else if (info.status == "starting") {
+											if (isGroup) {
+												// mark Chat room icon red blinking (aka incoming)
+												var $room = $users.find("#users-online-" + info.callerId);
+												$room.addClass("activeCall").addClass("startingCall");
+											}
+										} else if (info.status == "canceled" || info.status == "started") {
+											// mark Chat room icon red (aka running)
+											if (isGroup) {
+												var $room = $users.find("#users-online-" + info.callerId);
+												if (!$room.hasClass("activeCall")) {
+													$room.addClass("activeCall");
+												}
+												$room.removeClass("startingCall");
+											}
+										} else {
+											log("<<< Unexpected call update status: " + JSON.stringify(info));
+										}
+										if (info.status == "started") {
+											// set user status: do-not-disturb, remember current status
+											chatNotification.getStatus(chatApplication.username, function(status) {
+												chatApplication.setStatusDoNotDisturb();
+												userStatus = status;
+											});
+										} else {
+											userStatus = null;
+										}
+									} else if (info.error) {
+										log("<<< Call update error: " + JSON.stringify(info));
+									}
+								};
 								initializer.done(function(api, app) {
 									log("Automatic login done.");
 									incomingCallHandler(api, app, container);
@@ -2000,7 +2124,6 @@
 										}
 									}, 1200);
 								};
-								var $users = $chat.find("#chat-users");
 								$users.click(function() {
 									moveCallContainer(false);
 								});

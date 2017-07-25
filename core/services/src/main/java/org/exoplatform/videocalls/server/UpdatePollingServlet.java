@@ -119,7 +119,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
           VideoCallsService videoCalls = getContainer().getComponentInstanceOfType(VideoCallsService.class);
           videoCalls.addUserListener(new IncomingCallListener(userId) {
             @Override
-            public void onCall(String callId, String callStatus) {
+            public void onCall(String callId, String callStatus, String callerId) {
               if (polling.compareAndSet(true, false)) {
                 StringBuilder body = new StringBuilder();
                 body.append('{');
@@ -129,6 +129,9 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
                 body.append('\"');
                 body.append(",\"callStatus\": \"");
                 body.append(callStatus);
+                body.append('\"');
+                body.append(",\"callerId\": \"");
+                body.append(callerId);
                 body.append('\"');
                 body.append('}');
                 String result = body.toString();

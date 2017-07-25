@@ -244,6 +244,7 @@ public class RESTVideoCallsService implements ResourceContainer {
   @DELETE
   @RolesAllowed("users")
   @Path("/user/{name}/call/{type}/{id}")
+  @Deprecated // TODO not used
   public Response deleteUserCall(@Context UriInfo uriInfo,
                                  @PathParam("name") String userName,
                                  @PathParam("type") String type,

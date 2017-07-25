@@ -368,6 +368,7 @@
 		return initRequest(request);
 	};
 	
+	// TODO not used
 	var deleteUserCallId = function(callId) {
 		var request = $.ajax({
 			async : true,
@@ -1310,7 +1311,7 @@
 		
 		this.getUserGroupCalls = getUserCallIds;
 		this.addUserGroupCall = postUserCallId;
-		this.removeUserGroupCall = deleteUserCallId; // TODO not used
+		//this.removeUserGroupCall = deleteUserCallId; // TODO not used
 		
 		this.pollUserUpdates = pollUserUpdates;
 	}

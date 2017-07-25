@@ -86,6 +86,26 @@
 	opacity: .6
 }
 
+/***** Room/Space status ******/
+.activeCall .td-status .user-status {
+	color: #d62126;
+}
+@keyframes blink {  
+    0% { color: #d62126; }
+    100% { color: #999999; }
+}
+@-webkit-keyframes blink {
+    0% { color: #d62126; }
+    100% { color: #999999; }
+}
+.activeCall.startingCall .td-status .user-status:before {
+    -webkit-animation: blink 1.5s linear infinite;
+    -moz-animation: blink 1.5s linear infinite;
+    -ms-animation: blink 1.5s linear infinite;
+    -o-animation: blink 1.5s linear infinite;
+    animation: blink 1.5s linear infinite;
+}
+
 /******** Pnotify icons ********/
 .picon-32.picon-task-complete {
 	background-image: url("icons/oxygen/32/status/task-complete.png")
