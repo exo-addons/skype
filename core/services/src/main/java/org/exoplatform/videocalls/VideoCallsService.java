@@ -20,6 +20,7 @@
 package org.exoplatform.videocalls;
 
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -405,7 +406,7 @@ public class VideoCallsService implements Startable {
       // fire group's user listener for incoming, except of the caller
       for (UserInfo part : participants) {
         if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId())) {
-          fireUserCallState(part.getId(), id, CallState.STARTED, ownerId);
+          fireUserCallState(part.getId(), id, CallState.STARTED, ownerId, ownerType);
         }
       }
     }
@@ -438,6 +439,9 @@ public class VideoCallsService implements Startable {
     if (info != null) {
       if (remove) {
         deleteCall(info);
+      } else {
+        info.setState("stopped");
+        saveCall(info);
       }
       if (info.getOwner().isGroup()) {
         String callId = info.getId();
@@ -445,7 +449,11 @@ public class VideoCallsService implements Startable {
           if (part.getType() == UserInfo.TYPE_NAME) {
             // it's eXo user: fire user listener for stopped call, but to the stopper (current user)
             if (!userId.equals(part.getId())) {
-              fireUserCallState(part.getId(), id, CallState.STOPPED, info.getOwner().getId());
+              fireUserCallState(part.getId(),
+                                id,
+                                CallState.STOPPED,
+                                info.getOwner().getId(),
+                                info.getOwner().getType());
             }
             if (remove) {
               // remove from participant's group calls
@@ -472,12 +480,20 @@ public class VideoCallsService implements Startable {
    */
   public CallInfo startCall(String id) throws Exception {
     CallInfo info = readCallById(id);
-    if (info != null && info.getOwner().isGroup()) {
-      String userId = currentUserId();
-      for (UserInfo part : info.getParticipants()) {
-        if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId())) {
-          // it's eXo user: fire user listener for started call, but not to the starter (current user)
-          fireUserCallState(part.getId(), id, CallState.STARTED, info.getOwner().getId());
+    if (info != null) {
+      info.setState("started");
+      saveCall(info);
+      if (info.getOwner().isGroup()) {
+        String userId = currentUserId();
+        for (UserInfo part : info.getParticipants()) {
+          if (part.getType() == UserInfo.TYPE_NAME && !userId.equals(part.getId())) {
+            // it's eXo user: fire user listener for started call, but not to the starter (current user)
+            fireUserCallState(part.getId(),
+                              id,
+                              CallState.STARTED,
+                              info.getOwner().getId(),
+                              info.getOwner().getType());
+          }
         }
       }
     }
@@ -501,7 +517,7 @@ public class VideoCallsService implements Startable {
    * Removes the user call.
    *
    * @param callId the call id
-   * @throws Exception 
+   * @throws Exception
    * @see {@link #stopCall(String, boolean)}
    */
   @Deprecated // TODO not used, see stopCall()
@@ -509,8 +525,8 @@ public class VideoCallsService implements Startable {
     if (callId.startsWith("g/")) {
       removeUserGroupCallId(userId, callId);
       // XXX We don't need notify user itself about just removed call by him
-      //CallInfo call = readCallById(callId);
-      //fireUserCallState(userId, callId, CallState.STOPPED, call != null ? call.getOwner().getId() : null);
+      // CallInfo call = readCallById(callId);
+      // fireUserCallState(userId, callId, CallState.STOPPED, call != null ? call.getOwner().getId() : null);
     } // else, we don't save p2p calls
   }
 
@@ -518,14 +534,30 @@ public class VideoCallsService implements Startable {
    * Gets the user calls.
    *
    * @param callId the call id
-   * @return the user calls
+   * @return the user call states
+   * @throws Exception 
    */
-  public String[] getUserCalls(String userId) {
+  public CallState[] getUserCalls(String userId) throws Exception {
+    CallState[] states;
     String[] calls = readUserGroupCallIds(userId);
     if (calls == null) {
-      calls = new String[0];
+      states = new CallState[0];
+    } else {
+      List<CallState> slist = new ArrayList<CallState>();
+      for (String id : calls) {
+        if (id.length() > 0) {
+          CallInfo call = readCallById(id);
+          if (call != null) {
+            slist.add(new CallState(id, call.getState() != null ? call.getState() : CallState.STOPPED));
+          } else {
+            removeUserGroupCallId(userId, id);
+            LOG.warn("User call not found: " + id + ". Cleaned user: " + userId);
+          }
+        }
+      }
+      states = slist.toArray(new CallState[slist.size()]);
     }
-    return calls;
+    return states;
   }
 
   public void addUserListener(IncomingCallListener listener) {
@@ -535,7 +567,11 @@ public class VideoCallsService implements Startable {
     }
   }
 
-  protected void fireUserCallState(String userId, String callId, String callState, String callerId) {
+  protected void fireUserCallState(String userId,
+                                   String callId,
+                                   String callState,
+                                   String callerId,
+                                   String callerType) {
     // Synchronize on userListeners to have a consistent list of listeners to fire
     Set<IncomingCallListener> listeners;
     synchronized (userListeners) {
@@ -543,7 +579,7 @@ public class VideoCallsService implements Startable {
     }
     if (listeners != null) {
       for (IncomingCallListener listener : listeners) {
-        listener.onCall(callId, callState, callerId);
+        listener.onCall(callId, callState, callerId, callerType);
       }
     }
   }
@@ -643,6 +679,9 @@ public class VideoCallsService implements Startable {
     json.put("ownerType", call.getOwnerType());
     json.put("ownerLink", call.getOwnerLink());
     json.put("providerType", call.getProviderType());
+    if (call.getState() != null) {
+      json.put("state", call.getState());
+    }
 
     // Owner
     JSONObject jsonOwner = new JSONObject();
@@ -680,6 +719,7 @@ public class VideoCallsService implements Startable {
     String ownerType = json.getString("ownerType");
     String ownerLink = json.getString("ownerLink");
     String providerType = json.getString("providerType");
+    String state = json.optString("state", null);
 
     // Owner
     JSONObject jsonOwner = json.getJSONObject("owner");
@@ -705,7 +745,9 @@ public class VideoCallsService implements Startable {
     }
 
     CallInfo call = new CallInfo(id, title, owner, ownerType, ownerLink, avatarLink, providerType);
-
+    if (state != null) {
+      call.setState(state);
+    }
     // Participants
     JSONArray jsonParts = json.getJSONArray("participants");
     for (int i = 0; i < jsonParts.length(); i++) {

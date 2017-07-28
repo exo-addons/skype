@@ -46,6 +46,8 @@ public class CallInfo {
   protected final String        avatarLink;
 
   protected final String        providerType;
+  
+  protected String        state;
 
   public CallInfo(String id,
                   String title,
@@ -103,5 +105,15 @@ public class CallInfo {
   public void addParticipant(UserInfo part) {
     this.participants.add(part);
   }
+
+  public String getState() {
+    return state;
+  }
+
+  public void setState(String state) {
+    this.state = state;
+  }
+  
+  
 
 }

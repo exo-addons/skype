@@ -392,13 +392,16 @@
 			async : true,
 			type : "GET",
 			url : prefixUrl + "/videocalls/updates/" + userId,
-			timeout : 310000
+			timeout : 310000, 
+			headers: {
+		    "Cache-Control": "no-cache"
+		  }
 		});
 		return initRequest(request);
 	};
 	
 	var cachedUsers = new Cache();
-	var getUserInfoRequest = function(userId) {
+	var getUserInfoReq = function(userId) {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
@@ -407,11 +410,11 @@
 		return initRequest(request);
 	};
 	var getUserInfo = function(userId) {
-		return getCached(userId, cachedUsers, getUserInfoRequest);
+		return getCached(userId, cachedUsers, getUserInfoReq);
 	};
 
 	/** @Deprecated TODO not yet used */
-	var getUsersInfoRequest = function(names) {
+	var getUsersInfoReq = function(names) {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
@@ -430,7 +433,7 @@
 		var workers = [];
 		for (var i=0; i<names.length; i++) {
 			var uname = names[i];
-			var get = getCached(uname, cachedUsers, getUserInfoRequest);
+			var get = getCached(uname, cachedUsers, getUserInfoReq);
 			get.done(function(u) {
 				users.push(u);
 			});
@@ -640,6 +643,49 @@
 			return initializer.promise();
 		};
 		
+		var hasChatApplication = function() {
+			return typeof(chatApplication) == "object" && chatApplication;
+		};
+		this.hasChatApplication = hasChatApplication;
+		
+		var currentChatRoom = function() {
+			if (hasChatApplication()) {
+				return chatApplication.targetUser;
+			} else {
+				return null;
+			}
+		};
+		this.currentChatRoom = currentChatRoom;
+		
+		var spaceChatRoom = function(id) {
+			var process = $.Deferred(); 
+			if (id.startsWith("space-")) {
+				process.resolve(id); // already
+			} else {
+				initRequest($.ajax({
+				  url: chatApplication.jzChatGetRoom,
+				  data: {
+				    "user": chatApplication.username,
+				    "targetUser": id,
+				    "type": "space-name",
+				    "dbName": chatApplication.dbName,
+				    "token": chatApplication.token,
+				    "isAdmin" : false,
+				    "withDetail": true
+				  },
+				  headers: {
+				    "Authorization": "Bearer " + chatApplication.token
+				  }
+				})).done(function(room) {
+					process.resolve(room.user);
+				}).fail(function (error, status) {
+				  process.reject(error, status);
+				});
+			}
+			return process.promise();
+		};
+		this.spaceChatRoom = spaceChatRoom;
+		
 		/**
 		 * eXo Chat initialization
 		 */
@@ -647,7 +693,7 @@
 			$(function() {
 				var $chat = $("#chat-application");
 				// chatApplication is a global on chat app page
-				if (typeof(chatApplication) == "object" && chatApplication && $chat.length > 0) {
+				if (hasChatApplication() && $chat.length > 0) {
 					log(">> initChat for " + chatApplication.username);
 					var $roomDetail = $chat.find("#room-detail");
 					
@@ -675,6 +721,7 @@
 									var chatContext = {
 										currentUser : currentUser,
 										roomId : roomId,
+										roomName : roomName,
 										roomTitle : roomTitle,
 										isGroup : isGroup,
 										isIOS : isIOS,
@@ -715,7 +762,7 @@
 							          });
 											} else {
 												// roomId is an user name for P2P chats
-												var get = getUserInfo(roomId);
+												var get = getUserInfoReq(roomId);
 												get.done(function(user) {
 													data.resolve(user);												
 												});
@@ -805,7 +852,7 @@
 				isAndroid : isAndroid,
 				isWindowsMobile : isWindowsMobile,
 				details : function() {
-					var user = getUserInfo(userId);
+					var user = getUserInfoReq(userId);
 					user.fail(function(e, status) {
 						if (typeof(status) == "number" && status == 404) {
 							log(">> userContext < ERROR get_user " + (e.message ? e.message + " " : "Not found ") + userId + " for " + currentUser.id + ": " + JSON.stringify(e));
@@ -1236,7 +1283,7 @@
 		/**
 		 * Helper method to show call popup according the Web Conferencing spec.
 		 */
-		this.showCallPopup = function(url, title) {
+		this.showCallPopup = function(url, name) {
 			// FYI Core adopted from Video Calls v1 notif.js
 			var aw = window.screen.availWidth; // screen.width
 			var ah = window.screen.availHeight; // screen.height
@@ -1252,7 +1299,7 @@
 			  left = 0;
 			  top = 0;
 			}
-		  var callWindow = window.open(url, title, "toolbar=no,menubar=no,scrollbars=no,resizable=no,location=no,directories=no,status=no,"
+		  var callWindow = window.open(url, name, "toolbar=no,menubar=no,scrollbars=no,resizable=no,location=no,directories=no,status=no,"
 		  			+ "width=" + w + ",height=" + h + ",top=" + top + ",left=" + left);
 		  if (callWindow) {
 		  	callWindow.focus();
@@ -1288,6 +1335,10 @@
 		this.showInfo = function(title, text, onInit) {
 			showInfo(title, text, onInit);
 		};
+
+		this.getUserInfo = getUserInfoReq; 
+		this.getSpaceInfo = getSpaceInfoReq;
+		this.getRoomInfo = getRoomInfoReq;
 		
 		/**
 		 * Get registered call from server side database.

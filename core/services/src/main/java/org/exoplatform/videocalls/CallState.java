@@ -26,18 +26,31 @@ package org.exoplatform.videocalls;
  * 
  */
 public class CallState {
-  
+
   public static final String STARTED = "started";
-  
+
   public static final String STOPPED = "stopped";
-  
-  public static final String PAUSED = "paused";
+
+  public static final String PAUSED  = "paused";
+
+  protected final String     id;
+
+  protected final String     state;
 
   /**
    * 
    */
-  public CallState() {
-    // TODO Auto-generated constructor stub
+  public CallState(String id, String state) {
+    this.id = id;
+    this.state = state;
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public String getState() {
+    return state;
   }
 
 }

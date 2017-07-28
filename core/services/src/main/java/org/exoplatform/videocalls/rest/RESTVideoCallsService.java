@@ -150,7 +150,7 @@ public class RESTVideoCallsService implements ResourceContainer {
             callState = null;
           }
           try {
-            String[] calls = videoCalls.getUserCalls(userName);
+            CallState[] calls = videoCalls.getUserCalls(userName);
             if (calls != null) {
               return Response.ok().entity(calls).build();
             } else {

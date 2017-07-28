@@ -50,9 +50,10 @@ public abstract class IncomingCallListener {
    * Notify.
    *
    * @param callId the call id
-   * @param callStatus the call status
+   * @param callState the call status
    * @param callerId the caller id
+   * @param callerType the caller type
    */
-  public abstract void onCall(String callId, String callStatus, String callerId);
+  public abstract void onCall(String callId, String callState, String callerId, String callerType);
 
 }

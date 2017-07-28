@@ -85,7 +85,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
             public void onTimeout(AsyncEvent event) throws IOException {
               // It's normal
               if (polling.compareAndSet(true, false)) {
-                LOG.warn(">>> UpdatePollingServlet timeout for " + userId);
+                //LOG.warn(">>> UpdatePollingServlet timeout for " + userId);
                 HttpServletResponse resp = (HttpServletResponse) event.getSuppliedResponse();
                 if (!resp.isCommitted()) {
                   sendRetry(resp);
@@ -119,20 +119,22 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
           VideoCallsService videoCalls = getContainer().getComponentInstanceOfType(VideoCallsService.class);
           videoCalls.addUserListener(new IncomingCallListener(userId) {
             @Override
-            public void onCall(String callId, String callStatus, String callerId) {
+            public void onCall(String callId, String callState, String callerId, String callerType) {
               if (polling.compareAndSet(true, false)) {
                 StringBuilder body = new StringBuilder();
                 body.append('{');
-                body.append("\"eventType\": \"call_status\",");
+                body.append("\"eventType\": \"call_state\",");
                 body.append("\"callId\": \"");
                 body.append(callId);
                 body.append('\"');
-                body.append(",\"callStatus\": \"");
-                body.append(callStatus);
-                body.append('\"');
-                body.append(",\"callerId\": \"");
+                body.append(",\"callState\": \"");
+                body.append(callState);
+                body.append("\",\"caller\": {");
+                body.append("\"id\": \"");
                 body.append(callerId);
-                body.append('\"');
+                body.append("\",\"type\": \"");
+                body.append(callerType);
+                body.append("\"}");
                 body.append('}');
                 String result = body.toString();
 
@@ -142,6 +144,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
                 byte[] entity = result.getBytes(Charset.forName("UTF-8"));
                 response.setContentLength(entity.length);
                 response.setStatus(HttpServletResponse.SC_OK);
+                response.setHeader("Cache-Control", "no-cache");
                 try {
                   response.getOutputStream().write(entity);
                 } catch (IOException e) {
@@ -155,7 +158,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
                   acontext.complete();
                 }
               } else {
-                LOG.warn(">>> Fired onCall(" + callId + ", " + callStatus
+                LOG.warn(">>> Fired onCall(" + callId + ", " + callState
                     + ") for already completed UpdatePollingServlet");
               }
             }
