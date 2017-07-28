@@ -540,7 +540,6 @@ public class VideoCallsService implements Startable {
    * @param userId the user id
    * @param callId the call id
    * @throws Exception the exception
-   * @see {@link #stopCall(String, boolean)}
    */
   @Deprecated // TODO not used, see stopCall()
   public void removeUserCall(String userId, String callId) throws Exception {
