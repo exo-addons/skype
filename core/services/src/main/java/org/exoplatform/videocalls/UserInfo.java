@@ -37,6 +37,7 @@ import org.exoplatform.services.log.Log;
  */
 public class UserInfo extends IdentityInfo {
 
+  /** The Constant TYPE_NAME. */
   public static final String TYPE_NAME = "user".intern();
   
   /** The Constant LOG. */
@@ -199,18 +200,38 @@ public class UserInfo extends IdentityInfo {
     return Collections.unmodifiableCollection(imAccounts.get(type));
   }
 
+  /**
+   * Gets the avatar uri.
+   *
+   * @return the avatar uri
+   */
   public String getAvatarUri() {
     return avatarUri;
   }
 
+  /**
+   * Sets the avatar uri.
+   *
+   * @param avatarUri the new avatar uri
+   */
   public void setAvatarUri(String avatarUri) {
     this.avatarUri = avatarUri;
   }
 
+  /**
+   * Gets the profile uri.
+   *
+   * @return the profile uri
+   */
   public String getProfileUri() {
     return profileUri;
   }
 
+  /**
+   * Sets the profile uri.
+   *
+   * @param profileUri the new profile uri
+   */
   public void setProfileUri(String profileUri) {
     this.profileUri = profileUri;
   }

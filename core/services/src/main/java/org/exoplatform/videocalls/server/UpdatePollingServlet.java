@@ -36,11 +36,10 @@ import org.exoplatform.videocalls.IncomingCallListener;
 import org.exoplatform.videocalls.VideoCallsService;
 
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: UpdatePollingServlet.java 00000 Jul 18, 2017 pnedonosko $
- * 
  */
 // @WebServlet(urlPatterns = {"/updateServlet"}, asyncSupported=true)
 public class UpdatePollingServlet extends AbstractHttpServlet {
@@ -48,12 +47,11 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
   /** The Constant LOG. */
   protected static final Log LOG              = ExoLogger.getLogger(UpdatePollingServlet.class);
 
+  /** The Constant DEFAULT_TIMEOUT. */
   public static final int    DEFAULT_TIMEOUT  = 180000;                                          // 5min:
                                                                                                 // 300000
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long  serialVersionUID = -44481362110127541L;
 
   /**
@@ -178,6 +176,11 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
     }
   }
 
+  /**
+   * Send retry.
+   *
+   * @param resp the resp
+   */
   private void sendRetry(HttpServletResponse resp) {
     resp.setContentType("text/json");
     resp.setCharacterEncoding("UTF-8");
@@ -196,6 +199,13 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
     }
   }
 
+  /**
+   * Send error.
+   *
+   * @param resp the resp
+   * @param message the message
+   * @param status the status
+   */
   private void sendError(HttpServletResponse resp, String message, int status) {
     resp.setContentType("text/json");
     resp.setCharacterEncoding("UTF-8");

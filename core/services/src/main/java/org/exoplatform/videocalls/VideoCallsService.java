@@ -65,16 +65,22 @@ import org.picocontainer.Startable;
  */
 public class VideoCallsService implements Startable {
 
+  /** The Constant SPACE_TYPE_NAME. */
   public static final String    SPACE_TYPE_NAME       = "space".intern();
 
+  /** The Constant CHAT_ROOM_TYPE_NAME. */
   public static final String    CHAT_ROOM_TYPE_NAME   = "chat_room".intern();
 
+  /** The Constant GROUP_CALL_TYPE. */
   protected static final String GROUP_CALL_TYPE       = "group".intern();
 
+  /** The Constant CALL_OWNER_SCOPE_NAME. */
   protected static final String CALL_OWNER_SCOPE_NAME = "videocalls.callOwner".intern();
 
+  /** The Constant CALL_ID_SCOPE_NAME. */
   protected static final String CALL_ID_SCOPE_NAME    = "videocalls.callId".intern();
 
+  /** The Constant USER_CALLS_SCOPE_NAME. */
   protected static final String USER_CALLS_SCOPE_NAME = "videocalls.user.calls".intern();
 
   /**
@@ -151,8 +157,10 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /** The Constant OWNER_TYPE_SPACE. */
   public static final String                             OWNER_TYPE_SPACE    = "space";
 
+  /** The Constant OWNER_TYPE_CHATROOM. */
   public static final String                             OWNER_TYPE_CHATROOM = "chat_room";
 
   /** The Constant LOG. */
@@ -195,7 +203,18 @@ public class VideoCallsService implements Startable {
   /** The user listeners. */
   protected final Map<String, Set<IncomingCallListener>> userListeners       = new ConcurrentHashMap<>();
 
-  /** The group calls. */
+  /**
+   *  The group calls.
+   *
+   * @param jcrService the jcr service
+   * @param sessionProviders the session providers
+   * @param hierarchyCreator the hierarchy creator
+   * @param organization the organization
+   * @param socialIdentityManager the social identity manager
+   * @param driveService the drive service
+   * @param listenerService the listener service
+   * @param settingService the setting service
+   */
   // protected final Map<String, String> groupCalls = new ConcurrentHashMap<>();
 
   /**
@@ -318,6 +337,7 @@ public class VideoCallsService implements Startable {
    *
    * @param id the id
    * @param ownerId the owner id
+   * @param ownerType the owner type
    * @param title the title
    * @param providerType the provider type
    * @param parts the parts
@@ -430,6 +450,7 @@ public class VideoCallsService implements Startable {
    * Removes the call info from active and fires STOPPED event.
    *
    * @param id the id
+   * @param remove the remove
    * @return the call info or <code>null</code> if call not found
    * @throws Exception the exception
    */
@@ -516,8 +537,9 @@ public class VideoCallsService implements Startable {
   /**
    * Removes the user call.
    *
+   * @param userId the user id
    * @param callId the call id
-   * @throws Exception
+   * @throws Exception the exception
    * @see {@link #stopCall(String, boolean)}
    */
   @Deprecated // TODO not used, see stopCall()
@@ -533,9 +555,9 @@ public class VideoCallsService implements Startable {
   /**
    * Gets the user calls.
    *
-   * @param callId the call id
+   * @param userId the user id
    * @return the user call states
-   * @throws Exception 
+   * @throws Exception the exception
    */
   public CallState[] getUserCalls(String userId) throws Exception {
     CallState[] states;
@@ -560,6 +582,11 @@ public class VideoCallsService implements Startable {
     return states;
   }
 
+  /**
+   * Adds the user listener.
+   *
+   * @param listener the listener
+   */
   public void addUserListener(IncomingCallListener listener) {
     final String userId = listener.getUserId();
     synchronized (userListeners) {
@@ -567,6 +594,15 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Fire user call state.
+   *
+   * @param userId the user id
+   * @param callId the call id
+   * @param callState the call state
+   * @param callerId the caller id
+   * @param callerType the caller type
+   */
   protected void fireUserCallState(String userId,
                                    String callId,
                                    String callState,
@@ -669,6 +705,13 @@ public class VideoCallsService implements Startable {
     return spaceMembers;
   }
 
+  /**
+   * Call to JSON.
+   *
+   * @param call the call
+   * @return the JSON object
+   * @throws JSONException the JSON exception
+   */
   protected JSONObject callToJSON(CallInfo call) throws JSONException {
     // We follow a minimal data required to restore the persisted call
 
@@ -712,6 +755,13 @@ public class VideoCallsService implements Startable {
     return json;
   }
 
+  /**
+   * Json to call.
+   *
+   * @param json the json
+   * @return the call info
+   * @throws Exception the exception
+   */
   protected CallInfo jsonToCall(JSONObject json) throws Exception {
     String id = json.getString("id");
     String title = json.getString("title");
@@ -770,6 +820,12 @@ public class VideoCallsService implements Startable {
     return call;
   }
 
+  /**
+   * Save call.
+   *
+   * @param call the call
+   * @throws Exception the exception
+   */
   protected void saveCall(CallInfo call) throws Exception {
     saveOwnerCallId(call.getOwner().getId(), call.getId());
     final String initialGlobalId = Scope.GLOBAL.getId();
@@ -785,6 +841,13 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Read call by owner id.
+   *
+   * @param ownerId the owner id
+   * @return the call info
+   * @throws Exception the exception
+   */
   protected CallInfo readCallByOwnerId(String ownerId) throws Exception {
     String callId = readOwnerCallId(ownerId);
     if (callId != null) {
@@ -794,6 +857,13 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Read call by id.
+   *
+   * @param id the id
+   * @return the call info
+   * @throws Exception the exception
+   */
   protected CallInfo readCallById(String id) throws Exception {
     final String initialGlobalId = Scope.GLOBAL.getId();
     try {
@@ -816,6 +886,12 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Delete call.
+   *
+   * @param call the call
+   * @throws Exception the exception
+   */
   protected void deleteCall(CallInfo call) throws Exception {
     final String initialGlobalId = Scope.GLOBAL.getId();
     try {
@@ -827,6 +903,13 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Delete call by id.
+   *
+   * @param id the id
+   * @return the call info
+   * @throws Exception the exception
+   */
   protected CallInfo deleteCallById(String id) throws Exception {
     CallInfo call = readCallById(id);
     if (call != null) {
@@ -835,6 +918,12 @@ public class VideoCallsService implements Startable {
     return call;
   }
 
+  /**
+   * Save owner call id.
+   *
+   * @param ownerId the owner id
+   * @param callId the call id
+   */
   protected void saveOwnerCallId(String ownerId, String callId) {
     final String initialGlobalId = Scope.GLOBAL.getId();
     try {
@@ -847,6 +936,12 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Read owner call id.
+   *
+   * @param ownerId the owner id
+   * @return the string
+   */
   protected String readOwnerCallId(String ownerId) {
     final String initialGlobalId = Scope.GLOBAL.getId();
     try {
@@ -861,6 +956,11 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Delete owner call id.
+   *
+   * @param ownerId the owner id
+   */
   protected void deleteOwnerCallId(String ownerId) {
     final String initialGlobalId = Scope.GLOBAL.getId();
     try {
@@ -870,6 +970,12 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Read user group call ids.
+   *
+   * @param userId the user id
+   * @return the string[]
+   */
   protected String[] readUserGroupCallIds(String userId) {
     final String initialScopeId = Scope.GLOBAL.getId();
     final String initialContextId = Context.USER.getId();
@@ -887,6 +993,12 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Save user group call id.
+   *
+   * @param userId the user id
+   * @param callId the call id
+   */
   protected void saveUserGroupCallId(String userId, String callId) {
     final String initialContextId = Context.USER.getId();
     final String initialScopeId = Scope.GLOBAL.getId();
@@ -912,6 +1024,12 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Removes the user group call id.
+   *
+   * @param userId the user id
+   * @param callId the call id
+   */
   protected void removeUserGroupCallId(String userId, String callId) {
     final String initialContextId = Context.USER.getId();
     final String initialScopeId = Scope.GLOBAL.getId();
@@ -934,6 +1052,17 @@ public class VideoCallsService implements Startable {
     }
   }
 
+  /**
+   * Room info.
+   *
+   * @param id the id
+   * @param name the name
+   * @param title the title
+   * @param members the members
+   * @param callId the call id
+   * @return the room info
+   * @throws Exception the exception
+   */
   protected RoomInfo roomInfo(String id,
                               String name,
                               String title,

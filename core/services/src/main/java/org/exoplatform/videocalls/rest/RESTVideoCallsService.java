@@ -184,7 +184,8 @@ public class RESTVideoCallsService implements ResourceContainer {
    *
    * @param uriInfo the uri info
    * @param userName the id
-   * @param callState the call state
+   * @param type the type
+   * @param id the id
    * @return the user calls response
    */
   @POST
@@ -393,6 +394,7 @@ public class RESTVideoCallsService implements ResourceContainer {
    * @param roomName the room name
    * @param roomId the room id
    * @param roomTitle the room title
+   * @param roomMembers the room members
    * @return the room info response
    */
   @GET
@@ -464,6 +466,14 @@ public class RESTVideoCallsService implements ResourceContainer {
     }
   }
 
+  /**
+   * Gets the call info.
+   *
+   * @param uriInfo the uri info
+   * @param type the type
+   * @param id the id
+   * @return the call info
+   */
   @GET
   @RolesAllowed("users")
   @Path("/call/{type}/{id}")
@@ -490,6 +500,14 @@ public class RESTVideoCallsService implements ResourceContainer {
     }
   }
 
+  /**
+   * Delete call.
+   *
+   * @param uriInfo the uri info
+   * @param type the type
+   * @param id the id
+   * @return the response
+   */
   @DELETE
   @RolesAllowed("users")
   @Path("/call/{type}/{id}")
@@ -518,6 +536,15 @@ public class RESTVideoCallsService implements ResourceContainer {
     }
   }
 
+  /**
+   * Put call.
+   *
+   * @param uriInfo the uri info
+   * @param type the type
+   * @param id the id
+   * @param state the state
+   * @return the response
+   */
   @PUT
   @RolesAllowed("users")
   @Path("/call/{type}/{id}")
@@ -562,6 +589,19 @@ public class RESTVideoCallsService implements ResourceContainer {
     }
   }
 
+  /**
+   * Post call.
+   *
+   * @param uriInfo the uri info
+   * @param type the type
+   * @param id the id
+   * @param title the title
+   * @param providerType the provider type
+   * @param ownerId the owner id
+   * @param ownerType the owner type
+   * @param participants the participants
+   * @return the response
+   */
   @POST
   @RolesAllowed("users")
   @Path("/call/{type}/{id}")
@@ -630,6 +670,13 @@ public class RESTVideoCallsService implements ResourceContainer {
     }
   }
 
+  /**
+   * Call id.
+   *
+   * @param type the type
+   * @param id the id
+   * @return the string
+   */
   private String callId(String type, String id) {
     return new StringBuffer(type).append('/').append(id).toString();
   }

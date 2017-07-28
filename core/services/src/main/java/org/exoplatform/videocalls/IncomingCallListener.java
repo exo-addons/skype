@@ -19,11 +19,10 @@
 package org.exoplatform.videocalls;
 
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: IncomingCallListener.java 00000 Jul 18, 2017 pnedonosko $
- * 
  */
 public abstract class IncomingCallListener {
 
@@ -31,7 +30,9 @@ public abstract class IncomingCallListener {
   protected final String userId;
   
   /**
-   * 
+   * Instantiates a new incoming call listener.
+   *
+   * @param userId the user id
    */
   public IncomingCallListener(String userId) {
     this.userId = userId;

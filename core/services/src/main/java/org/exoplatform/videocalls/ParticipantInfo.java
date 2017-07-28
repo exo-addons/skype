@@ -30,13 +30,21 @@ import org.exoplatform.services.log.Log;
  */
 public class ParticipantInfo extends UserInfo {
 
+  /** The Constant EMPTY_NAME. */
   public static final String EMPTY_NAME = "".intern();
   
+  /** The Constant TYPE_NAME. */
   public static final String TYPE_NAME = "participant".intern();
   
   /** The Constant LOG. */
   protected static final Log LOG = ExoLogger.getLogger(ParticipantInfo.class);
   
+  /**
+   * Instantiates a new participant info.
+   *
+   * @param imType the im type
+   * @param imId the im id
+   */
   protected ParticipantInfo(String imType, String imId) {
     super(EMPTY_NAME, imId, EMPTY_NAME);
     addImAccount(imType, imId);

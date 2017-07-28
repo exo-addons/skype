@@ -41,6 +41,12 @@ public abstract class GroupInfo extends IdentityInfo {
   /** The members. */
   protected final Map<String, UserInfo> members = new LinkedHashMap<>();
 
+  /**
+   * Instantiates a new group info.
+   *
+   * @param id the id
+   * @param title the title
+   */
   public GroupInfo(String id, String title) {
     super(id, title);
   }

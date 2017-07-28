@@ -19,36 +19,53 @@
 package org.exoplatform.videocalls;
 
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: CallState.java 00000 Jul 18, 2017 pnedonosko $
- * 
  */
 public class CallState {
 
+  /** The Constant STARTED. */
   public static final String STARTED = "started";
 
+  /** The Constant STOPPED. */
   public static final String STOPPED = "stopped";
 
+  /** The Constant PAUSED. */
   public static final String PAUSED  = "paused";
 
+  /** The id. */
   protected final String     id;
 
+  /** The state. */
   protected final String     state;
 
   /**
-   * 
+   * Instantiates a new call state.
+   *
+   * @param id the id
+   * @param state the state
    */
   public CallState(String id, String state) {
     this.id = id;
     this.state = state;
   }
 
+  /**
+   * Gets the id.
+   *
+   * @return the id
+   */
   public String getId() {
     return id;
   }
 
+  /**
+   * Gets the state.
+   *
+   * @return the state
+   */
   public String getState() {
     return state;
   }

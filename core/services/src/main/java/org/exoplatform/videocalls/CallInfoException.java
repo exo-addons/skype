@@ -19,27 +19,38 @@
 package org.exoplatform.videocalls;
 
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: CallInfoException.java 00000 Jul 14, 2017 pnedonosko $
- * 
  */
 public class CallInfoException extends VideoCallsException {
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long serialVersionUID = -8254930798051516730L;
 
+  /**
+   * Instantiates a new call info exception.
+   */
   public CallInfoException() {
     super();
   }
 
+  /**
+   * Instantiates a new call info exception.
+   *
+   * @param message the message
+   * @param cause the cause
+   */
   public CallInfoException(String message, Throwable cause) {
     super(message, cause);
   }
 
+  /**
+   * Instantiates a new call info exception.
+   *
+   * @param message the message
+   */
   public CallInfoException(String message) {
     super(message);
   }
