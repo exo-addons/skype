@@ -1806,7 +1806,7 @@
 					});
 					// We also handle re-established group conferences (while it is not outdated by Skype services)
 					videoCalls.getUserGroupCalls().done(function(list) {
-						if (list && list.length > 0) {
+						//if (list && list.length > 0) {
 							var callStarted = function(callId, caller) {
 								callUpdate({
 									state : "started",
@@ -1909,7 +1909,7 @@
 									}).always(poll);
 							  }, timeout);
 							})();
-						}
+						//}
 					}).fail(function(err, status) {
 						log("<<< Error getting user group calls: " + JSON.stringify(err) + " [" + status + "]");
 					});
@@ -2213,15 +2213,15 @@
 													chatApplication.setStatus(userStatus);
 													userStatus = null;
 												}
-												// mark Chat room icon normal
-												unmarkRoom(info.caller.chatRoom, function() {
-													if (isGroup) {
-														var $room = $users.find("#users-online-" + info.caller.chatRoom);
-														$room.removeClass("activeCall");
-														$room.removeClass("incomingCall");
-													}
-												});												
 											} // otherwise user still works in the call, 'stopped' will be fired when the container will be closed on this page
+											// mark Chat room icon normal
+											unmarkRoom(info.caller.chatRoom, function() {
+												if (isGroup) {
+													var $room = $users.find("#users-online-" + info.caller.chatRoom);
+													$room.removeClass("activeCall");
+													$room.removeClass("incomingCall");
+												}
+											});
 										} else if (info.state == "starting") {
 											markRoom(info.caller.chatRoom, function() {
 												if (isGroup) {
