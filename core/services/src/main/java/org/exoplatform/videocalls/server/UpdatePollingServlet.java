@@ -187,6 +187,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
     byte[] entity = ("{\"eventType\": \"retry\"}").getBytes(Charset.forName("UTF-8"));
     resp.setContentLength(entity.length);
     resp.setStatus(HttpServletResponse.SC_OK);
+    resp.setHeader("Cache-Control", "no-cache");
     try {
       resp.getOutputStream().write(entity);
     } catch (IOException e) {
@@ -212,6 +213,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
     byte[] entity = ("{\"error\": \"" + message + "\"}").getBytes(Charset.forName("UTF-8"));
     resp.setContentLength(entity.length);
     resp.setStatus(status);
+    resp.setHeader("Cache-Control", "no-cache");
     try {
       resp.getOutputStream().write(entity);
     } catch (IOException e) {
