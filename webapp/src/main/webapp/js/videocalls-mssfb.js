@@ -1347,7 +1347,7 @@
 				return button.promise();
 			};
 				
-			var acceptCallPopover = function(callerLink, callerAvatar, callerMessage) {
+			var acceptCallPopover = function(callerLink, callerAvatar, callerMessage, withRing) {
 				// TODO show an info popover in bottom right corner of the screen as specified in CALLEE_01
 				log(">> acceptCallPopover '" + callerMessage + "' caler:" + callerLink + " avatar:" + callerAvatar);
 				var process = $.Deferred();
@@ -1378,15 +1378,36 @@
 					buttons: {
 					  "Answer": function() {
 					  	process.resolve("accepted");
-					  	$call.dialog( "close" );
+					  	$call.dialog("close");
 					  },
 					  "Decline": function() {
 					  	process.reject("declined");
-					  	$call.dialog( "close" );
+					  	$call.dialog("close");
 					  }
+					} 
+				});
+				$call.on("dialogclose", function( event, ui ) {
+					if (process.state() == "pending") {
+						process.reject("closed");
 					}
 				});
 				process.notify($call);
+				if (withRing) { 
+					var $ring = $("<audio controls loop style='display: none;'>"
+								+ "<source src='https://latest-swx.cdn.skype.com/assets/v/0.0.300/audio/m4a/call-outgoing-p1.m4a' type='audio/mpeg'>"  
+								+ "Your browser does not support the audio element.</audio>");
+					$(document.body).append($ring);
+					var player = $ring.get(0);
+					player.pause();
+					player.currentTime = 0;
+					setTimeout(function () {      
+						player.play();
+					}, 250);
+					process.always(function() {
+						player.pause();
+						$ring.remove();
+					});
+				}
 				return process.promise();
 			};
 			
@@ -1510,7 +1531,7 @@
 								}, 2500);
 							});
 							var showCallPopover = function() {
-								var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
+								var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage, saved && conversation.isGroupConversation());
 								popover.progress(function($call) {
 									$callPopup = $call;
 									$callPopup.callId = callId;
@@ -1742,8 +1763,11 @@
 								callStateUpdate("started", modality);
 							});
 							accept.fail(function(err) {
-								if (err == "declined" || err == "timeout") {
+								if (err == "declined" || err == "closed" || err == "timeout") {
 									callStateUpdate("canceled");
+								} else if (err == "closed") {
+									// TODO User closed the accept popup: not accepted not declined, was not on place? 
+									// We don't update the state at all, is it correct?
 								} else {
 									callStateUpdate("error", null, err);
 								}
@@ -1926,8 +1950,8 @@
 				var ah = $(document).height();
 				var w, h, top, left;
 				if (aw > 760) {
-					w = 280;
-				  h = 140;
+					w = 340;
+				  h = 180;
 				} else if (aw > 360) {
 					w = 164;
 				  h = 82;
