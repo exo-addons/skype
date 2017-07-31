@@ -1819,11 +1819,11 @@
 								var callState = list[i];
 								if (callState.state == "started") {
 									// Mark it started in Chat
-									videoCalls.getCall(callState.callId).done(function(call) {
+									videoCalls.getCall(callState.id).done(function(call) {
 										if (call.owner.type == "space") {
 											// Find room ID for space calls in Chat
 											videoCalls.spaceChatRoom(call.owner.id).done(function(roomId) {
-												callStarted(callState.callId, {
+												callStarted(call.id, {
 													id : call.owner.id,
 													type : call.owner.type,
 													chatRoom : roomId
@@ -1833,7 +1833,7 @@
 											});
 										} else {
 											// we assume: else if (callerType == "chat_room" || callerType == "user") 
-											callStarted(callState.callId, {
+											callStarted(call.id, {
 												id : call.owner.id,
 												type : call.owner.type,
 												chatRoom : call.owner.id
