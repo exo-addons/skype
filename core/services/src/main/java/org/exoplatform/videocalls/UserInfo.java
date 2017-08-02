@@ -41,7 +41,7 @@ public class UserInfo extends IdentityInfo {
   public static final String TYPE_NAME = "user".intern();
   
   /** The Constant LOG. */
-  protected static final Log LOG = ExoLogger.getLogger(UserInfo.class);
+  protected static final Log LOG       = ExoLogger.getLogger(UserInfo.class);
 
   /**
    * The Class IMInfo.
@@ -93,12 +93,15 @@ public class UserInfo extends IdentityInfo {
 
   /** The IM accounts. */
   private final Map<String, List<IMInfo>> imAccounts = new HashMap<String, List<IMInfo>>();
-  
+
   /** The avatar uri. */
-  private String                    avatarUri;
-  
+  private String                          avatarUri;
+
   /** The profile uri. */
-  private String                    profileUri;
+  private String                          profileUri;
+
+  /** The state. */
+  private String                          state;
 
   /**
    * Instantiates a new user info.
@@ -112,14 +115,14 @@ public class UserInfo extends IdentityInfo {
     this.firstName = firstName;
     this.lastName = lastName;
   }
-  
+
   /**
    * {@inheritDoc}
    */
   public boolean isGroup() {
     return false;
   }
-  
+
   /**
    * {@inheritDoc}
    */
@@ -235,6 +238,23 @@ public class UserInfo extends IdentityInfo {
   public void setProfileUri(String profileUri) {
     this.profileUri = profileUri;
   }
-  
-  
+
+  /**
+   * Gets the state.
+   *
+   * @return the state
+   */
+  public String getState() {
+    return state;
+  }
+
+  /**
+   * Sets the state.
+   *
+   * @param state the new state
+   */
+  public void setState(String state) {
+    this.state = state;
+  }
+
 }

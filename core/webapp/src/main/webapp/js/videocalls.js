@@ -357,8 +357,21 @@
 			}
 		});
 		return initRequest(request);
+	}; 
+	
+	var putUserCallState = function(callId, state) {
+		var request = $.ajax({
+			async : true,
+			type : "PUT",
+			url : prefixUrl + "/portal/rest/videocalls/user/me/call/" + callId,
+			data : {
+				state : state
+			}
+		});
+		return initRequest(request);
 	};
 	
+	//TODO not used
 	var postUserCallId = function(callId) {
 		var request = $.ajax({
 			async : true,
@@ -1361,7 +1374,8 @@
 		this.addCall = postCallInfo;
 		
 		this.getUserGroupCalls = getUserCallIds;
-		this.addUserGroupCall = postUserCallId;
+		this.updateUserCall = putUserCallState;
+		//this.addUserGroupCall = postUserCallId;
 		//this.removeUserGroupCall = deleteUserCallId; // TODO not used
 		
 		this.pollUserUpdates = pollUserUpdates;

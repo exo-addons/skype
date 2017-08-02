@@ -47,7 +47,9 @@ import org.exoplatform.videocalls.CallInfoException;
 import org.exoplatform.videocalls.CallState;
 import org.exoplatform.videocalls.GroupInfo;
 import org.exoplatform.videocalls.IdentityNotFound;
+import org.exoplatform.videocalls.InvalidCallStateException;
 import org.exoplatform.videocalls.UserInfo;
+import org.exoplatform.videocalls.UserState;
 import org.exoplatform.videocalls.VideoCallsService;
 
 /**
@@ -61,10 +63,13 @@ import org.exoplatform.videocalls.VideoCallsService;
 public class RESTVideoCallsService implements ResourceContainer {
 
   /** The Constant ME. */
-  public static final String        ME  = "me";
+  public static final String        ME    = "me";
+
+  /** The Constant EMPTY. */
+  public static final String        EMPTY = "".intern();
 
   /** The Constant LOG. */
-  protected static final Log        LOG = ExoLogger.getLogger(RESTVideoCallsService.class);
+  protected static final Log        LOG   = ExoLogger.getLogger(RESTVideoCallsService.class);
 
   /** The video calls. */
   protected final VideoCallsService videoCalls;
@@ -195,7 +200,7 @@ public class RESTVideoCallsService implements ResourceContainer {
                                @PathParam("name") String userName,
                                @PathParam("type") String type,
                                @PathParam("id") String id
-                               /*@FormParam("state") String callState*/ /* TODO not used */) {
+  /* @FormParam("state") String callState */ /* TODO not used */) {
     ConversationState convo = ConversationState.getCurrent();
     if (convo != null) {
       String currentUserName = convo.getIdentity().getUserId();
@@ -205,9 +210,11 @@ public class RESTVideoCallsService implements ResourceContainer {
         }
         if (userName.equals(currentUserName)) {
           String callId = callId(type, id);
-          /*if (callState != null && callState.length() == 0) {
-            callState = null;
-          }*/
+          /*
+           * if (callState != null && callState.length() == 0) {
+           * callState = null;
+           * }
+           */
           try {
             videoCalls.addUserCall(userName, callId);
             return Response.ok().build();
@@ -270,6 +277,82 @@ public class RESTVideoCallsService implements ResourceContainer {
             LOG.error("Error deleteing user call by '" + currentUserName + "'", e);
             return Response.serverError()
                            .entity(ErrorInfo.serverError("Error deleteing user call for " + userName))
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST)
+                         .entity(ErrorInfo.clientError("Wrong request parameters: name (does not match)"))
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST)
+                       .entity(ErrorInfo.clientError("Wrong request parameters: name"))
+                       .build();
+      }
+    } else {
+      return Response.status(Status.UNAUTHORIZED).entity(ErrorInfo.accessError("Unauthorized user")).build();
+    }
+  }
+
+  /**
+   * Update the user call with given state.
+   *
+   * @param uriInfo the uri info
+   * @param userName the id
+   * @param type the type
+   * @param id the id
+   * @param state the state
+   * @return the user calls response
+   */
+  @PUT
+  @RolesAllowed("users")
+  @Path("/user/{name}/call/{type}/{id}")
+  public Response putUserCall(@Context UriInfo uriInfo,
+                              @PathParam("name") String userName,
+                              @PathParam("type") String type,
+                              @PathParam("id") String id,
+                              @FormParam("state") String state) {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      String currentUserName = convo.getIdentity().getUserId();
+      if (userName != null) {
+        if (ME.equals(userName)) {
+          userName = currentUserName;
+        }
+        if (userName.equals(currentUserName)) {
+          String callId = callId(type, id);
+          /*
+           * if (callState != null && callState.length() == 0) {
+           * callState = null;
+           * }
+           */
+          try {
+            if (UserState.JOINED.equals(state)) {
+              CallInfo call = videoCalls.joinCall(callId, userName);
+              if (call != null) {
+                return Response.ok().entity(call).build();
+              } else {
+                return Response.status(Status.NOT_FOUND)
+                               .entity(ErrorInfo.notFoundError("Call not found"))
+                               .build();
+              }
+            } else if (UserState.LEAVED.equals(state)) {
+              CallInfo call = videoCalls.leaveCall(callId, userName);
+              if (call != null) {
+                return Response.ok().entity(call).build();
+              } else {
+                return Response.status(Status.NOT_FOUND)
+                               .entity(ErrorInfo.notFoundError("Call not found"))
+                               .build();
+              }
+            }
+            return Response.ok().build();
+          } catch (InvalidCallStateException e) {
+            return Response.status(Status.BAD_REQUEST).entity(ErrorInfo.clientError(e.getMessage())).build();
+          } catch (Throwable e) {
+            LOG.error("Error adding user call by '" + currentUserName + "'", e);
+            return Response.serverError()
+                           .entity(ErrorInfo.serverError("Error adding user call for " + userName))
                            .build();
           }
         } else {

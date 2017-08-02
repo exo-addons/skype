@@ -78,6 +78,7 @@ public class SkypeProvider extends VideoCallsProvider {
                                getSupportedTypes(),
                                getTitle(),
                                "Call", // TODO in18n
+                               "Join", // TODO in18n
                                null,
                                redirectURI,
                                getVersion(),

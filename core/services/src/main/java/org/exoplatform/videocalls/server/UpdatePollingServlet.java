@@ -32,7 +32,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.exoplatform.container.web.AbstractHttpServlet;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.videocalls.IncomingCallListener;
+import org.exoplatform.videocalls.UserCallListener;
 import org.exoplatform.videocalls.VideoCallsService;
 
 /**
@@ -48,7 +48,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
   protected static final Log LOG              = ExoLogger.getLogger(UpdatePollingServlet.class);
 
   /** The Constant DEFAULT_TIMEOUT. */
-  public static final int    DEFAULT_TIMEOUT  = 180000;                                          // 5min:
+  public static final int    DEFAULT_TIMEOUT  = 180000;                                         // 5min:
                                                                                                 // 300000
 
   /** The Constant serialVersionUID. */
@@ -83,7 +83,7 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
             public void onTimeout(AsyncEvent event) throws IOException {
               // It's normal
               if (polling.compareAndSet(true, false)) {
-                //LOG.warn(">>> UpdatePollingServlet timeout for " + userId);
+                // LOG.warn(">>> UpdatePollingServlet timeout for " + userId);
                 HttpServletResponse resp = (HttpServletResponse) event.getSuppliedResponse();
                 if (!resp.isCommitted()) {
                   sendRetry(resp);
@@ -111,13 +111,16 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
             }
           });
 
-          // ServletContext appScope = req.getServletContext();
-
-          //
           VideoCallsService videoCalls = getContainer().getComponentInstanceOfType(VideoCallsService.class);
-          videoCalls.addUserListener(new IncomingCallListener(userId) {
+          videoCalls.addUserCallListener(new UserCallListener(userId) {
+
             @Override
-            public void onCall(String callId, String callState, String callerId, String callerType) {
+            public boolean isListening() {
+              return polling.get();
+            }
+
+            @Override
+            public void onCallState(String callId, String callState, String callerId, String callerType) {
               if (polling.compareAndSet(true, false)) {
                 StringBuilder body = new StringBuilder();
                 body.append('{');
@@ -134,29 +137,52 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
                 body.append(callerType);
                 body.append("\"}");
                 body.append('}');
-                String result = body.toString();
 
-                HttpServletResponse response = (HttpServletResponse) acontext.getResponse();
-                response.setContentType("text/json");
-                response.setCharacterEncoding("UTF-8");
-                byte[] entity = result.getBytes(Charset.forName("UTF-8"));
-                response.setContentLength(entity.length);
-                response.setStatus(HttpServletResponse.SC_OK);
-                response.setHeader("Cache-Control", "no-cache");
-                try {
-                  response.getOutputStream().write(entity);
-                } catch (IOException e) {
-                  LOG.error("Error completing call update request", e);
-                  try {
-                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                  } catch (IOException e1) {
-                    LOG.error("Error sending error to call update request", e1);
-                  }
-                } finally {
-                  acontext.complete();
-                }
+                sendContent(acontext, body.toString());
               } else {
-                LOG.warn(">>> Fired onCall(" + callId + ", " + callState
+                LOG.warn(">>> Fired onCallState(" + callId + ", " + callState
+                    + ") for already completed UpdatePollingServlet");
+              }
+            }
+
+            @Override
+            public void onPartJoined(String callId, String partId) {
+              if (polling.compareAndSet(true, false)) {
+                StringBuilder body = new StringBuilder();
+                body.append('{');
+                body.append("\"eventType\": \"call_joined\",");
+                body.append("\"callId\": \"");
+                body.append(callId);
+                body.append("\",\"part\": {");
+                body.append("\"id\": \"");
+                body.append(partId);
+                body.append("\"}");
+                body.append('}');
+                
+                sendContent(acontext, body.toString());
+              } else {
+                LOG.warn(">>> Fired onPartJoined(" + callId + ", " + partId
+                    + ") for already completed UpdatePollingServlet");
+              }
+            }
+
+            @Override
+            public void onPartLeaved(String callId, String partId) {
+              if (polling.compareAndSet(true, false)) {
+                StringBuilder body = new StringBuilder();
+                body.append('{');
+                body.append("\"eventType\": \"call_leaved\",");
+                body.append("\"callId\": \"");
+                body.append(callId);
+                body.append("\",\"part\": {");
+                body.append("\"id\": \"");
+                body.append(partId);
+                body.append("\"}");
+                body.append('}');
+                
+                sendContent(acontext, body.toString());
+              } else {
+                LOG.warn(">>> Fired onPartLeaved(" + callId + ", " + partId
                     + ") for already completed UpdatePollingServlet");
               }
             }
@@ -223,6 +249,28 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
       } catch (IOException e1) {
         LOG.error("Error sending error for call update request failure", e1);
       }
+    }
+  }
+  
+  private void sendContent(AsyncContext acontext, String content) {
+    HttpServletResponse response = (HttpServletResponse) acontext.getResponse();
+    response.setContentType("text/json");
+    response.setCharacterEncoding("UTF-8");
+    byte[] entity = content.getBytes(Charset.forName("UTF-8"));
+    response.setContentLength(entity.length);
+    response.setStatus(HttpServletResponse.SC_OK);
+    response.setHeader("Cache-Control", "no-cache");
+    try {
+      response.getOutputStream().write(entity);
+    } catch (IOException e) {
+      LOG.error("Error completing call update request", e);
+      try {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+      } catch (IOException e1) {
+        LOG.error("Error sending error to call update request", e1);
+      }
+    } finally {
+      acontext.complete();
     }
   }
 

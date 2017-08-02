@@ -38,6 +38,9 @@ public class SkypeSettings {
   /** The call title. */
   protected final String   callTitle;
 
+  /** The join title. */
+  protected final String   joinTitle;
+
   /** The client id. */
   protected final String   clientId;
 
@@ -74,6 +77,7 @@ public class SkypeSettings {
                        String[] supportedTypes,
                        String title,
                        String callTitle,
+                       String joinTitle,
                        String clientId,
                        String redirectUri,
                        String version,
@@ -85,6 +89,7 @@ public class SkypeSettings {
     this.supportedTypes = supportedTypes;
     this.title = title;
     this.callTitle = callTitle;
+    this.joinTitle = joinTitle;
     this.clientId = clientId;
     this.redirectUri = redirectUri;
     this.version = version;
@@ -127,6 +132,15 @@ public class SkypeSettings {
    */
   public String getCallTitle() {
     return callTitle;
+  }
+
+  /**
+   * Gets the join title.
+   *
+   * @return the join title
+   */
+  public String getJoinTitle() {
+    return joinTitle;
   }
 
   /**

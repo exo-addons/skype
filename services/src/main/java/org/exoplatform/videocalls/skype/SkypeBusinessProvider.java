@@ -81,6 +81,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
                                getSupportedTypes(),
                                getTitle(),
                                "Call", // TODO in18n
+                               "Join", // TODO in18n
                                getClientId(),
                                redirectURI,
                                getVersion(),

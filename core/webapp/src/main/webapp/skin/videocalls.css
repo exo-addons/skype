@@ -86,6 +86,10 @@
 	opacity: .6
 }
 
+.callDisabled {
+	opacity: .75
+}
+
 /***** Room/Space status ******/
 .activeCall .td-status .user-status {
 	color: #d62126;
