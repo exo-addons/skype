@@ -2097,6 +2097,13 @@
 														$callPopup.dialog("close");
 													}
 												}
+												var localCall = getLocalCall(update.callId);
+												if (canJoin(localCall) && localCall.conversation) {
+													// We leave if something running
+													localCall.conversation.leave().then(function() {
+														log("<<< Current conversation stopped and leaved " + container.getCallId());
+													});
+												}
 												var callStopped = function(callerRoom) {
 													callUpdate({
 														state : "stopped",
