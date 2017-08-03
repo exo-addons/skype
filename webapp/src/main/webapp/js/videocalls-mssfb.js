@@ -2588,13 +2588,15 @@
 											}
 										} else if (info.state == "leaved") {
 											saveLocalCall(info);
+											var hasLeaved = false;
 											if (joinedCall && joinedCall.callId == info.callId) {
 												joinedCall = null;
+												hasLeaved = true;
 											}
 											//if ($callButton.data("callid") == info.callId) {
 											if (chatApplication.targetUser == info.peer.chatRoom) {
 												$callButton.removeClass("callDisabled");
-												if (isGroup) {
+												if (isGroup && hasLeaved) {
 													$callButton.find(".callTitle").text(self.getJoinTitle());
 												}
 											}
