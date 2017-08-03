@@ -1257,6 +1257,42 @@
 				return process.promise();
 			};
 			
+			var stopCallPopover = function(title, message) {
+				log(">> stopCallPopover '" + title + "' message:" + message);
+				var process = $.Deferred();
+				var $call = $("div.uiStopCall");
+				if ($call.length > 0) {
+					try {
+						$call.dialog("destroy");
+					} catch(e) {
+						log(">>> stopCallPopover: error destroing prev dialog ", e);
+					}
+					$call.remove();
+				}
+				$call = $("<div class='uiStopCall' title='" + title + " call'></div>");
+				$call.append($("<p><span class='ui-icon warningIcon' style='float:left; margin:12px 12px 20px 0;'></span>"
+					//+ "<a target='_self' href='" + callerLink + "'><img src='" + callerAvatar + "'></a>"
+					+ "<div class='messageText'>" + message + "</div></p>"));
+				$(document.body).append($call);
+				$call.dialog({
+		      resizable: false,
+		      height: "auto",
+		      width: 400,
+		      modal: false,
+		      buttons: {
+		        "Call": function() {
+		        	process.resolve("confirmed");
+		        	$call.dialog( "close" );
+		        },
+		        "Cancel": function() {
+		        	process.reject("canceled");
+		        	$call.dialog( "close" );
+		        }
+		      }
+				});
+				return process.promise();
+			};
+			
 			var showWrongUsers = function(wrongUsers, callWindow) {
 				if (wrongUsers.length > 0) {
 					var userNames = "";
@@ -1383,12 +1419,24 @@
 													localCall = getLocalCall(target.callId);
 												}
 												if (container.isVisible()) {
-													container.getConversation().leave().then(function() {
-														log("<<< Current conversation leaved " + container.getCallId() + " for " + (localCall ? "saved" : "new") + " outgoing");
+													var currentConvo = container.getConversation();
+													var message = "Do you want " 
+															+ (currentConvo.isGroupConversation() ? "leave '" + currentConvo.topic() + "' call" : "stop call with " + currentConvo.participants(0).person.displayName())
+															+ " and start " 
+															+ (target.group ? "'" + target.title + "' call" : " call to " + target.title) + "?";
+													stopCallPopover("Start a new " + provider.getTitle() + " call&#63;", message).done(function() {
+														container.getConversation().leave().then(function() {
+															log("<<< Current conversation leaved " + container.getCallId() + " for " + (localCall ? "saved" : "new") + " outgoing");
+														});
+														outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
+														showWrongUsers(wrongUsers);
+													}).fail(function() {
+														log("User don't want stop existing call and call to " + target.title);
 													});
+												} else {
+													outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
+													showWrongUsers(wrongUsers);													
 												}
-												outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
-												showWrongUsers(wrongUsers);													
 											} else {
 												videoCalls.showWarn("Cannot start a call", "No " + self.getTitle() + " users found.");
 											}										
@@ -1669,6 +1717,9 @@
 								}, 2500);
 							});
 							var showCallPopover = function() {
+								if (container.isVisible()) {
+									callerMessage += " Your current call will be stopped if you answer this call.";
+								}
 								var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage, /*saved &&*/ conversation.isGroupConversation());
 								popover.progress(function($call) {
 									$callPopup = $call;
