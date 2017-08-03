@@ -793,7 +793,10 @@
 			var isModalityUnsupported = function(error) {
 				// TODO CommandDisabled also will appear for state of previously disconnected convo
 				// AssertionFailed happens in Chrome when Video cannot be rendered
-				if (error.code == "CommandDisabled" || error.code == "AssertionFailed" || (error.code == "InvitationFailed" && error.reason.subcode == "UnsupportedMediaType")) {
+				if (error.code == "CommandDisabled" || error.code == "AssertionFailed"
+						|| (error.code == "InvitationFailed" && error.reason.subcode == "UnsupportedMediaType")
+						// it's a case when group conference re-created and incoming happen, this error occurs but doesn't prevent the work
+						|| (error.code == "InvalidState" && error.actual == "Connecting" && error.expected == "Notified")) {
 					return true;
 				}
 				return false;
@@ -855,6 +858,10 @@
 					process.reject(err);
 				});				
 				return process.promise();
+			};
+			
+			var canJoin = function(localCall) {
+				return localCall.state == "started" || localCall.state == "canceled" || localCall.state == "leaved";
 			};
 			
 			var outgoingCallHandler = function(api, app, container, currentUser, target, userIds, participants, localCall) {
@@ -1021,7 +1028,7 @@
 								process.resolve(callId, conversation);
 								if (conversation.isGroupConversation()) {
 									if (target.callId) {
-										if (localCall && (localCall.state == "started" || localCall.state == "canceled")) {
+										if (localCall && canJoin(localCall)) {
 											joinedGroupCall();
 										} else {
 											startedCall();
@@ -1098,12 +1105,14 @@
 								log(">>> Error setting conversation topic: " + target.title, e);
 							}
 						}
-						conversation.participants.added(function(part) {
-							log(">>> Participant added " + part.person.displayName() + "(" + part.person.id() + ") to " + callId);
-						});
+						if (!localCall) {
+							conversation.participants.added(function(part) {
+								log(">>> Participant added " + part.person.displayName() + "(" + part.person.id() + ") to " + callId);
+							});
+						}
 						container.setConversation(conversation, callId, target.id);
 						container.show();
-						process.notify(callId, conversation); // inform call is starting to the invoker code
+						//process.notify(callId, conversation); // inform call is starting to the invoker code
 						if (conversation.isGroupConversation()) {
 							// FYI This doesn't work for group calls, at this stage a newly created convo will not have an URI, 
 							// thus the call ID will be like g/adhoc, not what other parts will see in added one
@@ -1137,11 +1146,6 @@
 									// For a case when Disconnected will not happen
 									window.removeEventListener("beforeunload", beforeunloadListener);
 									window.removeEventListener("unload", unloadListener);
-									if (isError) {
-										if (process.state() == "pending") {
-											process.reject(error);
-										}
-									} 
 									if (isOutdated) {
 										app.conversationsManager.conversations.remove(conversation);
 										// delete this call records in eXo service
@@ -1149,9 +1153,7 @@
 										deleteCall().always(function() {
 											// Wait a bit for things completion
 											setTimeout(function() {
-												outgoingCallHandler(api, app, container, currentUser, target, userIds, participants, null).progress(function(callId, newConvo) {
-													process.notify(callId, newConvo);
-												}).done(function(callId, newConvo) {
+												outgoingCallHandler(api, app, container, currentUser, target, userIds, participants, null).done(function(callId, newConvo) {
 													process.resolve(callId, newConvo);
 												}).fail(function(err) {
 													process.reject(err);
@@ -1159,7 +1161,14 @@
 											}, 250);
 										});
 									} else {
-										unregisterCall(); // TODO Do need it here? It will be done on Disconnected state also.
+										if (process.state() == "pending") {
+											process.reject(isError ? error : "canceled");
+										}
+										if (conversation.isGroupConversation()) {
+											leavedGroupCall();
+										} else {
+											deleteCall();
+										}
 									}
 								});
 							};
@@ -1335,7 +1344,7 @@
 						var fullTitle = self.getTitle() + " " + self.getCallTitle();
 						var targetId = context.roomId ? context.roomId : (context.spaceId ? context.spaceId : (context.userId ? context.userId : null));
 						var localCall = getLocalCall(targetId);
-						var title = localCall && (localCall.state == "started" || localCall.state == "canceled") ? self.getJoinTitle() : self.getCallTitle();
+						var title = localCall && canJoin(localCall) ? self.getJoinTitle() : self.getCallTitle();
 						var disabledClass = hasJoinedCall(targetId) ? "callDisabled" : "";
 						var $button = $("<a title='" + fullTitle + "' href='javascript:void(0);' class='mssfbCallAction " + disabledClass
 									+ "'>"
@@ -1373,10 +1382,12 @@
 												if (target.callId) {
 													localCall = getLocalCall(target.callId);
 												}
-												outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall).progress(function(callId) {
-													// save call ID on starting phase (not started) to let then it be read by the started listeners  
-													$button.data("callid", callId);
-												});
+												if (container.isVisible()) {
+													container.getConversation().leave().then(function() {
+														log("<<< Current conversation leaved " + container.getCallId() + " for " + (localCall ? "saved" : "new") + " outgoing");
+													});
+												}
+												outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
 												showWrongUsers(wrongUsers);													
 											} else {
 												videoCalls.showWarn("Cannot start a call", "No " + self.getTitle() + " users found.");
@@ -1398,7 +1409,6 @@
 											callback.done(function(api, app) {
 												log("User login done.");
 												//makeCallPopover("Make " + provider.getTitle() + " call?", "Do you want make a call?").done(function() {
-													//outgoingCallHandler(api, app, container, context.currentUser, target, users, participants, localConvo).done(saveConvo);
 												embeddedCall(api, app);
 												//}).fail(function() {
 												//	log("User don't want make a call to " 
@@ -1678,9 +1688,9 @@
 									if (container) {
 										// TODO support several calls at the same time
 										// If call container already running a conversation, we leave it and start this one 
-										if (container.isVisible() && callId != container.getCallId()) {
+										if (container.isVisible()) { // && callId != container.getCallId()
 											container.getConversation().leave().then(function() {
-												log("<<< Conversation leaved " + container.getCallId());
+												log("<<< Current conversation leaved " + container.getCallId() + " for accepted incoming");
 											});
 										}
 										callStateUpdate("accepted");
@@ -1692,8 +1702,10 @@
 										api.renderConversation(container.element, options).then(function(conversation) {
 											container.setConversation(conversation, callId, callerId);
 											container.show();
-											if (saved) {
-												// TODO for debug info
+											if (saved && conversation.isGroupConversation()) { // was saved
+												// This should work for saved (reused) group conference calls, 
+												// P2P and new incoming conference will not work this way
+												// TODO two state.changed below for debug info only
 												conversation.selfParticipant.audio.state.changed(function listener(newValue, reason, oldValue) {
 													log(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																+ " CONVERSATION state: " + conversation.state());
@@ -1754,52 +1766,6 @@
 												});
 											} else {
 												// TODO check this working in FF where no video/audio supported
-												conversation.selfParticipant.chat.state.changed(function listener(newValue, reason, oldValue) {
-													log(">>> CHAT state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
-																+ " CONVERSATION state: " + conversation.state());
-													if (newValue === "Notified") {
-														conversation.chatService.accept().then(function() {
-															log(">>> Incoming CHAT ACCEPTED");
-															accept.resolve("chat");
-														}, function(chatError) {
-															log("<<< Error accepting chat: " + JSON.stringify(chatError));
-															if (!isModalityUnsupported(chatError)) {
-																accept.reject(chatError);
-															}
-														});
-													} else if (newValue === "Disconnected") {
-														log("<<< CHAT disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
-														if (oldValue === "Connected" || oldValue === "Connecting") {
-															conversation.selfParticipant.chat.state.changed.off(listener);
-														}
-													}
-												});
-												conversation.selfParticipant.audio.state.changed(function listener(newValue, reason, oldValue) {
-													log(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
-																+ " CONVERSATION state: " + conversation.state());
-													if (newValue === "Notified") {
-														log(">>> Incoming AUDIO ACCEPTING Notified");
-														conversation.audioService.accept().then(function() {
-															log(">>> Incoming AUDIO ACCEPTED");
-															accept.resolve("audio");
-														}, function(audioError) {
-															log("<<< Error accepting audio: " + JSON.stringify(audioError));
-															accept.reject(audioError);
-															if (!isModalityUnsupported(audioError)) {
-																accept.reject(audioError);
-															}
-														});
-													} else if (newValue === "Disconnected") {
-														log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
-														if (oldValue === "Connected" || oldValue === "Connecting") {
-															conversation.selfParticipant.audio.state.changed.off(listener);
-															if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
-																videoCalls.showError("Skype Plugin Not Initialized", 
-																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
-															}
-														}
-													}
-												});
 												conversation.selfParticipant.video.state.changed(function listener(newValue, reason, oldValue) {
 													// 'Notified' indicates that there is an incoming call
 													log(">>> VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
@@ -1825,6 +1791,51 @@
 																videoCalls.showError("Skype Plugin Not Initialized", 
 																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
 															}
+														}
+													}
+												});
+												conversation.selfParticipant.audio.state.changed(function listener(newValue, reason, oldValue) {
+													log(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+																+ " CONVERSATION state: " + conversation.state());
+													if (newValue === "Notified") {
+														log(">>> Incoming AUDIO ACCEPTING Notified");
+														conversation.audioService.accept().then(function() {
+															log(">>> Incoming AUDIO ACCEPTED");
+															accept.resolve("audio");
+														}, function(audioError) {
+															log("<<< Error accepting audio: " + JSON.stringify(audioError));
+															if (!isModalityUnsupported(audioError)) {
+																accept.reject(audioError);
+															}
+														});
+													} else if (newValue === "Disconnected") {
+														log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+														if (oldValue === "Connected" || oldValue === "Connecting") {
+															conversation.selfParticipant.audio.state.changed.off(listener);
+															if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
+																videoCalls.showError("Skype Plugin Not Initialized", 
+																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
+															}
+														}
+													}
+												});
+												conversation.selfParticipant.chat.state.changed(function listener(newValue, reason, oldValue) {
+													log(">>> CHAT state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+																+ " CONVERSATION state: " + conversation.state());
+													if (newValue === "Notified") {
+														conversation.chatService.accept().then(function() {
+															log(">>> Incoming CHAT ACCEPTED");
+															accept.resolve("chat");
+														}, function(chatError) {
+															log("<<< Error accepting chat: " + JSON.stringify(chatError));
+															if (!isModalityUnsupported(chatError)) {
+																accept.reject(chatError);
+															}
+														});
+													} else if (newValue === "Disconnected") {
+														log("<<< CHAT disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+														if (oldValue === "Connected" || oldValue === "Connecting") {
+															conversation.selfParticipant.chat.state.changed.off(listener);
 														}
 													}
 												});
@@ -1971,8 +1982,11 @@
 								var callId = getCallId(conversation);
 								if (!hasJoinedCall(callId)) { //  (container.isVisible() && callId != container.getCallId())
 									log(">>> Created (added) > Incoming " + callId);
-									var localCall = getLocalCall(callId);
-									handleIncoming(conversation, localCall ? localCall.saved : false);									
+									setTimeout(function() {
+										// We let some time to Incoming listener below in user updates polling
+										var localCall = getLocalCall(callId);
+										handleIncoming(conversation, localCall ? localCall.saved : false);										
+									}, 250);
 								} else {
 									log(">>> Created (added) < Incoming already handled " + callId);
 								}
@@ -2048,8 +2062,25 @@
 															}
 														}, 5000);
 														conversation.state.once("Incoming", function() {
+															// This lister should work before Incoming handled in added handler above
 															// if it become Incoming - cancel the delayed handler, it will be worked in 'added' logic above
 															clearTimeout(handle);
+															// Also save it as 'leaved' (!), later after handleIncoming() it will become 'incoming' 
+															// and then will be handled properly
+															// TODO this finally caused error of accepting new incoming group call
+															// [mssfb_915] <<< Error starting incoming (saved) VIDEO: {"code":"CommandDisabled"}
+															// but video state was: undefined->Notified
+															/*saveLocalCall({
+																state : "leaved",
+																callId : update.callId,
+																peer : {
+																	id : update.caller.id,
+																	type : update.caller.type,
+																	chatRoom : update.caller.id // room should not be used for this state
+																},
+																conversation : conversation, 
+																saved : true
+															});*/
 														});
 													} else if (state == "Incoming") {
 														log("<<<< User call " + update.callId + " state Incoming skipped, will be handled in added listener");
@@ -2426,7 +2457,8 @@
 											markRoomIncoming(info.peer.chatRoom);
 										} else if (info.state == "accepted") {
 											saveLocalCall(info);
-											//joinedCall = info;
+											// if call container was running a convo, it is leaving right here (see accepted logic)
+											joinedCall = info; 
 											if (info.peer.chatRoom != chatApplication.targetUser) {
 												// switch to the call room in the Chat
 												var selector = ".users-online .room-link[user-data='" + info.peer.chatRoom + "']";
