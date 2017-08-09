@@ -216,6 +216,13 @@
 				}
 			};
 			
+			var sipId = function(mssfbId) {
+				if (mssfbId && !mssfbId.startsWith("sip:")) {
+					mssfbId = "sip:" + mssfbId;
+				}
+				return mssfbId;
+			};
+			
 			var tokenHashInfo = function(hline) {
 				var tokenEnd = hline.indexOf("&token_type");
 				if (tokenEnd > 0) {
@@ -230,6 +237,20 @@
 			};
 			this.tokenHashInfo = tokenHashInfo;
 			
+			var removeLocalToken = function() {
+				log("Remove login token");
+				if (typeof(Storage) !== "undefined") {
+			    // Code for localStorage/sessionStorage.
+					localStorage.removeItem(TOKEN_STORE);
+				} else {
+				  // No Web Storage support.
+					if (eXo && eXo.videoCalls && eXo.videoCalls.mssfb) {
+						delete eXo.videoCalls.mssfb.__localToken;
+					} else {
+						log("WARN removing access token: local storage not supported.");
+					}
+				}
+			};
 			var saveLocalToken = function(token) {
 				//log(">> saveLocalToken: " + tokenHashInfo(token.hash_line));
 				log("Using new login token");
@@ -490,14 +511,16 @@
 				return initializer.promise();
 			};
 
-			this.uiApplication = function(redirectUri) {
+			this.uiApplication = function(redirectUri, user) {
 				var initializer = $.Deferred();
 				if (settings) {
 					if (uiApiInstance && uiAppInstance) {
 						log("Use uiApp instance");
 						initializer.resolve(uiApiInstance, uiAppInstance);
 					} else {
-						var user = videoCalls.getUser();
+						if (!user) {
+							user = videoCalls.getUser();
+						}
 						var sessionId = user.id + "_uisession" + Math.floor((Math.random() * 1000000) + 1);
 						log("uiApp sessionId='" + sessionId + "'");
 						Skype.initialize({
@@ -634,7 +657,7 @@
 			};
 			var loginIframe;
 			var loginTokenUpdater;
-			var loginTokenHandler = function(token) {
+			var loginTokenHandler = function(token, user) {
 				delete provider.loginToken;
 				var process = $.Deferred();
 				try {
@@ -646,17 +669,18 @@
 						log(">> loginTokenHandler WARN loading on page with access_token in the hash: " + prevHash);
 					}
 					location.hash = token.hash_line;
-					var appInitializer = provider.uiApplication(loginUri);
+					var appInitializer = provider.uiApplication(loginUri, user);
 					appInitializer.done(function(api, app) {
 						// TODO save token in the server-side for late use?
 					  log("Login OK, app created OK");
 					  // Save the token hash in local storage for later use
 					  location.hash = prevHash;
+					  token.userId = app.personsAndGroupsManager.mePerson.id();
 					  saveLocalToken(token);
 					  process.resolve(api, app);
 					  // Remove warnings if any
 					  // TODO check exactly that the SfB authorized 
-						$(".mssfbLoginWarningContainer").remove();
+						$(".mssfbLoginButton").remove();
 					  // And care about token renewal
 						// TODO another approach to rely on the SDK calls to login page, but this doesn't work in IE
 						var updateTime = (token.expires_in > 3660 ? 3600 : token.expires_in - 60)  * 1000;
@@ -2149,7 +2173,7 @@
 													}
 												}
 												var localCall = getLocalCall(update.callId);
-												if (canJoin(localCall) && localCall.conversation) {
+												if (localCall && canJoin(localCall) && localCall.conversation) {
 													// We leave if something running
 													localCall.conversation.leave().then(function() {
 														log("<<< Current conversation stopped and leaved " + container.getCallId());
@@ -2250,59 +2274,348 @@
 					}
 				}
 			});
+			
+			var showSettingsLogin = function(mssfbId) {
+				var process = $.Deferred();
+				var $settings = $("div.uiMssfbSettings");
+				$settings.remove();
+				$settings = $("<div class='uiMssfbSettings' title='" + provider.getTitle() + " settings'></div>");
+				$(document.body).append($settings);
+				$settings.append($("<p><span class='ui-icon messageIcon ui-icon-gear' style='float:left; margin:12px 12px 20px 0;'></span>" +
+					"<div class='messageText'>Login in to your " + provider.getTitle() + " account.</div></p>"));
+				$settings.dialog({
+				  resizable: false,
+				  height: "auto",
+				  width: 400,
+				  modal: true,
+				  buttons: {
+						"Login": function() {
+							loginWindow();
+							// this method will be available at eXo.videoCalls.mssfb on a call page
+							provider.loginToken = function(token) {
+								var user;
+								if (mssfbId) {
+									user = videoCalls.getUser();
+									var exoUserSFB = videoCalls.imAccount(user, "mssfb");
+						  		if (exoUserSFB) {
+						  			exoUserSFB.id = mssfbId;
+						  		}		        			
+								}
+								var callback = loginTokenHandler(token, user);
+								callback.done(function() {
+									process.resolve();
+								}); 
+								callback.fail(function(err) {
+									$settings.find(".messageIcon").removeClass("ui-icon-gear").addClass("ui-icon-alert");
+									$settings.find(".messageText").html("Error! " + err);
+									$settings.dialog({
+										resizable: false,
+							      height: "auto",
+							      width: 400,
+							      modal: true,
+							      buttons: {
+							        Ok: function() {
+							        	$settings.dialog( "close" );
+							        }
+							      }
+							    });
+									process.reject(err);
+								});
+								callback.always(function() {
+									$settings.dialog( "close" );									
+								});
+								return callback.promise();
+							};
+						},
+						"Cancel": function() {
+							process.reject();
+							$settings.dialog( "close" );
+						}
+				  }
+				});
+				$settings.on("dialogclose", function( event, ui ) {
+					if (process.state() == "pending") {
+						process.reject("closed");
+					}
+				});
+				return process.promise();
+			};
+			
+			var showSettingsLogout = function() {
+				var process = $.Deferred();
+				var $settings = $("div.uiMssfbSettings");
+				$settings.remove();
+				$settings = $("<div class='uiMssfbSettings' title='" + provider.getTitle() + " settings'></div>");
+				$(document.body).append($settings);
+				$settings.append($("<p><span class='ui-icon messageIcon ui-icon-gear' style='float:left; margin:12px 12px 20px 0;'></span>" +
+					"<div class='messageText'>Forget your " + provider.getTitle() 
+					+ " access token. A new token can be aquired later by doing login in user profile or by making an outgoing call.</div></p>"));
+				$settings.dialog({
+					resizable: false,
+					height: "auto",
+					width: 400,
+					modal: true,
+					buttons: {
+					  "Logout": function() {
+					  	removeLocalToken();
+					  	process.resolve();
+							$settings.dialog( "close" );
+					  },
+					  "Cancel": function() {
+					  	process.reject();
+					  	$settings.dialog( "close" );
+					  }
+					}
+				});
+				$settings.on("dialogclose", function( event, ui ) {
+					if (process.state() == "pending") {
+						process.reject("closed");
+					}
+				});
+				return process.promise();
+			};
+			
+			var createLoginButton = function(handler) {
+				// Login button
+				var $button = $("<div class='actionIcon mssfbLoginButton parentPosition'></div>");
+				var $link = $("<a class='mssfbLoginLink'><i class='uiIconColorWarning'></i></a>");
+				$button.append($link);
+				// Login click handler
+				if (handler) {
+					$link.click(handler);
+				}
+				// Popover on the button
+				var $popoverContainer = $("<div class='gotPosition' style='position: relative; display:block'></div>");
+				$popoverContainer.append("<div class='popover bottom popupOverContent' style='display: none;'>"
+							+ "<span class='arrow' style='top: -8%;'></span>"
+							+ "<div class='popover-content'>" + provider.getTitle() 
+								+ " authorization required. Click this icon to open sign-in window.</div>"
+							+ "</div>");
+				$button.append($popoverContainer);
+				var $popover = $popoverContainer.find(".popupOverContent:first");
+				$link.mouseenter(function() {
+					if (!$popover.is(":visible")) {
+						$popover.show("fade", 300);
+					}
+				});
+				$link.mouseleave(function() {
+					if ($popover.is(":visible")) {
+						$popover.hide("fade", 300);
+					}
+				});
+				setTimeout(function() {
+					$popover.show("fade", 1500);
+				}, 2000);
+				// hide popover in time
+				setTimeout(function() {
+					$popover.hide("fade", 1500);
+				}, 30000);
+				return $button;
+			};
+			
+			var createLogoutButton = function(handler) {
+				var $button = $("<div class='actionIcon mssfbLogoutButton parentPosition'></div>");
+				var $link = $("<a class='mssfbLogoutLink' data-placement='bottom' rel='tooltip' title='' data-original-title='Settings'><i class='uiIconSettings uiIconLightGray'></i></a>");
+				$button.append($link);
+				$link.tooltip();
+	    	if (handler) {
+	    		$link.click(handler);
+	    	}
+	    	return $button;
+			};
+			
+			var createCallAccountPopover = function($button) {
+				if ($button.find(".gotPosition>.popover").length == 0) {
+					var $a = $button.find(".actionIcon>a");
+					var $link = $a.length > 0 ? $a : $button;
+					// Popover on the button
+					var $popoverContainer = $("<div class='gotPosition' style='position: relative; display:block'></div>");
+					$popoverContainer.append("<div class='popover bottom popupOverContent' style='display: none;'>"
+								+ "<span class='arrow' style='top: -8%;'></span>"
+								+ "<div class='popover-content'>This account will be used for " + provider.getTitle() + " calls.</div>"
+								+ "</div>");
+					$button.append($popoverContainer);
+					var $popover = $popoverContainer.find(".popupOverContent:first");
+					$link.mouseenter(function() {
+						if (!$popover.is(":visible")) {
+							$popover.show("fade", 300);
+						}
+					});
+					$link.mouseleave(function() {
+						if ($popover.is(":visible")) {
+							$popover.hide("fade", 300);
+						}
+					});
+					setTimeout(function() {
+						$popover.show("fade", 1500);
+					}, 2000);
+					// hide popover in time
+					setTimeout(function() {
+						$popover.hide("fade", 1500);
+					}, 10000);
+					return $button;
+				}
+			};
+			
 			this.init = function(context) {
 				//log("Init at " + location.origin + location.pathname);
-				var $control = $(".mssfbControl");
-				if ($control.length > 0) {
+				if (window.location.pathname.startsWith("/portal/") && window.location.pathname.indexOf("/edit-profile/") > 0) {
 					// in user profile edit page 
-					$control.click(function() {
-						var $settings = $("div.uiMssfbSettings");
-						if ($settings.length == 0) {
-							$settings = $("<div class='uiMssfbSettings' title='" + provider.getTitle() + " settings'></div>");
-							$(document.body).append($settings);
-						} else {
-							$settings.empty();
-						}
-						$settings.append($("<p><span class='ui-icon messageIcon ui-icon-gear' style='float:left; margin:12px 12px 20px 0;'></span>" +
-							"<div class='messageText'>Login in to your " + provider.getTitle() + " account.</div></p>"));
-						$settings.dialog({
-				      resizable: false,
-				      height: "auto",
-				      width: 400,
-				      modal: true,
-				      buttons: {
-				        "Login": function() {
-				        	$(loginWindow()).on("unload", function() {
-				        		delete provider.loginToken;
-				        	});
-				        	// this method will be available at eXo.videoCalls.mssfb on a call page
-				        	provider.loginToken = function(token) {
-										var callback = loginTokenHandler(token);
-										callback.fail(function(err) {
-											$settings.find(".messageIcon").removeClass("ui-icon-gear").addClass("ui-icon-alert");
-											$settings.find(".messageText").html("Error! " + err);
-											$settings.dialog({
-												resizable: false,
-									      height: "auto",
-									      width: 400,
-									      modal: true,
-									      buttons: {
-									        Ok: function() {
-									        	$settings.dialog( "close" );
-									        }
-									      }
-									    });
-										});
-										return callback.promise();
+					var $form = $("#UIEditUserProfileForm");
+					if ($form.length > 0) {
+						var $ims = $form.find("#ims");
+						var removeToken = false;
+						var addControlButton = function($imRow, createFunc) {
+							$imRow.find(".mssfbControl").remove();
+							var $button = createFunc();
+							$button.addClass("mssfbControl");
+							$imRow.find(".selectInput+.actionIcon").after($button);
+							return $button;
+						};
+						var controlHandler = function() {
+							var $imRow = $(this).parents(".controls-row:first");
+							var mssfbId = sipId($imRow.find(".selectInput").val());
+							var token = currentToken();
+							if (token && token.userId == mssfbId) {
+								// User can forget the token
+								showSettingsLogout().done(function() {
+									// show warn next to SfB IM field
+									showLoginButton($imRow);
+								});
+							} else {
+								// User needs login with his (new) SfM account
+								showSettingsLogin(mssfbId).done(function() {
+									// show settings (logout for now) icon next to SfB IM field
+									showLogoutButton($imRow);									
+								});
+							}
+						};
+						var showLoginButton = function($imRow) {
+							return addControlButton($imRow, function() {
+								return createLoginButton(controlHandler);
+							});
+						};
+						var showLogoutButton = function($imRow) {
+							var $button = addControlButton($imRow, function() {
+								return createLogoutButton(controlHandler);
+							});
+							if ($ims.find(".mssfbControl:visible").length > 1) {
+								createCallAccountPopover($button);
+							}
+							return $button; 
+						};
+						var controlInit = function($imRow, mssfbId) {
+							var token = currentToken();
+							if (token && token.userId == mssfbId) {
+								return showLogoutButton($imRow);
+							} else {
+								return showLoginButton($imRow);
+							}
+						};
+						var imChangeHandler = function($imRow) {
+							// FYI $imRow should be a single row, otherwise this method will work wrong!
+							if ($imRow.data("mssfbinit")) {
+								return true;
+							} else {
+								$imRow.data("mssfbinit", true);
+								var $imType = $imRow.find("select.selectbox");
+								var $im = $imRow.find(".selectInput");
+								var $control = $imRow.find(".mssfbControl");
+								var isMssfbSelected = function() {
+									return $imType.find(":selected").val() == "mssfb";
+								};
+								var isMssfb = isMssfbSelected();
+								var initControl = function() {
+									if (isMssfb) {
+										var im = $im.val();
+								    if (EMAIL_PATTERN.test(im)) {
+								    	removeToken = false;
+								    	// Already looks as an email, we can show login Icon on the right if it is not already there
+								    	if ($control.length == 0) {
+								    		$control = controlInit($imRow, sipId(im));
+								    	} else {
+								    		$control.show();
+								    	}
+								    } else {
+								    	// TODO mark this filed invalid
+								    	removeToken = true;
+								    	$control.hide();
+								    }
+									} else {
+							    	// else, not SfB IM
+										removeToken = true;
+							    	$control.hide();
+							    }
+								};
+								$imType.change(function() {
+									isMssfb = isMssfbSelected();
+									initControl();
+								});
+								$im.on("input", function() { 
+									initControl(); 
+								});
+								if (isMssfb) {
+									removeToken = false;
+								}
+								return isMssfb;
+							}
+						};
+						var initForm = function() {
+							var hasMssfb = false;
+							$ims.find(".controls-row").each(function() {
+								// Add change handler only to first SfB IM
+								var $imRow = $(this);
+								if (!hasMssfb && imChangeHandler($imRow)) {
+									hasMssfb = true;
+									var mssfbId = sipId($imRow.find(".selectInput").val());
+									controlInit($imRow, mssfbId);
+								} else {
+									// XXX we don't support multiple SfB for calls - remove settings control
+									$imRow.find(".mssfbControl").remove();
+								}
+							});
+						};
+						initForm();
+						$form.find(".uiAction .btn-save").click(function() {
+							if (removeToken) {
+								removeLocalToken();
+								removeToken = false;
+							}							
+						});
+						// We need also handle added IM rows by later Add New (+) actions 
+						setTimeout(function() {
+							var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+							var observer = new MutationObserver(function(mutations) {
+								// will it fired twice on each update?
+								var needUpdate = false;
+								nextChange : for (var i=0; i<mutations.length; i++) {
+									var m = mutations[i];
+									if (m.type == "childList") {
+										//var $node = $(m.target);
+										//log(">> observed: " + $node.attr("class"));
+										for (var i = 0; i < m.addedNodes.length; i++) {
+										  var $node = $(m.addedNodes[i]);
+										  if ($node.hasClass("controls-row")) {
+												needUpdate = true;
+												break nextChange;
+											}
+										}
 									}
-									$settings.dialog( "close" );
-				        },
-				        "Cancel": function() {
-				        	$settings.dialog( "close" );
-				        }
-				      }
-				    });
-					});
+								} 
+								if (needUpdate) {
+									initForm();
+								}
+							});
+							observer.observe($ims.get(0), {
+								subtree : false,
+								childList : true,
+								attributes : false,
+								characterData : false
+							});
+						}, 1000);
+					} else {
+						log("WARN UIEditUserProfileForm not found");
+					}
 				} else if (videoCalls.hasChatApplication()) {
 					// we are in the Chat, chatApplication is a global on chat app page
 					var $chat = $("#chat-application");
@@ -2638,16 +2951,17 @@
 											return callback.promise();
 										}
 									};
-									// show warn icon near the Call Button, icon with click and details popover 
+									// show warn icon near the Call Button, icon with click and details popover
+									var MAX_WAIT = 24; // 6sec = 24 * 250ms
 									var attemtCount = 0;
 									var addLoginWarn = function(wait) {
 										var $wrapper = $roomDetail.find(".callButtonContainerWrapper");
 										if ($wrapper.length == 0 && wait) {
-											if (attemtCount < 30) {
+											if (attemtCount < MAX_WAIT) {
 												// wait a bit and try again
 												attemtCount++;
 												setTimeout(function() {
-													addLoginWarn(attemtCount < 30);
+													addLoginWarn(attemtCount < MAX_WAIT);
 												}, 250);										
 											} else {
 												// TODO this code never works (see wait flag above)
@@ -2662,25 +2976,28 @@
 										} else if (!$wrapper.data("callloginwarned")) {
 											$wrapper.data("callloginwarned", true);
 											// add the link/icon with warning and login popup
-											// this warning will be removed by loginTokenHandler() on done 
-											$chat.find(".mssfbLoginWarningContainer").remove();
-											var $loginLinkContainer = $("<div class='mssfbLoginWarningContainer parentPosition'></div>");
-											var $loginLink = $("<a href='#' class='mssfbLoginWarningLink'><i class='uiIconColorWarning'></i></a>");
-											$loginLinkContainer.append($loginLink);
+											// this warning will be removed by loginTokenHandler() on done
+											$chat.find(".mssfbLoginButton").remove();
+											var $button = createLoginButton(userLogin);
 											if ($roomDetail.is(":visible")) {
 												// Show in room info near the call button or team dropdown
-												$loginLinkContainer.addClass("pull-right");
+												$button.addClass("pull-right");
 												if ($wrapper.length > 0) {
-												 $wrapper.after($loginLinkContainer);
+												 $wrapper.after($button);
 												} else {
-												 $roomDetail.find("#chat-team-button-dropdown").after($loginLinkContainer);
+												 $roomDetail.find("#chat-team-button-dropdown").after($button);
 												}	
 											} else {
 												// Show in .selectUserStatus after the user name
-												$loginLinkContainer.addClass("pull-left");
-												$chat.find(".no-user-selection .selectUserStatus+label:first").after($loginLinkContainer);												
+												$button.addClass("pull-left");
+												$chat.find(".no-user-selection .selectUserStatus+label:first").after($button);												
 											}
-											
+																						
+											////
+											/*$chat.find(".mssfbLoginWarningContainer").remove();
+											var $button = $("<div class='mssfbLoginWarningContainer parentPosition'></div>");
+											var $loginLink = $("<a href='#' class='mssfbLoginWarningLink'><i class='uiIconColorWarning'></i></a>");
+											$button.append($loginLink);
 											$loginLink.click(function() {
 												userLogin();										
 											});
@@ -2690,7 +3007,7 @@
 														+ "<div class='popover-content'>" + provider.getTitle() 
 															+ " authorization required. Click this icon to open sign-in window.</div>"
 														+ "</div>");
-											$loginLinkContainer.append($popoverContainer);
+											$button.append($popoverContainer);
 											var $popover = $popoverContainer.find(".popupOverContent:first");
 											$loginLink.mouseover(function() {
 												$popover.show("fade", 300);												
@@ -2702,7 +3019,7 @@
 											// hide popover in time
 											setTimeout(function() {
 												$popover.hide("fade", 1500);
-											}, 30000);
+											}, 30000);*/
 										}
 									};
 									addLoginWarn(true);

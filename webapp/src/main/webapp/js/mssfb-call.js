@@ -132,7 +132,7 @@ if (eXo.videoCalls) {
 
 			if (isLogin) {
 				// FYI it's what WebSDK calls an "empty page"
-				//log(">> MSSFB login: " + mssfb.tokenHashInfo(hashLine));
+				log(">> MSSFB login: " + mssfb.tokenHashInfo(hashLine));
 				$(function() {
 					alignLoader();
 				});
@@ -183,9 +183,11 @@ if (eXo.videoCalls) {
 									window.close();
 								}, 2500);
 							});	
+						} else {
+							log("<<< WARN: parent.eXo.videoCalls.mssfb.loginToken() not found");
 						}
 					} else {
-						log(">>> login has no opener or not initialized for callback token");
+						log("<<< ERROR: login has no opener or not initialized for callback token");
 					}
 				}
 				if (hasError) {

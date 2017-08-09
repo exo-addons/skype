@@ -64,7 +64,7 @@
     <script>
       <adapter>
         (function() {
-        <include>/js/jquery-3.2.1.min.js</include>
+        <include>/js/jquery-3.2.1.js</include>
           return jQuery.noConflict(true);
         })();
       </adapter>
@@ -86,7 +86,7 @@
     <as>jqueryUI</as>
     <load-group>videoCallsGRP</load-group>
     <script>
-      <path>/js/jquery-ui.min.js</path>
+      <path>/js/jquery-ui.js</path>
     </script>
     <depends>
       <module>videoCallsJquery</module>

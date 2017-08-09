@@ -50,31 +50,41 @@
 }
 
 /****** Login warning *******/
-.mssfbLoginWarningContainer {
+.mssfbLoginButton, .mssfbLogoutButton {
 	color: initial;	
 }
-.mssfbLoginWarningContainer .popover.bottom {
+.mssfbLoginButton .popover.bottom, .mssfbLogoutButton .popover.bottom {
 	width: 200px;
 }
-.no-user-selection .mssfbLoginWarningContainer {
+.no-user-selection .mssfbLoginButton {
 	margin: 18px 7px 0px 7px;
 }
-.no-user-selection .mssfbLoginWarningContainer .popover.bottom {
+.no-user-selection .mssfbLoginButton .popover.bottom {
 	left: -93px;
     top: -11px;
 }
-#room-detail .mssfbLoginWarningContainer {
-	margin: 22px 7px 0px 7px;
+#room-detail .mssfbLoginButton {
+	margin: 20px 7px 0px 7px;
 }
-#room-detail .mssfbLoginWarningContainer .popover.bottom {
+#room-detail .mssfbLoginButton .popover.bottom, #ims .mssfbLoginButton .popover.bottom, #ims .mssfbLogoutButton .popover.bottom {
 	left: -92px;
     top: -4px;
 }
-.mssfbLoginWarningContainer .popover-content {
+.mssfbLoginButton .popover-content {
 	background-color: #FFF4C4; /* @warningBackground */
 }
-.mssfbLoginWarningContainer .arrow:after {
+.mssfbLoginButton .arrow:after {
 	border-bottom-color: #FFF4C4 !important; /* @warningBackground */
+}
+.mssfbLogoutButton .popover-content {
+	background-color: #D7F8D5; /* @successBackground */
+}
+.mssfbLogoutButton .arrow:after {
+	border-bottom-color: #D7F8D5 !important; /* @successBackground */
+}
+
+.mssfbControl {
+	display: inline-block;
 }
 
 .pnotifyTextLink {

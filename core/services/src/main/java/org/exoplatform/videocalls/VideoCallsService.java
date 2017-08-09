@@ -412,6 +412,7 @@ public class VideoCallsService implements Startable {
     CallInfo call = new CallInfo(id, title, owner, ownerType, ownerUri, ownerAvatar, providerType);
     call.addParticipants(participants);
     call.setState(CallState.STARTED);
+    String prevId = readOwnerCallId(ownerId);
     saveCall(call);
     if (isSpace || isRoom) {
       // it's group call
@@ -419,6 +420,13 @@ public class VideoCallsService implements Startable {
       String userId = currentUserId();
       for (UserInfo part : participants) {
         if (part.getType() == UserInfo.TYPE_NAME) {
+          if (prevId != null) {
+            // XXX For a case when some client failed to delete an existing (but outdated etc.) call but
+            // already starting a new one
+            // It's SfB usecase when browser client failed to delete outdated call (browser/plugin crashed in
+            // IE11) and then starts a new one
+            removeUserGroupCallId(part.getId(), prevId);
+          }
           saveUserGroupCallId(part.getId(), id);
           if (!userId.equals(part.getId())) {
             // fire group's user listener for incoming, except of the caller
@@ -581,7 +589,7 @@ public class VideoCallsService implements Startable {
         if (info.getOwner().isGroup()) {
           int leaved = 0;
           boolean userLeaved = false;
-          //Set<UserInfo> toNotify = new LinkedHashSet<>();
+          // Set<UserInfo> toNotify = new LinkedHashSet<>();
           for (UserInfo part : info.getParticipants()) {
             if (part.getType() == UserInfo.TYPE_NAME) {
               if (userId.equals(part.getId())) {
@@ -593,7 +601,7 @@ public class VideoCallsService implements Startable {
                 if (part.getState() == null || part.getState().equals(UserState.LEAVED)) {
                   leaved++;
                 }
-                //toNotify.add(part);
+                // toNotify.add(part);
               }
             }
           }
@@ -1166,6 +1174,11 @@ public class VideoCallsService implements Startable {
       SettingValue<?> val = settingService.get(userContext, userScope, GROUP_CALL_TYPE);
       if (val != null) {
         String oldVal = String.valueOf(val.getValue());
+        // XXX it may happen that user will list already deleted call IDs (if client failed to call delete but
+        // started
+        for (String ucid : oldVal.split("\n")) {
+
+        }
         if (oldVal.indexOf(callId) >= 0) {
           return; // already contains this call ID
         } else {
@@ -1199,7 +1212,7 @@ public class VideoCallsService implements Startable {
         int start = oldVal.indexOf(callId);
         if (start >= 0) {
           StringBuilder newVal = new StringBuilder(oldVal);
-          newVal.delete(start, start + callId.length() + 1); // also delete a \n as separator
+          newVal.delete(start, start + callId.length() + 2); // also delete a \n as separator
           settingService.set(userContext, userScope, GROUP_CALL_TYPE, SettingValue.create(newVal.toString()));
         }
       }

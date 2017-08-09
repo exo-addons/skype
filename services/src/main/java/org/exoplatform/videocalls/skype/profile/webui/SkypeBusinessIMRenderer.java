@@ -64,7 +64,7 @@ public class SkypeBusinessIMRenderer extends UIIMControlRenderer {
     // add Javascript/markup here
     StringBuffer elem = new StringBuffer();
     elem.append("<a class='actionIcon mssfbControl' data-placement='bottom' rel='tooltip' title='' data-original-title='Settings' href='javascript:void(0)'>")
-        .append("<i class='uiIconSetting uiIconLightGray'></i></a>");
+        .append("<i class='uiIconSettings uiIconLightGray'></i></a>");
     context.getWriter().append(elem.toString());
     context.getJavascriptManager().require("SHARED/videoCalls_mssfb", "mssfbProvider");
     
