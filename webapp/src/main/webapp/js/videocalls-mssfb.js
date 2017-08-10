@@ -378,6 +378,9 @@
 				var prev = localConvos[state.callId];
 				localConvos[state.callId] = state;
 				localConvos[state.peer.id] = state;
+				if (state.peer.chatRoom) {
+					localConvos[state.peer.chatRoom] = state;					
+				}
 				return prev;
 			};
 			
@@ -2071,13 +2074,37 @@
 					// We also handle re-established group conferences (while it is not outdated by Skype services)
 					videoCalls.getUserGroupCalls().done(function(list) {
 						//if (list && list.length > 0) {
-							var callStarted = function(callId, peer) {
+							var checkCallJoined = function(call) {
+								if (call.state == "started" && call.participants) {
+									for (var i=0; i<call.participants.length; i++) {
+										var part = call.participants[i];
+										if (part.id == videoCalls.getUser().id && part.state == "joined") {
+											// Need leave this user from the call, if it's last user there the call will be stopped, 
+											// if not - then user still able to join it manually
+											videoCalls.updateUserCall(call.id, "leaved").fail(function(err, status) {
+												log("<<< Error leaving user group call: " + call.id + ". " + JSON.stringify(err) + " [" + status + "]");
+											});
+											return true;			
+										}
+									}
+								}
+								return false;
+							};
+							var callStarted = function(call, peer) {
 								callUpdate({
 									state : "started",
-									callId : callId,
+									callId : call.id,
 									peer : peer,
 									saved : true
 								});
+								if (checkCallJoined(call)) {
+									callUpdate({
+										state : "leaved",
+										callId : call.id,
+										peer : peer,
+										saved : false
+									});
+								}
 							};
 							for (var i=0; i<list.length; i++) {
 								var callState = list[i];
@@ -2087,7 +2114,7 @@
 										if (call.owner.type == "space") {
 											// Find room ID for space calls in Chat
 											videoCalls.spaceChatRoom(call.owner.id).done(function(roomId) {
-												callStarted(call.id, {
+												callStarted(call, {
 													id : call.owner.id,
 													type : call.owner.type,
 													chatRoom : roomId
@@ -2096,8 +2123,8 @@
 												log("Error requesting Chat's getRoom() [" + status + "] ", error);
 											});
 										} else {
-											// we assume: else if (callerType == "chat_room" || callerType == "user") 
-											callStarted(call.id, {
+											// we assume: else if (callerType == "chat_room" || callerType == "user")
+											callStarted(call, {
 												id : call.owner.id,
 												type : call.owner.type,
 												chatRoom : call.owner.id
@@ -2229,6 +2256,14 @@
 				});
 			};
 			
+			var alignContainerClose = function($container) {
+				var pos = $container.position();
+				$container.find(".callHoverBar .callClose").position({
+					left : pos.left - 17,
+					top : pos.top
+				});
+			};
+			
 			var alignWindowMiniCallContainer = function($container) {
 				var aw = $(document).width();
 				var ah = $(document).height();
@@ -2253,6 +2288,7 @@
 					top: top
 				});
 				//$container.find("#chatInputContainer").width("100%");
+				alignContainerClose($container);
 			};
 			var alignChatsCallContainer = function($chats, $container) {
 				var chatsPos = $chats.offset();
@@ -2260,6 +2296,7 @@
 				$container.width($chats.width());
 				$container.offset(chatsPos);
 				$container.find("#chatInputContainer").width("100%");
+				alignContainerClose($container);
 			};
 			$(window).resize(function() {
 			  // align Call container to #chats div dimentions
@@ -2628,9 +2665,10 @@
 								var $container = $("#mssfb-call-container");
 								if ($container.length == 0) {
 									$container = $("<div id='mssfb-call-container' style='display: none;'></div>");
-									var $closeHover = $("<a class='actionHover ' href='#' data-placement='bottom' rel='tooltip' data-original-title='Close'>" +
-											"<i class='uiIconClose uiIconLightGray'></i></a>");
+									var $closeHover = $("<div class='callHoverBar'><a class='actionHover callClose pull-right' href='#' data-placement='bottom' rel='tooltip' data-original-title='Close'>"
+											+ "<i class='uiIconClose uiIconLightGray pull-right'></i></a></div>");
 									$container.append($closeHover);
+									alignContainerClose($container);
 									$closeHover.click(function() {
 										// leave conversation here
 										var container = $container.data("callcontainer");

@@ -5,7 +5,7 @@
 	top: -1px;
 }
 
-#mssfb-call-container>.actionHover .uiIconClose {
-	top: -4px;
-    left: 0px;
+#mssfb-call-container>.callHoverBar .callClose {
+	top: 3px;
+    left: -6px;
 }

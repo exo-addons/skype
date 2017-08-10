@@ -45,23 +45,23 @@
 	margin: 0px;
 }
 
-#mssfb-call-container>.actionHover {
+#mssfb-call-container>.callHoverBar {
 	position: absolute;
-	top: 4px;
-	left: 4px;
+	/*top: 4px;*/
+	/*left: 4px;*/
 	width: 100%;
 	margin: 0px;
 	z-index: 1000;
-	
 }
 
-#mssfb-call-container>.actionHover .uiIconClose {
+#mssfb-call-container>.callHoverBar .callClose {
+	position: relative;
 	top: 0px;
     left: 0px;
 }
 
-#mssfb-call-container>.actionHover .uiIconClose:before {
-	font-size: 16px;
+#mssfb-call-container>.callHoverBar .callClose .uiIconClose:before {
+	font-size: 18px;
 }
 
 .mssfb-call-container {
