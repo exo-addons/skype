@@ -2424,7 +2424,7 @@
 				// Popover on the button
 				var $popoverContainer = $("<div class='gotPosition' style='position: relative; display:block'></div>");
 				$popoverContainer.append("<div class='popover bottom popupOverContent' style='display: none;'>"
-							+ "<span class='arrow' style='top: -8%;'></span>"
+							+ "<span class='arrow'></span>"
 							+ "<div class='popover-content'>" + provider.getTitle() 
 								+ " authorization required. Click this icon to open sign-in window.</div>"
 							+ "</div>");
@@ -2446,7 +2446,7 @@
 				// hide popover in time
 				setTimeout(function() {
 					$popover.hide("fade", 1500);
-				}, 10000);
+				}, 15000);
 				$("body").on("click", function() {
 					if ($popover.is(":visible")) {
 						$popover.hide("fade", 300);
@@ -2473,7 +2473,7 @@
 					// Popover on the button
 					var $popoverContainer = $("<div class='gotPosition' style='position: relative; display:block'></div>");
 					$popoverContainer.append("<div class='popover bottom popupOverContent' style='display: none;'>"
-								+ "<span class='arrow' style='top: -8%;'></span>"
+								+ "<span class='arrow'></span>"
 								+ "<div class='popover-content'>This account will be used for " + provider.getTitle() + " calls.</div>"
 								+ "</div>");
 					$button.append($popoverContainer);
@@ -2494,7 +2494,12 @@
 					// hide popover in time
 					setTimeout(function() {
 						$popover.hide("fade", 1500);
-					}, 5000);
+					}, 10000);
+					$("body").on("click", function() {
+						if ($popover.is(":visible")) {
+							$popover.hide("fade", 300);
+						}
+					});
 					return $button;
 				}
 			};

@@ -9,3 +9,8 @@
 	top: 3px;
     left: -6px;
 }
+
+.mssfbLoginButton .popover.bottom, .mssfbLogoutButton .popover.bottom {
+	left: -92px;
+    top: -4px;
+}

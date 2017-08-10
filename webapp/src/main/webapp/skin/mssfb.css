@@ -60,15 +60,18 @@
 	margin: 18px 7px 0px 7px;
 }
 .no-user-selection .mssfbLoginButton .popover.bottom {
-	left: -93px;
-    top: -11px;
+	/*left: -93px;
+    top: -11px;*/
 }
 #room-detail .mssfbLoginButton {
 	margin: 20px 7px 0px 7px;
 }
-#room-detail .mssfbLoginButton .popover.bottom, #ims .mssfbLoginButton .popover.bottom, #ims .mssfbLogoutButton .popover.bottom {
-	left: -92px;
-    top: -4px;
+.mssfbLoginButton .popover.bottom, .mssfbLogoutButton .popover.bottom {
+	left: -94px;
+    top: -6px;
+}
+.mssfbLoginButton .popover.bottom .arrow, .mssfbLogoutButton .popover.bottom .arrow {
+	top: -9px;
 }
 .mssfbLoginButton .popover-content {
 	background-color: #FFF4C4; /* @warningBackground */
