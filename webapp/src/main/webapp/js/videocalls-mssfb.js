@@ -2446,7 +2446,12 @@
 				// hide popover in time
 				setTimeout(function() {
 					$popover.hide("fade", 1500);
-				}, 30000);
+				}, 10000);
+				$("body").on("click", function() {
+					if ($popover.is(":visible")) {
+						$popover.hide("fade", 300);
+					}
+				});
 				return $button;
 			};
 			
@@ -2489,7 +2494,7 @@
 					// hide popover in time
 					setTimeout(function() {
 						$popover.hide("fade", 1500);
-					}, 10000);
+					}, 5000);
 					return $button;
 				}
 			};
@@ -3030,34 +3035,6 @@
 												$button.addClass("pull-left");
 												$chat.find(".no-user-selection .selectUserStatus+label:first").after($button);												
 											}
-																						
-											////
-											/*$chat.find(".mssfbLoginWarningContainer").remove();
-											var $button = $("<div class='mssfbLoginWarningContainer parentPosition'></div>");
-											var $loginLink = $("<a href='#' class='mssfbLoginWarningLink'><i class='uiIconColorWarning'></i></a>");
-											$button.append($loginLink);
-											$loginLink.click(function() {
-												userLogin();										
-											});
-											var $popoverContainer = $("<div class='gotPosition' style='position: relative; display:block'></div>");
-											$popoverContainer.append("<div class='popover bottom popupOverContent' style='display: none;'>"
-														+ "<span class='arrow' style='top: -8%;'></span>"
-														+ "<div class='popover-content'>" + provider.getTitle() 
-															+ " authorization required. Click this icon to open sign-in window.</div>"
-														+ "</div>");
-											$button.append($popoverContainer);
-											var $popover = $popoverContainer.find(".popupOverContent:first");
-											$loginLink.mouseover(function() {
-												$popover.show("fade", 300);												
-											});
-											$loginLink.mouseout(function() {
-												$popover.hide("fade", 300);												
-											});
-											$popover.show("fade", 1500);
-											// hide popover in time
-											setTimeout(function() {
-												$popover.hide("fade", 1500);
-											}, 30000);*/
 										}
 									};
 									addLoginWarn(true);
