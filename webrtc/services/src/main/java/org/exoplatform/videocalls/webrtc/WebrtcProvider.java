@@ -16,7 +16,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.videocalls.skype;
+package org.exoplatform.videocalls.webrtc;
 
 import org.exoplatform.container.configuration.ConfigurationException;
 import org.exoplatform.container.xml.InitParams;
@@ -30,131 +30,102 @@ import org.exoplatform.videocalls.VideoCallsProviderException;
  * Created by The eXo Platform SAS.
  *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: SkypeProvider.java 00000 Mar 30, 2017 pnedonosko $
+ * @version $Id: WebrtcProvider.java 00000 Aug 15, 2017 pnedonosko $
  */
-public class SkypeProvider extends VideoCallsProvider {
+public class WebrtcProvider extends VideoCallsProvider {
 
-  /** The Constant SKYPE_SCHEMA. */
-  public static final String  SKYPE_SCHEMA  = "skype";
+  /** The Constant WEBRTC_TYPE. */
+  public static final String WEBRTC_TYPE  = "webrtc";
 
-  /** The Constant SKYPE_TYPE. */
-  public static final String  SKYPE_TYPE    = SKYPE_SCHEMA;
-
-  /** The Constant SKYPE_TITLE. */
-  public static final String  SKYPE_APPNAME = "eXoURISkype";
-
-  /** The Constant SKYPE_TITLE. */
-  public static final String  SKYPE_TITLE   = "Skype";
+  /** The Constant WEBRTC_TITLE. */
+  public static final String WEBRTC_TITLE = "WebRTC";
 
   /** The Constant VERSION. */
-  private static final String VERSION       = SKYPE_APPNAME + "/1.0.0";
+  public static final String VERSION      = "1.0.0";
 
   /**
    * The Class SettingsBuilder.
    */
   public class SettingsBuilder {
 
-    /** The redirect URI. */
-    protected String redirectURI;
+    /** The call URI. */
+    protected String callURI;
 
     /**
-     * Redirect URI.
+     * Call URI.
      *
-     * @param redirectURI the redirect URI
+     * @param callURI the call URI
      * @return the settings builder
      */
-    public SettingsBuilder redirectURI(String redirectURI) {
-      this.redirectURI = redirectURI;
+    public SettingsBuilder callURI(String callURI) {
+      this.callURI = callURI;
       return this;
     }
 
     /**
-     * Builds the.
+     * Builds the WebRTC settings.
      *
-     * @return the skype settings
+     * @return the WebRTC settings
      */
-    public SkypeSettings build() {
-      return new SkypeSettings(getType(),
-                               getSupportedTypes(),
-                               getTitle(),
-                               "Call", // TODO in18n
-                               "Join", // TODO in18n
-                               null,
-                               redirectURI,
-                               getVersion(),
-                               null,
-                               null,
-                               new String[0]);
+    public WebrtcSettings build() {
+      return new WebrtcSettings(getType(),
+                                getSupportedTypes(),
+                                getTitle(),
+                                "Call", // TODO in18n
+                                "Join", // TODO in18n
+                                getVersion(),
+                                callURI);
     }
   }
 
   /**
-   * The Class SkypeIMInfo.
+   * The Class WebrtcIMInfo.
    */
-  public class SkypeIMInfo extends IMInfo {
+  public class WebrtcIMInfo extends IMInfo {
 
     /**
-     * Instantiates a new skype IM info.
+     * Instantiates a new webrtc IM info.
      *
      * @param id the id
      */
-    protected SkypeIMInfo(String id) {
-      this(SKYPE_TYPE, id);
+    protected WebrtcIMInfo(String id) {
+      this(WEBRTC_TYPE, id);
     }
 
     /**
-     * Instantiates a new skype IM info.
+     * Instantiates a new WebRTC IM info.
      *
      * @param type the type
      * @param id the id
      */
-    protected SkypeIMInfo(String type, String id) {
+    protected WebrtcIMInfo(String type, String id) {
       super(type, id);
-    }
-
-    /**
-     * Gets the schema.
-     *
-     * @return the schema
-     */
-    public String getSchema() {
-      return SKYPE_SCHEMA;
-    }
-
-    /**
-     * Checks if is business.
-     *
-     * @return true, if is business
-     */
-    public boolean isBusiness() {
-      return false;
     }
   }
 
   /**
-   * Instantiates a new skype provider.
+   * Instantiates a new WebRTC provider.
    *
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
-  public SkypeProvider(InitParams params) throws ConfigurationException {
+  public WebrtcProvider(InitParams params) throws ConfigurationException {
     this(null, params);
   }
 
   /**
-   * Instantiates a new skype provider.
+   * Instantiates a new WebRTC provider.
    *
    * @param profileSettings the profile settings
    * @param params the params
    * @throws ConfigurationException the configuration exception
    */
-  public SkypeProvider(UserProfileSettingsService profileSettings, InitParams params)
+  public WebrtcProvider(UserProfileSettingsService profileSettings, InitParams params)
       throws ConfigurationException {
     super(params);
-    // this.skypeService = skypeService;
     if (profileSettings != null) {
       // add plugin programmatically as it's an integral part of the provider
-      profileSettings.addIMType(new IMType(SKYPE_TYPE, SKYPE_TITLE));
+      profileSettings.addIMType(new IMType(WEBRTC_TYPE, WEBRTC_TITLE));
     }
   }
 
@@ -172,7 +143,7 @@ public class SkypeProvider extends VideoCallsProvider {
    */
   @Override
   public IMInfo getIMInfo(String imId) throws VideoCallsProviderException {
-    return new SkypeIMInfo(imId);
+    return new WebrtcIMInfo(imId);
   }
 
   /**
@@ -188,7 +159,7 @@ public class SkypeProvider extends VideoCallsProvider {
    */
   @Override
   public String getType() {
-    return SKYPE_TYPE;
+    return WEBRTC_TYPE;
   }
 
   /**
@@ -204,7 +175,7 @@ public class SkypeProvider extends VideoCallsProvider {
    */
   @Override
   public String getTitle() {
-    return SKYPE_TITLE;
+    return WEBRTC_TITLE;
   }
 
 }

@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.videocalls.skype.server;
+package org.exoplatform.videocalls.webrtc.server;
 
 import java.io.IOException;
 
@@ -40,22 +40,22 @@ import org.gatein.common.logging.LoggerFactory;
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: SkypeCallFilter.java 00000 Mar 14, 2017 pnedonosko $
+ * @version $Id: WebrtcCallFilter.java 00000 Aug 14, 2017 pnedonosko $
  * 
  */
-public class SkypeCallFilter extends AbstractFilter implements Filter {
+public class WebrtcCallFilter extends AbstractFilter implements Filter {
 
   /** The Constant LOG. */
-  protected static final Logger LOG                 = LoggerFactory.getLogger(SkypeCallFilter.class);
+  protected static final Logger LOG                 = LoggerFactory.getLogger(WebrtcCallFilter.class);
 
-  /** The Constant SKYPE_CALL_REDIRECT. */
-  public static final String    SKYPE_CALL_REDIRECT = "skypecall_redirect";
+  /** The Constant WEBRTC_CALL_REDIRECT. */
+  public static final String    WEBRTC_CALL_REDIRECT = "webrtccall_redirect";
 
-  /** The Constant SKYPE_SERVLET_CTX. */
-  public static final String    SKYPE_SERVLET_CTX   = "/skype";
+  /** The Constant WEBRTC_SERVLET_CTX. */
+  public static final String    WEBRTC_SERVLET_CTX   = "/webrtc";
 
   /** The Constant CALL_SERVLET. */
-  public static final String    CALL_SERVLET        = "/skypecallservlet".intern();
+  public static final String    CALL_SERVLET        = "/webrtccallservlet".intern();
 
   /**
    * {@inheritDoc}
@@ -69,12 +69,12 @@ public class SkypeCallFilter extends AbstractFilter implements Filter {
 
     if (httpReq.getRemoteUser() != null) {
       String uri = httpReq.getRequestURI();
-      if (uri.endsWith("/skype/call/home")) {
-        // Home page should be registered to the portal default page
-        httpReq.setAttribute(SKYPE_CALL_REDIRECT, "/portal");
+      if (uri.endsWith("/webrtc/call/home")) {
+        // If user needs a Home page redirect him to the portal default page
+        httpReq.setAttribute(WEBRTC_CALL_REDIRECT, "/portal");
       } else {
-        ServletContext skypeContext = httpReq.getSession().getServletContext().getContext(SKYPE_SERVLET_CTX);
-        skypeContext.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
+        ServletContext context = httpReq.getSession().getServletContext().getContext(WEBRTC_SERVLET_CTX);
+        context.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);
       }
     } else {
       // TODO user not authenticated into eXo Platform

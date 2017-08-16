@@ -23,81 +23,16 @@
   xsi:schemaLocation="http://www.gatein.org/xml/ns/gatein_resources_1_3 http://www.gatein.org/xml/ns/gatein_resources_1_3"
   xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
 
-  <!-- CSS for Skype Calls support in Platform -->
-  <!-- 
-      FIXME loading styles via portlet skin doesn't work with Enterprise skin where the skin loads after the portlet skin.
-      Thus, we load Skype styles from Javascript, later when DOM already loaded.
-   -->
-  <!-- portlet-skin>
-    <application-name>skype</application-name>
-    <portlet-name>SkypeProviderPortlet</portlet-name>
-    <skin-name>Default</skin-name>
-    <css-path>/skin/skype.css</css-path>
-    <overwrite>true</overwrite>
-    <css-priority>1</css-priority>
-  </portlet-skin>
-  <portlet-skin>
-    <application-name>skype</application-name>
-    <portlet-name>SkypeProviderPortlet</portlet-name>
-    <skin-name>Enterprise</skin-name>
-    <css-path>/skin/skype.css</css-path>
-    <overwrite>true</overwrite>
-    <css-priority>1</css-priority>
-  </portlet-skin>
-  <portlet-skin>
-    <application-name>skype</application-name>
-    <portlet-name>SkypeBusinessProviderPortlet</portlet-name>
-    <skin-name>Default</skin-name>
-    <css-path>/skin/mssfb.css</css-path>
-    <overwrite>true</overwrite>
-    <css-priority>1</css-priority>
-  </portlet-skin>
-  <portlet-skin>
-    <application-name>skype</application-name>
-    <portlet-name>SkypeBusinessProviderPortlet</portlet-name>
-    <skin-name>Enterprise</skin-name>
-    <css-path>/skin/mssfb.css</css-path>
-    <overwrite>true</overwrite>
-    <css-priority>1</css-priority>
-  </portlet-skin -->
-  
-  <!-- CSS tweaks for Enterprise skin -->
-  <!-- XXX Will be loaded by provider's JS after the base styles-->
-  <!-- portlet-skin>
-    <application-name>skype</application-name>
-    <portlet-name>SkypeProviderPortlet</portlet-name>
-    <skin-name>Enterprise</skin-name>
-    <css-path>/skin/skype-mssfb-enterprise.css</css-path>
-    <overwrite>true</overwrite>
-  </portlet-skin>
-  <portlet-skin>
-    <application-name>skype</application-name>
-    <portlet-name>SkypeBusinessProviderPortlet</portlet-name>
-    <skin-name>Enterprise</skin-name>
-    <css-path>/skin/skype-mssfb-enterprise.css</css-path>
-    <overwrite>true</overwrite>
-  </portlet-skin -->
-  
   <module>
-    <name>skypeWeb</name>
-    <url>https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js</url>
-  </module>
-  <module>
-    <name>videoCalls_skype</name>
+    <name>webrtc_adapater</name>
     <script>
-      <path>/js/videocalls-skype.js</path>
+      <path>/js/adapater-4.2.2.js</path>
     </script>
-    <depends>
-      <module>videoCallsJquery</module>
-    </depends>
-    <depends>
-      <module>videoCalls</module>
-    </depends>
   </module>
   <module>
-    <name>videoCalls_mssfb</name>
+    <name>videoCalls_webrtc</name>
     <script>
-      <path>/js/videocalls-mssfb.js</path>
+      <path>/js/videocalls-webrtc.js</path>
     </script>
     <depends>
       <module>videoCallsJquery</module>
@@ -106,26 +41,18 @@
       <module>videoCalls</module>
     </depends>
     <depends>
-      <module>skypeWeb</module>
+      <module>webrtc_adapater</module>
     </depends>
   </module>
   
   <portlet>
-    <name>SkypeProviderPortlet</name>
+    <name>WebrtcProviderPortlet</name>
     <module>
       <depends>
         <module>videoCallsJquery</module>
       </depends>
       <depends>
-        <module>videoCalls_skype</module>
-      </depends>
-    </module>
-  </portlet>
-  <portlet>
-    <name>SkypeBusinessProviderPortlet</name>
-    <module>
-      <depends>
-        <module>videoCallsJquery</module>
+        <module>videoCalls_webrtc</module>
       </depends>
     </module>
   </portlet>

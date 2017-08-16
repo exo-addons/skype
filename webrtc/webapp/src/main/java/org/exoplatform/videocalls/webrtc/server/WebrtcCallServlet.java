@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.exoplatform.videocalls.skype.server;
+package org.exoplatform.videocalls.webrtc.server;
 
 import static org.exoplatform.videocalls.VideoCallsUtils.asJSON;
 
@@ -18,21 +18,21 @@ import org.exoplatform.container.web.AbstractHttpServlet;
 import org.exoplatform.videocalls.ContextInfo;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
-import org.exoplatform.videocalls.skype.SkypeBusinessProvider;
-import org.exoplatform.videocalls.skype.SkypeSettings;
+import org.exoplatform.videocalls.webrtc.WebrtcProvider;
+import org.exoplatform.videocalls.webrtc.WebrtcSettings;
 import org.gatein.common.logging.Logger;
 import org.gatein.common.logging.LoggerFactory;
 
 /**
- * The Class SkypeCallServlet.
+ * The Class WebrtcCallServlet.
  */
-public class SkypeCallServlet extends AbstractHttpServlet {
+public class WebrtcCallServlet extends AbstractHttpServlet {
 
   /** The Constant serialVersionUID. */
   private static final long     serialVersionUID  = -6075521943684342591L;
 
   /** The Constant LOG. */
-  protected static final Logger LOG               = LoggerFactory.getLogger(SkypeCallServlet.class);
+  protected static final Logger LOG               = LoggerFactory.getLogger(WebrtcCallServlet.class);
 
   /** The Constant CALL_PAGE. */
   private final static String   CALL_PAGE         = "/WEB-INF/pages/call.jsp";
@@ -42,14 +42,14 @@ public class SkypeCallServlet extends AbstractHttpServlet {
 
   /** The Constant SERVER_ERROR_PAGE. */
   private final static String   SERVER_ERROR_PAGE = "/WEB-INF/pages/servererror.html";
-  
+
   /** The Constant EMPTY_STRING. */
-  private final static String EMPTY_STRING = "".intern();
+  private final static String   EMPTY_STRING      = "".intern();
 
   /**
-   * Instantiates a new skype call servlet.
+   * Instantiates a new WebRTC call servlet.
    */
-  public SkypeCallServlet() {
+  public WebrtcCallServlet() {
     //
   }
 
@@ -63,7 +63,7 @@ public class SkypeCallServlet extends AbstractHttpServlet {
     HttpServletRequest httpReq = (HttpServletRequest) req;
     HttpServletResponse httpRes = (HttpServletResponse) resp;
 
-    Object redirectUri = httpReq.getAttribute(SkypeCallFilter.SKYPE_CALL_REDIRECT);
+    Object redirectUri = httpReq.getAttribute(WebrtcCallFilter.WEBRTC_CALL_REDIRECT);
     if (redirectUri != null) {
       // Home page registered per app in Active Directory - redirect it to the portal default page
       String ruri = (String) redirectUri;
@@ -79,12 +79,12 @@ public class SkypeCallServlet extends AbstractHttpServlet {
       VideoCallsService videoCalls =
                                    (VideoCallsService) container.getComponentInstanceOfType(VideoCallsService.class);
       if (videoCalls != null) {
-        SkypeBusinessProvider provider;
+        WebrtcProvider provider;
         try {
-          provider = (SkypeBusinessProvider) videoCalls.getProvider(SkypeBusinessProvider.SFB_TYPE);
+          provider = (WebrtcProvider) videoCalls.getProvider(WebrtcProvider.WEBRTC_TYPE);
         } catch (ClassCastException e) {
-          LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of "
-              + SkypeBusinessProvider.class.getName(), e);
+          LOG.error("Provider " + WebrtcProvider.WEBRTC_TYPE + " isn't an instance of "
+              + WebrtcProvider.class.getName(), e);
           provider = null;
         }
 
@@ -98,12 +98,8 @@ public class SkypeCallServlet extends AbstractHttpServlet {
 
           if (remoteUser != null) {
             try {
-              // init page scope with settings for videoCalls and Skype provider
+              // init page scope with settings for videoCalls and WebRTC provider
 
-              // TODO we don't use this
-              //String title = httpReq.getParameter("title");
-              //httpReq.setAttribute("callTitle", title != null ? title : EMPTY_STRING);
-              
               String spaceId = httpReq.getParameter("space");
               if (spaceId == null) {
                 spaceId = EMPTY_STRING;
@@ -114,29 +110,29 @@ public class SkypeCallServlet extends AbstractHttpServlet {
               }
               ContextInfo context = new ContextInfo(spaceId, roomTitle);
               httpReq.setAttribute("contextInfo", asJSON(context));
-              
+
               UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
               if (exoUser != null) {
                 httpReq.setAttribute("userInfo", asJSON(exoUser));
 
-                URI redirectURI = new URI(httpReq.getScheme(),
-                                          null,
-                                          httpReq.getServerName(),
-                                          httpReq.getServerPort(),
-                                          "/portal/skype/call",
-                                          null,
-                                          null);
-                SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
+                URI callURI = new URI(httpReq.getScheme(),
+                                      null,
+                                      httpReq.getServerName(),
+                                      httpReq.getServerPort(),
+                                      "/portal/webrtc/call",
+                                      null,
+                                      null);
+                WebrtcSettings settings = provider.settings().callURI(callURI.toString()).build();
                 httpReq.setAttribute("settings", asJSON(settings));
 
                 // to JSP page
                 httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
               } else {
-                LOG.warn("Skype Call servlet cannot be initialized: user info cannot be obtained for "
+                LOG.warn("WebRTC servlet cannot be initialized: user info cannot be obtained for "
                     + remoteUser);
               }
             } catch (Exception e) {
-              LOG.error("Error processing Skype call page", e);
+              LOG.error("Error processing WebRTC call page", e);
               httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
               httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
             }

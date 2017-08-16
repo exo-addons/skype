@@ -1,0 +1,16 @@
+/**
+ * Skype & Skype for Business CSS tweaks for Enterprise skin.
+ */ 
+.uiIconSkypeCall:before, .uiIconMssfbCall:before {
+	top: -1px;
+}
+
+#mssfb-call-container>.callHoverBar .callClose {
+	top: 3px;
+    left: -6px;
+}
+
+.mssfbLoginButton .popover.bottom, .mssfbLogoutButton .popover.bottom {
+	left: -92px;
+    top: -4px;
+}
