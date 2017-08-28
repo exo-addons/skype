@@ -18,6 +18,7 @@
  */
 package org.exoplatform.videocalls;
 
+import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.application.RequestNavigationData;
 import org.exoplatform.portal.mop.SiteType;
@@ -26,6 +27,7 @@ import org.exoplatform.social.common.router.ExoRouter.Route;
 import org.exoplatform.social.core.space.SpaceUtils;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
+import org.exoplatform.videocalls.cometd.CometdVideoCallsService;
 import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
@@ -111,9 +113,10 @@ public class VideoCallsUtils {
   /**
    * Gets the current context.
    *
+   * @param userId the user id
    * @return the current context
    */
-  public static ContextInfo getCurrentContext() {
+  public static ContextInfo getCurrentContext(String userId) {
     String spaceRoomName;
     String spacePrettyName = VideoCallsUtils.getSpaceNameByContext();
     if (spacePrettyName != null) {
@@ -122,7 +125,17 @@ public class VideoCallsUtils {
     } else {
       spacePrettyName = spaceRoomName = ParticipantInfo.EMPTY_NAME;
     }
-    return new ContextInfo(spacePrettyName, spaceRoomName);
+    CometdVideoCallsService cometdService =
+                                          ExoContainerContext.getCurrentContainer()
+                                                             .getComponentInstanceOfType(CometdVideoCallsService.class);
+    if (cometdService != null) {
+      return new ContextInfo(spacePrettyName,
+                             spaceRoomName,
+                             cometdService.getCometdServerPath(),
+                             cometdService.getUserToken(userId));
+    } else {
+      return new ContextInfo(spacePrettyName, spaceRoomName);
+    }
   }
 
   /**

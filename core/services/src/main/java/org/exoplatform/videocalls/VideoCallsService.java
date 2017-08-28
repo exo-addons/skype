@@ -693,8 +693,19 @@ public class VideoCallsService implements Startable {
    */
   public void addUserCallListener(UserCallListener listener) {
     final String userId = listener.getUserId();
-    synchronized (userListeners) {
-      userListeners.computeIfAbsent(userId, k -> new LinkedHashSet<>()).add(listener);
+    userListeners.computeIfAbsent(userId, k -> new LinkedHashSet<>()).add(listener);
+  }
+
+  /**
+   * Removes the user listener.
+   *
+   * @param listener the listener
+   */
+  public void removeUserCallListener(UserCallListener listener) {
+    final String userId = listener.getUserId();
+    Set<UserCallListener> listeners = userListeners.get(userId);
+    if (listeners != null) {
+      listeners.remove(listener);
     }
   }
 
@@ -713,10 +724,7 @@ public class VideoCallsService implements Startable {
                                    String callerId,
                                    String callerType) {
     // Synchronize on userListeners to have a consistent list of listeners to fire
-    Set<UserCallListener> listeners;
-    synchronized (userListeners) {
-      listeners = userListeners.remove(userId);
-    }
+    Set<UserCallListener> listeners = userListeners.get(userId);
     if (listeners != null) {
       for (UserCallListener listener : listeners) {
         // TODO we may lose events: when one request is completing pooling with some event, the listener will
@@ -724,8 +732,6 @@ public class VideoCallsService implements Startable {
         // delivered to the client.
         // As a solution, we need a temporal pool to save (deferred) events for given user
         // (listener.getUserId()) until it will send a new request or the pool expired
-        // Another issue, it's outdated pool requests added as listeners - need introduce self-removal on
-        // timeout
         if (listener.isListening()) {
           listener.onCallState(callId, callState, callerId, callerType);
         }
@@ -741,11 +747,7 @@ public class VideoCallsService implements Startable {
    * @param partId the part id
    */
   protected void fireUserCallJoined(String userId, String callId, String partId) {
-    // Synchronize on userListeners to have a consistent list of listeners to fire
-    Set<UserCallListener> listeners;
-    synchronized (userListeners) {
-      listeners = userListeners.remove(userId);
-    }
+    Set<UserCallListener> listeners = userListeners.get(userId);
     if (listeners != null) {
       for (UserCallListener listener : listeners) {
         if (listener.isListening()) {
@@ -763,11 +765,7 @@ public class VideoCallsService implements Startable {
    * @param partId the part id
    */
   protected void fireUserCallLeaved(String userId, String callId, String partId) {
-    // Synchronize on userListeners to have a consistent list of listeners to fire
-    Set<UserCallListener> listeners;
-    synchronized (userListeners) {
-      listeners = userListeners.remove(userId);
-    }
+    Set<UserCallListener> listeners = userListeners.get(userId);
     if (listeners != null) {
       for (UserCallListener listener : listeners) {
         if (listener.isListening()) {
@@ -1176,9 +1174,8 @@ public class VideoCallsService implements Startable {
         String oldVal = String.valueOf(val.getValue());
         // XXX it may happen that user will list already deleted call IDs (if client failed to call delete but
         // started
-        for (String ucid : oldVal.split("\n")) {
-
-        }
+        // for (String ucid : oldVal.split("\n")) {
+        // }
         if (oldVal.indexOf(callId) >= 0) {
           return; // already contains this call ID
         } else {
@@ -1212,7 +1209,7 @@ public class VideoCallsService implements Startable {
         int start = oldVal.indexOf(callId);
         if (start >= 0) {
           StringBuilder newVal = new StringBuilder(oldVal);
-          newVal.delete(start, start + callId.length() + 2); // also delete a \n as separator
+          newVal.delete(start, start + callId.length() + 1); // also delete a \n as separator
           settingService.set(userContext, userScope, GROUP_CALL_TYPE, SettingValue.create(newVal.toString()));
         }
       }

@@ -1,7 +1,7 @@
 /**
  * Video Calls integration for eXo Platform.
  */
-(function($) {
+(function($, cCometD) {
 	"use strict";
 	
 	// ******** Utils ********
@@ -520,6 +520,9 @@
 
 		// ******** Context ********
 		var currentUser, currentSpaceId, currentRoomTitle;
+
+		// CometD transport bus
+		var cometd;
 		
 		// Registered providers
 		var providers = [];
@@ -1197,6 +1200,27 @@
 				} else {
 					currentRoomTitle = null; 
 				}
+				
+				// init CometD connectivity
+				if (context.cometdPath) {
+					cCometD.configure({
+						"url": prefixUrl  + context.cometdPath,
+						"exoId": user.id,
+						"exoToken": context.cometdToken
+					});
+					cometd = cCometD; 
+					cometd.onListenerException = function(exception, subscriptionHandle, isListener, message) {
+				    // Uh-oh, something went wrong, disable this listener/subscriber
+				    // Object "this" points to the CometD object
+						log("< CometD listener exception: " + exception + " (" + subscriptionHandle + ") isListener:" + isListener + " message:" + message);
+				    if (isListener) {
+				        this.removeListener(subscriptionHandle);
+				    } else {
+				        this.unsubscribe(subscriptionHandle);
+				    }
+					}
+				}
+				
 				// also init registered providers
 				var context = initContext();
 				for (var i = 0; i < providers.length; i++) {
@@ -1356,7 +1380,15 @@
 		/**
 		 * Get registered call from server side database.
 		 */
-		this.getCall = getCallInfo;
+		this.getCall = function(id) {
+			if (cometd) {
+				// TODO use cometd
+				//cometd.
+			} else {
+								
+			}
+			return getCallInfo(id);
+		}
 		
 		/**
 		 * Update call state in server side database.
@@ -1371,14 +1403,68 @@
 		/**
 		 * Register call in server side database.
 		 */
-		this.addCall = postCallInfo;
+		this.addCall = function(callId, callInfo) {
+			postCallInfo(callId, callInfo);
+			// TODO for CometD
+			// * add call ID to the info JSON
+			// * add command "added"
+		}
 		
 		this.getUserGroupCalls = getUserCallIds;
 		this.updateUserCall = putUserCallState;
 		//this.addUserGroupCall = postUserCallId;
 		//this.removeUserGroupCall = deleteUserCallId; // TODO not used
 		
-		this.pollUserUpdates = pollUserUpdates;
+		this.onUserUpdate = function(userId, onUpdate, onError) {
+			if (cometd) {
+				// /service/videocalls/calls
+				cometd.subscribe("/eXo/Application/VideoCalls/user/" + userId, function(message) {
+					// Channel message handler
+					if (message.successful) {
+						if (message.data.error) {
+							if (typeof onError == "function") {
+								onError(message.data, 400);
+							}
+						} else {
+							if (typeof onUpdate == "function") {
+								onUpdate(message.data, 200);
+							}							
+						}
+					} else {
+						log("<< User update message failure: " + message.data);
+						if (typeof onError == "function") {
+							onError("Update failure", 400);
+						}
+					}
+				}, function(subscribeReply) {
+					if (subscribeReply.successful) {
+		        // The server successfully subscribed this client to the channel.
+						log("<< User updates subscribed successfully: " + subscribeReply.id);
+					} else {
+						var err = subscribeReply.error ? subscribeReply.error : (subscribeReply.failure ? subscribeReply.failure.reason : "undefined");
+						log("<< User updates subscription failed: " + err);
+						if (typeof onError == "function") {
+							onError("User updates subscription failed (" + err + ")", 0);								
+						}
+					}
+				});
+			} else {
+				(function poll(prevData, prevStatus) {
+					var timeout = prevStatus == 0 ? 60000 : (prevStatus >= 400 ? 15000 : 250);
+					setTimeout(function() {
+						pollUserUpdates(userId).done(function(update, status) {
+							if (typeof onUpdate == "function") {
+								onUpdate(update, status);								
+							}
+						}).fail(function(err, status) {
+							if (typeof onError == "function") {
+								onError(err, status);								
+							}
+						}).always(poll);
+					}, timeout);
+				})();
+			}
+		}
 	}
 	
 	var videoCalls = new VideoCalls();
@@ -1417,4 +1503,4 @@
 	log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
 	
 	return videoCalls;
-})($);
+})($, cCometD);

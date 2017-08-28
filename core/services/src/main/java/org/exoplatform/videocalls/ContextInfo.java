@@ -35,6 +35,28 @@ public class ContextInfo {
   /** The room title. */
   private final String roomTitle;
 
+  /** CometD server URL path. */
+  private final String cometdPath;
+
+  /** CometD server token. */
+  private final String cometdToken;
+
+  /**
+   * Instantiates a new context info.
+   *
+   * @param spaceId the space id
+   * @param roomTitle the room name
+   * @param cometdPath the cometd path
+   * @param cometdToken the cometd token
+   */
+  public ContextInfo(String spaceId, String roomTitle, String cometdPath, String cometdToken) {
+    super();
+    this.spaceId = spaceId;
+    this.roomTitle = roomTitle;
+    this.cometdPath = cometdPath;
+    this.cometdToken = cometdToken;
+  }
+
   /**
    * Instantiates a new context info.
    *
@@ -42,9 +64,25 @@ public class ContextInfo {
    * @param roomTitle the room name
    */
   public ContextInfo(String spaceId, String roomTitle) {
-    super();
-    this.spaceId = spaceId;
-    this.roomTitle = roomTitle;
+    this(spaceId, roomTitle, null, null);
+  }
+
+  /**
+   * Gets the cometd path (optional).
+   *
+   * @return the cometd path, can be <code>null</code>
+   */
+  public String getCometdPath() {
+    return cometdPath;
+  }
+
+  /**
+   * Gets the cometd token.
+   *
+   * @return the cometd token
+   */
+  public String getCometdToken() {
+    return cometdToken;
   }
 
   /**

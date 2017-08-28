@@ -103,6 +103,9 @@
       <module>videoCallsJquery</module>
     </depends>
     <depends>
+      <module>commons-cometd3</module>
+    </depends>
+    <depends>
       <module>videoCallsJqueryUI</module>
     </depends>
     <depends>

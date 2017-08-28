@@ -80,13 +80,12 @@ public class VideoCallsPortlet extends GenericPortlet {
       // Locale locale = userContext.getLocale();
       // ResourceBundle bundle = applicationContext.resolveBundle(locale);
 
-      ContextInfo context = getCurrentContext();
+      ContextInfo context = getCurrentContext(remoteUser);
       String contextJson = asJSON(context);
 
       UserInfo exoUser = videocalls.getUserInfo(remoteUser);
       if (exoUser != null) {
         String exoUserJson = asJSON(exoUser);
-
         JavascriptManager js =
                              ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
         js.require("SHARED/videoCallsPortlet", "videoCallsPortlet")

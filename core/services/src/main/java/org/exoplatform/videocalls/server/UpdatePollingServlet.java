@@ -41,7 +41,6 @@ import org.exoplatform.videocalls.VideoCallsService;
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: UpdatePollingServlet.java 00000 Jul 18, 2017 pnedonosko $
  */
-// @WebServlet(urlPatterns = {"/updateServlet"}, asyncSupported=true)
 public class UpdatePollingServlet extends AbstractHttpServlet {
 
   /** The Constant LOG. */
@@ -71,49 +70,8 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
         if (userId.equals(remoteUser)) {
           final AtomicBoolean polling = new AtomicBoolean(true);
           final AsyncContext acontext = req.startAsync(req, resp);
-          acontext.setTimeout(DEFAULT_TIMEOUT);
-          acontext.addListener(new AsyncListener() {
-
-            @Override
-            public void onComplete(AsyncEvent event) throws IOException {
-              polling.set(false); // TODO do we need it here? We already do in onCall() below
-            }
-
-            @Override
-            public void onTimeout(AsyncEvent event) throws IOException {
-              // It's normal
-              if (polling.compareAndSet(true, false)) {
-                // LOG.warn(">>> UpdatePollingServlet timeout for " + userId);
-                HttpServletResponse resp = (HttpServletResponse) event.getSuppliedResponse();
-                if (!resp.isCommitted()) {
-                  sendRetry(resp);
-                  acontext.complete();
-                } else {
-                  LOG.warn("<<< UpdatePollingServlet already committed for " + userId);
-                }
-              }
-            }
-
-            @Override
-            public void onError(AsyncEvent event) throws IOException {
-              polling.set(false);
-              Throwable err = event.getThrowable();
-              if (err != null) {
-                LOG.error("Error in UpdatePollingServlet for " + userId, err);
-              } else {
-                LOG.error("Error in UpdatePollingServlet for " + userId);
-              }
-            }
-
-            @Override
-            public void onStartAsync(AsyncEvent event) throws IOException {
-              // TODO ?
-            }
-          });
-
-          VideoCallsService videoCalls = getContainer().getComponentInstanceOfType(VideoCallsService.class);
-          videoCalls.addUserCallListener(new UserCallListener(userId) {
-
+          final VideoCallsService videoCalls = getContainer().getComponentInstanceOfType(VideoCallsService.class);
+          final UserCallListener userListener = new UserCallListener(userId) {
             @Override
             public boolean isListening() {
               return polling.get();
@@ -186,7 +144,50 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
                     + ") for already completed UpdatePollingServlet");
               }
             }
+          };
+          
+          acontext.setTimeout(DEFAULT_TIMEOUT);
+          acontext.addListener(new AsyncListener() {
+            @Override
+            public void onComplete(AsyncEvent event) throws IOException {
+              polling.set(false); // TODO do we need it here? We already do in onCall() below
+              videoCalls.removeUserCallListener(userListener);
+            }
+
+            @Override
+            public void onTimeout(AsyncEvent event) throws IOException {
+              // It's normal
+              if (polling.compareAndSet(true, false)) {
+                HttpServletResponse resp = (HttpServletResponse) event.getSuppliedResponse();
+                if (!resp.isCommitted()) {
+                  sendRetry(resp);
+                  acontext.complete();
+                } else {
+                  LOG.warn("<<< UpdatePollingServlet already committed for " + userId);
+                }
+                videoCalls.removeUserCallListener(userListener);
+              }
+            }
+
+            @Override
+            public void onError(AsyncEvent event) throws IOException {
+              polling.set(false);
+              videoCalls.removeUserCallListener(userListener);
+              Throwable err = event.getThrowable();
+              if (err != null) {
+                LOG.error("Error in UpdatePollingServlet for " + userId, err);
+              } else {
+                LOG.error("Error in UpdatePollingServlet for " + userId);
+              }
+            }
+
+            @Override
+            public void onStartAsync(AsyncEvent event) throws IOException {
+              // TODO ?
+            }
           });
+
+          videoCalls.addUserCallListener(userListener);
         } else {
           LOG.warn("Accessing other user updates forbidden for " + remoteUser + ", has requested updates of "
               + userId);

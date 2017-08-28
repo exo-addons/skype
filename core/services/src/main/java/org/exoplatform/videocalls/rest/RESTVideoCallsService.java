@@ -52,6 +52,7 @@ import org.exoplatform.videocalls.InvalidCallStateException;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.UserState;
 import org.exoplatform.videocalls.VideoCallsService;
+import org.exoplatform.videocalls.client.ErrorInfo;
 
 /**
  * Created by The eXo Platform SAS.
