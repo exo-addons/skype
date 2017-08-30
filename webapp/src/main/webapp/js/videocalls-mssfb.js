@@ -1006,7 +1006,7 @@
 								return videoCalls.addCall(callId, callInfo).done(function(call) {
 									log(">>> Added " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 								}).fail(function(err) {
-									registered = false;
+									added = false;
 									log(">>> ERROR adding " + callId + ": " + JSON.stringify(err));
 								});
 							}
@@ -1019,14 +1019,19 @@
 								log("<<< ERROR starting " + callId + ": " + JSON.stringify(err));
 							});
 						};
+						var deleted = false;
 						var deleteCall = function() {
-							log(">>> Deleting " + callId + " > " + new Date().getTime());
-							callStateUpdate("stopped");
-							return videoCalls.deleteCall(callId).done(function() {
-								log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
-							}).fail(function(err) {
-								log("<<< ERROR deleting " + callId + ": " + JSON.stringify(err));
-							});
+							if (!deleted) {
+								deleted = true;
+								log(">>> Deleting " + callId + " > " + new Date().getTime());
+								callStateUpdate("stopped");
+								return videoCalls.deleteCall(callId).done(function() {
+									log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+								}).fail(function(err) {
+									deleted = false;
+									log("<<< ERROR deleting " + callId + ": " + JSON.stringify(err));
+								});								
+							}
 						};
 						var joined = false;
 						var joinedGroupCall = function() {
@@ -1604,7 +1609,6 @@
 					var callerMessage, callerLink, callerAvatar, callerId, callerType, callerRoom;
 					var callStateUpdate = function(state, modality, error) {
 						var res = { 
-							state :  state,
 							saved : saved,
 							callId : callId,
 							peer : {
@@ -1619,6 +1623,8 @@
 						}
 						if (error) {
 							res.error = error;
+						} else {
+							res.state = state;
 						}
 						callUpdate(res);
 					};
@@ -1984,9 +1990,13 @@
 									showCallPopover();
 								}).fail(function(err, status) {
 									log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
-									if (typeof(status) == "number" && status == 404) {
-										// Call not registered, we treat it as a call started outside Video Calls
-										showCallPopover();	
+									if (err) {
+										if (err.code == "NOT_FOUND_ERROR" || (typeof(status) == "number" && status == 404)) {
+											// Call not registered, we treat it as a call started outside Video Calls
+											showCallPopover();	
+										}	else {
+											accept.reject(err.message);
+										}
 									} else {
 										accept.reject("call info error");
 									}
@@ -2135,115 +2145,112 @@
 									});
 								}
 							}
-							log(">>> User has registered group calls - start long polling for these calls updates " + JSON.stringify(list));
-							(function poll(prevData, prevStatus) {
-								var timeout = prevStatus == 0 ? 60000 : (prevStatus >= 400 ? 15000 : 250);
-								setTimeout(function() {
-									var userId = videoCalls.getUser().id;
-									videoCalls.pollUserUpdates(userId).done(function(update, status) {
-										if (update.eventType == "call_state") {
-											log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
-											if (update.callState == "started") {
-												var conversation = app.conversationsManager.getConversationByUri(update.callId.substring(2));
-												if (conversation) {
-													logConversation(conversation);
-													var state = conversation.state();
-													// Created - for restored saved, Conferenced - not happens, but if will, it has the same meaning
-													// Disconnected - for previously conferenced on this page
-													if (state == "Disconnected" || state == "Conferenced") {
-														log(">>>> Incoming (saved) existing " + update.callId);
+							log(">>> User has registered group calls: " + JSON.stringify(list));
+							var userId = videoCalls.getUser().id;
+							videoCalls.onUserUpdate(userId, function(update, status) {
+								// Update handler
+								if (update.eventType == "call_state") {
+									log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
+									if (update.callState == "started") {
+										var conversation = app.conversationsManager.getConversationByUri(update.callId.substring(2));
+										if (conversation) {
+											logConversation(conversation);
+											var state = conversation.state();
+											// Created - for restored saved, Conferenced - not happens, but if will, it has the same meaning
+											// Disconnected - for previously conferenced on this page
+											if (state == "Disconnected" || state == "Conferenced") {
+												log(">>>> Incoming (saved) existing " + update.callId);
+												handleIncoming(conversation, true);
+											} else if (state == "Created") {
+												log(">>>> Incoming (saved) created " + update.callId);
+												// Created (from above getConversationByUri()) may quickly become Incoming by SDK logic for new group calls,
+												// thus let the SDK work and if not yet incoming, proceed with it
+												var handle = setTimeout(function() {
+													var local = getLocalCall(update.callId); 
+													if (!local) {
 														handleIncoming(conversation, true);
-													} else if (state == "Created") {
-														log(">>>> Incoming (saved) created " + update.callId);
-														// Created (from above getConversationByUri()) may quickly become Incoming by SDK logic for new group calls,
-														// thus let the SDK work and if not yet incoming, proceed with it
-														var handle = setTimeout(function() {
-															var local = getLocalCall(update.callId); 
-															if (!local) {
-																handleIncoming(conversation, true);
-															}
-														}, 5000);
-														conversation.state.once("Incoming", function() {
-															// This lister should work before Incoming handled in added handler above
-															// if it become Incoming - cancel the delayed handler, it will be worked in 'added' logic above
-															clearTimeout(handle);
-															// Also save it as 'leaved' (!), later after handleIncoming() it will become 'incoming' 
-															// and then will be handled properly
-															// TODO this finally caused error of accepting new incoming group call
-															// [mssfb_915] <<< Error starting incoming (saved) VIDEO: {"code":"CommandDisabled"}
-															// but video state was: undefined->Notified
-															/*saveLocalCall({
-																state : "leaved",
-																callId : update.callId,
-																peer : {
-																	id : update.caller.id,
-																	type : update.caller.type,
-																	chatRoom : update.caller.id // room should not be used for this state
-																},
-																conversation : conversation, 
-																saved : true
-															});*/
-														});
-													} else if (state == "Incoming") {
-														log("<<<< User call " + update.callId + " state Incoming skipped, will be handled in added listener");
-													} else {
-														log("<<<< User call " + update.callId + " not active (" + state + ")");
 													}
-												} else {
-													log("<<<< User call " + update.callId + " not found in conversation manager");
-												}
-											} else if (update.callState == "stopped") {
-												// Hide accept popover for this call
-												if ($callPopup && update.callId == $callPopup.callId) {
-													if ($callPopup.is(":visible")) {
-														$callPopup.dialog("close");
-													}
-												}
-												var localCall = getLocalCall(update.callId);
-												if (localCall && canJoin(localCall) && localCall.conversation) {
-													// We leave if something running
-													localCall.conversation.leave().then(function() {
-														log("<<< Current conversation stopped and leaved " + container.getCallId());
-													});
-												}
-												var callStopped = function(callerRoom) {
-													callUpdate({
-														state : "stopped",
+												}, 5000);
+												conversation.state.once("Incoming", function() {
+													// This lister should work before Incoming handled in added handler above
+													// if it become Incoming - cancel the delayed handler, it will be worked in 'added' logic above
+													clearTimeout(handle);
+													// Also save it as 'leaved' (!), later after handleIncoming() it will become 'incoming' 
+													// and then will be handled properly
+													// TODO this finally caused error of accepting new incoming group call
+													// [mssfb_915] <<< Error starting incoming (saved) VIDEO: {"code":"CommandDisabled"}
+													// but video state was: undefined->Notified
+													/*saveLocalCall({
+														state : "leaved",
 														callId : update.callId,
 														peer : {
 															id : update.caller.id,
 															type : update.caller.type,
-															chatRoom : callerRoom
+															chatRoom : update.caller.id // room should not be used for this state
 														},
+														conversation : conversation, 
 														saved : true
-													});
-												};
-												if (update.caller.type == "space") {
-													// Find room ID for space calls in Chat
-													videoCalls.spaceChatRoom(update.caller.id).done(function(roomId) {
-														callStopped(roomId);
-													}).fail(function(err, status) {
-														log("Error requesting Chat's getRoom() [" + status + "] ", error);
-													});
-												} else {
-													// we assume: else if (callerType == "chat_room" || callerType == "user") 
-													callStopped(update.caller.id);
-												}
+													});*/
+												});
+											} else if (state == "Incoming") {
+												log("<<<< User call " + update.callId + " state Incoming skipped, will be handled in added listener");
+											} else {
+												log("<<<< User call " + update.callId + " not active (" + state + ")");
 											}
-										} else if (update.eventType == "call_joined") {
-											// TODO what is here?
-										} else if (update.eventType == "call_leaved") {
-											// TODO what is here?
-										} else if (update.eventType == "retry") {
-											log("<<< Retry for user updates [" + status + "]");
 										} else {
-											log("<<< Unexpected user update: " + JSON.stringify(update) + " [" + status + "]");
+											log("<<<< User call " + update.callId + " not found in conversation manager");
 										}
-									}).fail(function(data, status, err) {
-										log("<<< User update error: " + JSON.stringify(data) + " [" + status + "] " + err);
-									}).always(poll);
-							  }, timeout);
-							})();
+									} else if (update.callState == "stopped") {
+										// Hide accept popover for this call
+										if ($callPopup && update.callId == $callPopup.callId) {
+											if ($callPopup.is(":visible")) {
+												$callPopup.dialog("close");
+											}
+										}
+										var localCall = getLocalCall(update.callId);
+										if (localCall && canJoin(localCall) && localCall.conversation) {
+											// We leave if something running
+											localCall.conversation.leave().then(function() {
+												log("<<< Current conversation stopped and leaved " + container.getCallId());
+											});
+										}
+										var callStopped = function(callerRoom) {
+											callUpdate({
+												state : "stopped",
+												callId : update.callId,
+												peer : {
+													id : update.caller.id,
+													type : update.caller.type,
+													chatRoom : callerRoom
+												},
+												saved : true
+											});
+										};
+										if (update.caller.type == "space") {
+											// Find room ID for space calls in Chat
+											videoCalls.spaceChatRoom(update.caller.id).done(function(roomId) {
+												callStopped(roomId);
+											}).fail(function(err, status) {
+												log("Error requesting Chat's getRoom() [" + status + "] ", error);
+											});
+										} else {
+											// we assume: else if (callerType == "chat_room" || callerType == "user") 
+											callStopped(update.caller.id);
+										}
+									}
+								} else if (update.eventType == "call_joined") {
+									// TODO not used (not fired)
+								} else if (update.eventType == "call_leaved") {
+									// TODO not used (not fired)
+								} else if (update.eventType == "retry") {
+									log("<<< Retry for user updates [" + status + "]");
+								} else {
+									log("<<< Unexpected user update: " + JSON.stringify(update) + " [" + status + "]");
+								}
+							}, function(err) {
+								// Error handler
+								log(err);
+							});
 						//}
 					}).fail(function(err, status) {
 						log("<<< Error getting user group calls: " + JSON.stringify(err) + " [" + status + "]");

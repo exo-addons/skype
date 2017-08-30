@@ -30,6 +30,9 @@
   <component>
     <type>org.exoplatform.videocalls.rest.RESTVideoCallsService</type>
   </component>
+  <component>
+    <type>org.exoplatform.videocalls.cometd.CometdVideoCallsService</type>
+  </component>
   
   <external-component-plugins>
     <target-component>org.exoplatform.commons.addons.AddOnService</target-component>

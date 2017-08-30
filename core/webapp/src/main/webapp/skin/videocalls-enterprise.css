@@ -21,8 +21,9 @@
 } 
 
 #tiptip_content .popoverCall, .user-actions .popoverCall {
-	padding-top: 5px;
-	padding-bottom: 6px;
+	/* Since PLF 5.0.0-M17 this fix not required */
+	/*padding-top: 5px;*/
+	/*padding-bottom: 6px;*/
 }
 
 /* Call button is more narrow in spaces */

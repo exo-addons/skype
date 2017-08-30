@@ -29,6 +29,12 @@ package org.exoplatform.videocalls;
  * 
  */
 public abstract class IdentityInfo {
+  
+  /** The Constant ME. */
+  public static final String        ME    = "me";
+
+  /** The Constant EMPTY. */
+  public static final String        EMPTY = "".intern();
 
   /** The title. */
   protected final String title;

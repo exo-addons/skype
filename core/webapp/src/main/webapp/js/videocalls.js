@@ -1,7 +1,7 @@
 /**
  * Video Calls integration for eXo Platform.
  */
-(function($) {
+(function($, cCometD) {
 	"use strict";
 	
 	// ******** Utils ********
@@ -391,7 +391,7 @@
 		return initRequest(request);
 	};
 	
-	var getUserCallIds = function() {
+	var getUserCallsState = function() {
 		var request = $.ajax({
 			async : true,
 			type : "GET",
@@ -520,10 +520,17 @@
 
 		// ******** Context ********
 		var currentUser, currentSpaceId, currentRoomTitle;
+
+		// CometD transport bus
+		var cometd, cometdContext;
 		
 		// Registered providers
 		var providers = [];
 
+		var cometdParams = function(params) {
+			return $.extend(params, cCometD.eXoSecret, cometdContext);
+		};
+		
 		/**
 		 * Add call button to given target element.
 		 */
@@ -1197,6 +1204,31 @@
 				} else {
 					currentRoomTitle = null; 
 				}
+				
+				// init CometD connectivity
+				if (context.cometdPath) {
+					cCometD.configure({
+						"url": prefixUrl  + context.cometdPath,
+						"exoId": user.id,
+						"exoToken": context.cometdToken,
+						"maxNetworkDelay" : 15000
+					});
+					cometd = cCometD;
+					cometdContext = {
+						"exoContainerName" : context.containerName,
+					};
+					cometd.onListenerException = function(exception, subscriptionHandle, isListener, message) {
+				    // Uh-oh, something went wrong, disable this listener/subscriber
+				    // Object "this" points to the CometD object
+						log("< CometD listener exception: " + exception + " (" + subscriptionHandle + ") isListener:" + isListener + " message:" + message);
+				    if (isListener) {
+				        this.removeListener(subscriptionHandle);
+				    } else {
+				        this.unsubscribe(subscriptionHandle);
+				    }
+					}
+				}
+				
 				// also init registered providers
 				var context = initContext();
 				for (var i = 0; i < providers.length; i++) {
@@ -1353,32 +1385,217 @@
 		this.getSpaceInfo = getSpaceInfoReq;
 		this.getRoomInfo = getRoomInfoReq;
 		
+		var tryParseJson = function(data) {
+			if (data) {
+				try {
+					return typeof data == "string" ? JSON.parse(data) : data;
+				} catch(e) {
+					log("> Error parsing '" + data + "' as JSON: " + e, e);
+					return data;
+				}				
+			} else {
+				return data;
+			}
+		};
+		
+		var cometdError = function(response) {
+			return "[" + response.id + "] " + response.channel + " " + JSON.stringify(response.error ? response.error : response.data)
+		};
+		
+		var cometdInfo = function(response) {
+			return "[" + response.id + "] " + response.channel;
+		};
+		
 		/**
 		 * Get registered call from server side database.
 		 */
-		this.getCall = getCallInfo;
+		this.getCall = function(id) {
+			if (cometd) {
+				log(">> getCall:/videocalls/calls:" + id + " - request published");
+				var process = $.Deferred();
+				var callProps = cometdParams({
+					command : "get",
+					id : id
+				});
+				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
+					if (response.successful) {
+						var result = tryParseJson(response.data);
+						log("<< getCall:/videocalls/calls:" + id + " - success: " + cometdInfo(response));
+					  process.resolve(result, 200);
+					} else {
+						log("<< getCall:/videocalls/calls:" + id + " - failure: " + cometdError(response));
+						process.reject(result, 400);
+					}
+				});
+				return process.promise();
+			} else {
+				return getCallInfo(id);
+			}
+		};
 		
 		/**
 		 * Update call state in server side database.
 		 */
-		this.updateCall = putCallInfo;
+		this.updateCall = function(id, state) {
+			if (cometd) {
+				log(">> updateCall:/videocalls/calls:" + id + " - request published");
+				var process = $.Deferred();
+				var callProps = cometdParams({
+					command : "update",
+					id : id,
+					state : state
+				});
+				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
+					var result = tryParseJson(response.data);
+					if (response.successful) {
+						log("<< updateCall:/videocalls/calls:" + id + " - success: " + cometdInfo(response));
+					  process.resolve(result, 200);
+					} else {
+						log("<< updateCall:/videocalls/calls:" + id + " - failure: " + cometdError(response));
+						process.reject(result, 400);
+					}
+				});
+				return process.promise();
+			} else {
+				return putCallInfo(id, state);
+			}
+		};
 		
 		/**
 		 * Remove call in server side database.
 		 */
-		this.deleteCall = deleteCallInfo;
+		this.deleteCall = function(id) {
+			if (cometd) {
+				log(">> deleteCall:/videocalls/calls:" + id + " - request published");
+				var process = $.Deferred();
+				var callProps = cometdParams({
+					command : "delete",
+					id : id
+				});
+				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
+					var result = tryParseJson(response.data);
+					if (response.successful) {
+						log("<< deleteCall:/videocalls/calls:" + id + " - success: " + cometdInfo(response));
+					  process.resolve(result, 200);
+					} else {
+						log("<< deleteCall:/videocalls/calls:" + id + " - failure: " + cometdError(response));
+						process.reject(result, 400);
+					}
+				});
+				return process.promise();
+			} else {
+				return deleteCallInfo(id);
+			}
+		};
 		
 		/**
 		 * Register call in server side database.
 		 */
-		this.addCall = postCallInfo;
+		this.addCall = function(id, callInfo) {
+			if (cometd) {
+				log(">> addCall:/videocalls/calls:" + id + " - request published");
+				var process = $.Deferred();
+				var callProps = cometdParams($.extend(callInfo, {
+					command : "create",
+					id : id
+				}));
+				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
+					var result = tryParseJson(response.data);
+					if (response.successful) {
+						log("<< addCall:/videocalls/calls:" + id + " - success: " + cometdInfo(response));
+					  process.resolve(result, 200);
+					} else {
+						log("<< addCall:/videocalls/calls:" + id + " - failure: " + cometdError(response));
+						process.reject(result, 400);
+					}
+				});
+				return process.promise();
+			} else {
+				return postCallInfo(id, callInfo);
+			}
+		};
 		
-		this.getUserGroupCalls = getUserCallIds;
-		this.updateUserCall = putUserCallState;
+		this.getUserGroupCalls = function() {
+			if (cometd) {
+				log(">> getUserGroupCalls:/videocalls/calls - request published");
+				var process = $.Deferred();
+				var callProps = cometdParams({
+					id : "me", // an user ID, 'me' means current user in eXo
+					command : "get_calls_state"
+				});
+				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
+					var result = tryParseJson(response.data);
+					if (response.successful) {
+						log("<< getUserGroupCalls:/videocalls/calls - success: " + cometdInfo(response));
+					  process.resolve(result, 200);
+					} else {
+						log("<< getUserGroupCalls:/videocalls/calls - failure: " + cometdError(response));
+						process.reject(result, 400);
+					}
+				});
+				return process.promise();
+			} else {
+				return getUserCallsState();
+			}
+		}
+		
+		this.updateUserCall = function(id, state) {
+			if (cometd) {
+				// It's the same channel to call in CometD
+				return this.updateCall(id, state);
+			} else {
+				return putUserCallState(id, state);
+			}
+		}
+		
 		//this.addUserGroupCall = postUserCallId;
 		//this.removeUserGroupCall = deleteUserCallId; // TODO not used
 		
-		this.pollUserUpdates = pollUserUpdates;
+		this.onUserUpdate = function(userId, onUpdate, onError) {
+			if (cometd) {
+				// /service/videocalls/calls
+				cometd.subscribe("/eXo/Application/VideoCalls/user/" + userId, function(message) {
+					// Channel message handler
+					var result = tryParseJson(message.data);
+					if (message.data.error) {
+						if (typeof onError == "function") {
+							onError(result, 400);
+						}
+					} else {
+						if (typeof onUpdate == "function") {
+							onUpdate(result, 200);
+						}							
+					}
+				}, function(subscribeReply) {
+					// Subscription status callback
+					if (subscribeReply.successful) {
+		        // The server successfully subscribed this client to the channel.
+						log("<< User updates subscribed successfully: " + JSON.stringify(subscribeReply));
+					} else {
+						var err = subscribeReply.error ? subscribeReply.error : (subscribeReply.failure ? subscribeReply.failure.reason : "Undefined");
+						log("<< User updates subscription failed: " + err);
+						if (typeof onError == "function") {
+							onError("User updates subscription failed (" + err + ")", 0);								
+						}
+					}
+				});
+			} else {
+				(function poll(prevData, prevStatus) {
+					var timeout = prevStatus == 0 ? 60000 : (prevStatus >= 400 ? 15000 : 250);
+					setTimeout(function() {
+						pollUserUpdates(userId).done(function(update, status) {
+							if (typeof onUpdate == "function") {
+								onUpdate(update, status);								
+							}
+						}).fail(function(err, status) {
+							if (typeof onError == "function") {
+								onError(err, status);								
+							}
+						}).always(poll);
+					}, timeout);
+				})();
+			}
+		};
 	}
 	
 	var videoCalls = new VideoCalls();
@@ -1417,4 +1634,4 @@
 	log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
 	
 	return videoCalls;
-})($);
+})($, cCometD);

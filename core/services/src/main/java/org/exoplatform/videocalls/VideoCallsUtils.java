@@ -18,6 +18,8 @@
  */
 package org.exoplatform.videocalls;
 
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.application.RequestNavigationData;
 import org.exoplatform.portal.mop.SiteType;
@@ -26,6 +28,7 @@ import org.exoplatform.social.common.router.ExoRouter.Route;
 import org.exoplatform.social.core.space.SpaceUtils;
 import org.exoplatform.social.core.space.model.Space;
 import org.exoplatform.social.core.space.spi.SpaceService;
+import org.exoplatform.videocalls.cometd.CometdVideoCallsService;
 import org.exoplatform.webui.application.WebuiRequestContext;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
 import org.exoplatform.ws.frameworks.json.impl.JsonGeneratorImpl;
@@ -111,18 +114,29 @@ public class VideoCallsUtils {
   /**
    * Gets the current context.
    *
+   * @param userId the user id
    * @return the current context
    */
-  public static ContextInfo getCurrentContext() {
+  public static ContextInfo getCurrentContext(String userId) {
     String spaceRoomName;
     String spacePrettyName = VideoCallsUtils.getSpaceNameByContext();
     if (spacePrettyName != null) {
       // TODO do we need a room name? what if chat room?
       spaceRoomName = VideoCallsUtils.spaceRoomName(spacePrettyName);
     } else {
-      spacePrettyName = spaceRoomName = ParticipantInfo.EMPTY_NAME;
+      spacePrettyName = spaceRoomName = IdentityInfo.EMPTY;
     }
-    return new ContextInfo(spacePrettyName, spaceRoomName);
+    ExoContainer exo = ExoContainerContext.getCurrentContainer();
+    CometdVideoCallsService cometdService = exo.getComponentInstanceOfType(CometdVideoCallsService.class);
+    if (cometdService != null) {
+      return new ContextInfo(exo.getContext().getName(),
+                             spacePrettyName,
+                             spaceRoomName,
+                             cometdService.getCometdServerPath(),
+                             cometdService.getUserToken(userId));
+    } else {
+      return new ContextInfo(exo.getContext().getName(), spacePrettyName, spaceRoomName);
+    }
   }
 
   /**
@@ -133,8 +147,16 @@ public class VideoCallsUtils {
    * @throws JsonException the json exception
    */
   public static String asJSON(Object obj) throws JsonException {
-    JsonValue value = new JsonGeneratorImpl().createJsonObject(obj);
-    return value.toString();
+    if (obj != null) {
+      JsonGeneratorImpl gen = new JsonGeneratorImpl();
+      if (obj.getClass().isArray()) {
+        return gen.createJsonArray(obj).toString();
+      } else {
+        return gen.createJsonObject(obj).toString();
+      }
+    } else {
+      return "null".intern();
+    }
   }
 
 }

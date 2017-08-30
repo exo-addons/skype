@@ -360,7 +360,7 @@ public class VideoCallsService implements Startable {
       if (userInfo == null) {
         // if owner user not found, it's possibly an external user, thus treat it as a chat room
         owner = new RoomInfo(ownerId, ownerId, title);
-        ownerUri = ParticipantInfo.EMPTY_NAME;
+        ownerUri = IdentityInfo.EMPTY;
         ownerAvatar = LinkProvider.PROFILE_DEFAULT_AVATAR_URL;
       } else {
         owner = userInfo;
@@ -378,13 +378,13 @@ public class VideoCallsService implements Startable {
       } else {
         LOG.warn("Cannot find call's owner space " + ownerId);
         owner = new RoomInfo(ownerId, ownerId, title);
-        ownerUri = ParticipantInfo.EMPTY_NAME;
+        ownerUri = IdentityInfo.EMPTY;
         ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
       }
     } else if (isRoom) {
       owner = new RoomInfo(ownerId, ownerId, title);
       // XXX room members stay empty
-      ownerUri = ParticipantInfo.EMPTY_NAME;
+      ownerUri = IdentityInfo.EMPTY;
       ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
     } else {
       throw new CallInfoException("Wrong call owner type: " + ownerType);
@@ -477,6 +477,7 @@ public class VideoCallsService implements Startable {
                               String userId,
                               boolean remove,
                               boolean notifyUser) throws Exception {
+    // TODO exception if user not a participant
     if (remove) {
       deleteCall(info);
     } else {
@@ -514,6 +515,7 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo startCall(String id) throws Exception {
+    // TODO exception if user not a participant
     CallInfo info = readCallById(id);
     if (info != null) {
       info.setState(CallState.STARTED);
@@ -548,6 +550,7 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo joinCall(String id, String userId) throws Exception {
+    // TODO exception if user not a participant
     CallInfo info = readCallById(id);
     if (info != null) {
       if (CallState.STARTED.equals(info.getState())) {
@@ -583,6 +586,7 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo leaveCall(String id, String userId) throws Exception {
+    // TODO exception if user not a participant
     CallInfo info = readCallById(id);
     if (info != null) {
       if (CallState.STARTED.equals(info.getState())) {
@@ -693,8 +697,19 @@ public class VideoCallsService implements Startable {
    */
   public void addUserCallListener(UserCallListener listener) {
     final String userId = listener.getUserId();
-    synchronized (userListeners) {
-      userListeners.computeIfAbsent(userId, k -> new LinkedHashSet<>()).add(listener);
+    userListeners.computeIfAbsent(userId, k -> new LinkedHashSet<>()).add(listener);
+  }
+
+  /**
+   * Removes the user listener.
+   *
+   * @param listener the listener
+   */
+  public void removeUserCallListener(UserCallListener listener) {
+    final String userId = listener.getUserId();
+    Set<UserCallListener> listeners = userListeners.get(userId);
+    if (listeners != null) {
+      listeners.remove(listener);
     }
   }
 
@@ -713,10 +728,7 @@ public class VideoCallsService implements Startable {
                                    String callerId,
                                    String callerType) {
     // Synchronize on userListeners to have a consistent list of listeners to fire
-    Set<UserCallListener> listeners;
-    synchronized (userListeners) {
-      listeners = userListeners.remove(userId);
-    }
+    Set<UserCallListener> listeners = userListeners.get(userId);
     if (listeners != null) {
       for (UserCallListener listener : listeners) {
         // TODO we may lose events: when one request is completing pooling with some event, the listener will
@@ -724,8 +736,6 @@ public class VideoCallsService implements Startable {
         // delivered to the client.
         // As a solution, we need a temporal pool to save (deferred) events for given user
         // (listener.getUserId()) until it will send a new request or the pool expired
-        // Another issue, it's outdated pool requests added as listeners - need introduce self-removal on
-        // timeout
         if (listener.isListening()) {
           listener.onCallState(callId, callState, callerId, callerType);
         }
@@ -741,11 +751,7 @@ public class VideoCallsService implements Startable {
    * @param partId the part id
    */
   protected void fireUserCallJoined(String userId, String callId, String partId) {
-    // Synchronize on userListeners to have a consistent list of listeners to fire
-    Set<UserCallListener> listeners;
-    synchronized (userListeners) {
-      listeners = userListeners.remove(userId);
-    }
+    Set<UserCallListener> listeners = userListeners.get(userId);
     if (listeners != null) {
       for (UserCallListener listener : listeners) {
         if (listener.isListening()) {
@@ -763,11 +769,7 @@ public class VideoCallsService implements Startable {
    * @param partId the part id
    */
   protected void fireUserCallLeaved(String userId, String callId, String partId) {
-    // Synchronize on userListeners to have a consistent list of listeners to fire
-    Set<UserCallListener> listeners;
-    synchronized (userListeners) {
-      listeners = userListeners.remove(userId);
-    }
+    Set<UserCallListener> listeners = userListeners.get(userId);
     if (listeners != null) {
       for (UserCallListener listener : listeners) {
         if (listener.isListening()) {
@@ -1176,9 +1178,8 @@ public class VideoCallsService implements Startable {
         String oldVal = String.valueOf(val.getValue());
         // XXX it may happen that user will list already deleted call IDs (if client failed to call delete but
         // started
-        for (String ucid : oldVal.split("\n")) {
-
-        }
+        // for (String ucid : oldVal.split("\n")) {
+        // }
         if (oldVal.indexOf(callId) >= 0) {
           return; // already contains this call ID
         } else {
@@ -1212,7 +1213,7 @@ public class VideoCallsService implements Startable {
         int start = oldVal.indexOf(callId);
         if (start >= 0) {
           StringBuilder newVal = new StringBuilder(oldVal);
-          newVal.delete(start, start + callId.length() + 2); // also delete a \n as separator
+          newVal.delete(start, start + callId.length() + 1); // also delete a \n as separator
           settingService.set(userContext, userScope, GROUP_CALL_TYPE, SettingValue.create(newVal.toString()));
         }
       }

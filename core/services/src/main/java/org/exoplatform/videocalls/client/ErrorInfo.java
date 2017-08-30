@@ -16,7 +16,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.videocalls.rest;
+package org.exoplatform.videocalls.client;
 
 /**
  * Basic error entity.<br>
@@ -123,6 +123,21 @@ public class ErrorInfo {
    */
   public String getMessage() {
     return message;
+  }
+  
+  /**
+   * Error as JSON string.
+   *
+   * @return the string
+   */
+  public String asJSON() {
+    StringBuilder str = new StringBuilder();
+    str.append("{\"code\": \"");
+    str.append(code);
+    str.append("\", \"message\": \"");
+    str.append(message);
+    str.append("\", \"error\": true}");
+    return str.toString();
   }
 
 }

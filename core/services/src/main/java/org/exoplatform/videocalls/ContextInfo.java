@@ -29,22 +29,79 @@ package org.exoplatform.videocalls;
  */
 public class ContextInfo {
 
+  /** The eXo container name. */
+  private final String containerName;
+
   /** The space id (pretty name). */
   private final String spaceId;
 
   /** The room title. */
   private final String roomTitle;
 
+  /** CometD server URL path. */
+  private final String cometdPath;
+
+  /** CometD server token. */
+  private final String cometdToken;
+
   /**
    * Instantiates a new context info.
    *
+   * @param containerName the container name
+   * @param spaceId the space id
+   * @param roomTitle the room name
+   * @param cometdPath the cometd path
+   * @param cometdToken the cometd token
+   */
+  public ContextInfo(String containerName,
+                     String spaceId,
+                     String roomTitle,
+                     String cometdPath,
+                     String cometdToken) {
+    super();
+    this.containerName = containerName;
+    this.spaceId = spaceId;
+    this.roomTitle = roomTitle;
+    this.cometdPath = cometdPath;
+    this.cometdToken = cometdToken;
+  }
+
+  /**
+   * Instantiates a new context info.
+   *
+   * @param containerName the container name
    * @param spaceId the space id
    * @param roomTitle the room name
    */
-  public ContextInfo(String spaceId, String roomTitle) {
-    super();
-    this.spaceId = spaceId;
-    this.roomTitle = roomTitle;
+  public ContextInfo(String containerName, String spaceId, String roomTitle) {
+    this(containerName, spaceId, roomTitle, null, null);
+  }
+
+  /**
+   * Gets the container name.
+   *
+   * @return the container name
+   */
+  public String getContainerName() {
+    return containerName;
+  }
+
+  /**
+   * Gets the cometd path (optional).
+   *
+   * @return the cometd path, can be <code>null</code>
+   */
+  public String getCometdPath() {
+    return cometdPath;
+  }
+
+  /**
+   * Gets the cometd token.
+   *
+   * @return the cometd token
+   */
+  public String getCometdToken() {
+    return cometdToken;
   }
 
   /**
