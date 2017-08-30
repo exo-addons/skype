@@ -29,6 +29,9 @@ package org.exoplatform.videocalls;
  */
 public class ContextInfo {
 
+  /** The eXo container name. */
+  private final String containerName;
+
   /** The space id (pretty name). */
   private final String spaceId;
 
@@ -44,13 +47,19 @@ public class ContextInfo {
   /**
    * Instantiates a new context info.
    *
+   * @param containerName the container name
    * @param spaceId the space id
    * @param roomTitle the room name
    * @param cometdPath the cometd path
    * @param cometdToken the cometd token
    */
-  public ContextInfo(String spaceId, String roomTitle, String cometdPath, String cometdToken) {
+  public ContextInfo(String containerName,
+                     String spaceId,
+                     String roomTitle,
+                     String cometdPath,
+                     String cometdToken) {
     super();
+    this.containerName = containerName;
     this.spaceId = spaceId;
     this.roomTitle = roomTitle;
     this.cometdPath = cometdPath;
@@ -60,11 +69,21 @@ public class ContextInfo {
   /**
    * Instantiates a new context info.
    *
+   * @param containerName the container name
    * @param spaceId the space id
    * @param roomTitle the room name
    */
-  public ContextInfo(String spaceId, String roomTitle) {
-    this(spaceId, roomTitle, null, null);
+  public ContextInfo(String containerName, String spaceId, String roomTitle) {
+    this(containerName, spaceId, roomTitle, null, null);
+  }
+
+  /**
+   * Gets the container name.
+   *
+   * @return the container name
+   */
+  public String getContainerName() {
+    return containerName;
   }
 
   /**

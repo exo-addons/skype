@@ -18,6 +18,7 @@
  */
 package org.exoplatform.videocalls;
 
+import org.exoplatform.container.ExoContainer;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.portal.application.RequestNavigationData;
@@ -123,18 +124,18 @@ public class VideoCallsUtils {
       // TODO do we need a room name? what if chat room?
       spaceRoomName = VideoCallsUtils.spaceRoomName(spacePrettyName);
     } else {
-      spacePrettyName = spaceRoomName = ParticipantInfo.EMPTY_NAME;
+      spacePrettyName = spaceRoomName = IdentityInfo.EMPTY;
     }
-    CometdVideoCallsService cometdService =
-                                          ExoContainerContext.getCurrentContainer()
-                                                             .getComponentInstanceOfType(CometdVideoCallsService.class);
+    ExoContainer exo = ExoContainerContext.getCurrentContainer();
+    CometdVideoCallsService cometdService = exo.getComponentInstanceOfType(CometdVideoCallsService.class);
     if (cometdService != null) {
-      return new ContextInfo(spacePrettyName,
+      return new ContextInfo(exo.getContext().getName(),
+                             spacePrettyName,
                              spaceRoomName,
                              cometdService.getCometdServerPath(),
                              cometdService.getUserToken(userId));
     } else {
-      return new ContextInfo(spacePrettyName, spaceRoomName);
+      return new ContextInfo(exo.getContext().getName(), spacePrettyName, spaceRoomName);
     }
   }
 
@@ -146,8 +147,16 @@ public class VideoCallsUtils {
    * @throws JsonException the json exception
    */
   public static String asJSON(Object obj) throws JsonException {
-    JsonValue value = new JsonGeneratorImpl().createJsonObject(obj);
-    return value.toString();
+    if (obj != null) {
+      JsonGeneratorImpl gen = new JsonGeneratorImpl();
+      if (obj.getClass().isArray()) {
+        return gen.createJsonArray(obj).toString();
+      } else {
+        return gen.createJsonObject(obj).toString();
+      }
+    } else {
+      return "null".intern();
+    }
   }
 
 }

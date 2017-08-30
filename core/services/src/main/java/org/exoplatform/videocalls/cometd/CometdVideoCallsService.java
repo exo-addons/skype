@@ -22,6 +22,7 @@ import static org.exoplatform.videocalls.VideoCallsUtils.asJSON;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,13 +34,12 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.cometd.annotation.Configure;
-import org.cometd.annotation.Listener;
 import org.cometd.annotation.Param;
+import org.cometd.annotation.RemoteCall;
 import org.cometd.annotation.ServerAnnotationProcessor;
 import org.cometd.annotation.Service;
 import org.cometd.annotation.Session;
 import org.cometd.annotation.Subscription;
-import org.cometd.bayeux.Channel;
 import org.cometd.bayeux.Message;
 import org.cometd.bayeux.server.BayeuxServer;
 import org.cometd.bayeux.server.BayeuxServer.ChannelListener;
@@ -51,17 +51,23 @@ import org.cometd.bayeux.server.ServerMessage;
 import org.cometd.bayeux.server.ServerSession;
 import org.cometd.bayeux.server.ServerSession.RemoveListener;
 import org.eclipse.jetty.util.component.LifeCycle;
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
+import org.exoplatform.services.jcr.ext.common.SessionProvider;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.organization.OrganizationService;
 import org.exoplatform.services.security.ConversationState;
+import org.exoplatform.services.security.Identity;
 import org.exoplatform.services.security.IdentityConstants;
 import org.exoplatform.services.security.IdentityRegistry;
 import org.exoplatform.videocalls.CallInfo;
 import org.exoplatform.videocalls.CallInfoException;
 import org.exoplatform.videocalls.CallState;
+import org.exoplatform.videocalls.IdentityInfo;
 import org.exoplatform.videocalls.UserCallListener;
+import org.exoplatform.videocalls.UserState;
 import org.exoplatform.videocalls.VideoCallsService;
 import org.exoplatform.videocalls.client.ErrorInfo;
 import org.exoplatform.ws.frameworks.json.impl.JsonException;
@@ -80,7 +86,9 @@ import org.picocontainer.Startable;
  */
 public class CometdVideoCallsService implements Startable {
 
-  public static final String             CALLS_SERVICE_CHANNEL_NAME        = "/service/videocalls/calls";
+  public static final String             CALLS_CHANNEL_NAME                = "/videocalls/calls";
+
+  public static final String             CALLS_SERVICE_CHANNEL_NAME        = "/service" + CALLS_CHANNEL_NAME;
 
   public static final String             USERS_SERVICE_CHANNEL_NAME        = "/service/videocalls/users";
 
@@ -93,10 +101,6 @@ public class CometdVideoCallsService implements Startable {
   public static final String             USER_SUBSCRIPTION_CHANNEL_PATTERN = USER_SUBSCRIPTION_CHANNEL_NAME
       + "/{userId}";
 
-  public static final String             CHANNEL_LISTENER                  =
-                                                          CometdVideoCallsService.class.getSimpleName()
-                                                              + "_channel_listener";
-
   public static final String             COMMAND_GET                       = "get";
 
   public static final String             COMMAND_CREATE                    = "create";
@@ -105,7 +109,7 @@ public class CometdVideoCallsService implements Startable {
 
   public static final String             COMMAND_DELETE                    = "delete";
 
-  public static final String             COMMAND_SUBSCRIBE                 = "subscribe";
+  public static final String             COMMAND_GET_CALLS_STATE           = "get_calls_state";
 
   private static final Log               LOG                               =
                                              ExoLogger.getLogger(CometdVideoCallsService.class);
@@ -224,6 +228,7 @@ public class CometdVideoCallsService implements Startable {
 
                     @Override
                     public boolean isListening() {
+                      // TODO change the flag ASAP when will know about unsubscribing or session disconnected
                       return true;
                     }
                   };
@@ -583,18 +588,6 @@ public class CometdVideoCallsService implements Startable {
       }
     }
 
-    @Listener(Channel.META_DISCONNECT)
-    public void processDisconnect(ServerSession remote, ServerMessage message) {
-      String clientId = message.getClientId();
-      UserCallListener listener = clientUserListeners.remove(clientId);
-      if (listener != null) {
-        videoCalls.removeUserCallListener(listener);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Disconnected client: " + clientId);
-        }
-      }
-    }
-
     @Configure(CALLS_SERVICE_CHANNEL_NAME)
     public void configureCalls(ConfigurableServerChannel channel) {
       // TODO
@@ -602,7 +595,8 @@ public class CometdVideoCallsService implements Startable {
       // channel.addAuthorizer(GrantAuthorizer.GRANT_SUBSCRIBE_PUBLISH);
     }
 
-    @Listener(CALLS_SERVICE_CHANNEL_NAME)
+    // @Listener(CALLS_SERVICE_CHANNEL_NAME)
+    @Deprecated
     public void serviceCalls(ServerSession remote, ServerMessage.Mutable message) {
       String channelId = message.getChannel();
       String data = (String) message.getData();
@@ -781,56 +775,6 @@ public class CometdVideoCallsService implements Startable {
                                  channelId,
                                  ErrorInfo.serverError("Error deleting call record").asJSON());
                 }
-              } else if (COMMAND_SUBSCRIBE.equals(command)) {
-                /*
-                 * String userId = json.optString("userId");
-                 * if (userId != null) {
-                 * try {
-                 * if (CallState.STOPPED.equals(state)) {
-                 * CallInfo call = videoCalls.stopCall(callId, false);
-                 * if (call != null) {
-                 * remote.deliver(serverSession, channel, asJSON(call));
-                 * } else {
-                 * // NOT_FOUND
-                 * remote.deliver(serverSession,
-                 * channel,
-                 * ErrorInfo.notFoundError("Call not found").asJSON());
-                 * }
-                 * } else if (CallState.STARTED.equals(state)) {
-                 * CallInfo call = videoCalls.startCall(callId);
-                 * if (call != null) {
-                 * remote.deliver(serverSession, channel, asJSON(call));
-                 * } else {
-                 * // NOT_FOUND
-                 * remote.deliver(serverSession,
-                 * channel,
-                 * ErrorInfo.notFoundError("Call not found").asJSON());
-                 * }
-                 * } else {
-                 * remote.deliver(serverSession,
-                 * channel,
-                 * ErrorInfo.clientError("Wrong request parameters: state not recognized")
-                 * .asJSON());
-                 * }
-                 * } catch (JsonException e) {
-                 * // It's eXo WS JSON Generator error
-                 * LOG.error("Error generating call response for update of '" + callId + "' by '"
-                 * + currentUserName, e);
-                 * remote.deliver(serverSession,
-                 * channel,
-                 * ErrorInfo.serverError("Error generating call response").asJSON());
-                 * } catch (Throwable e) {
-                 * LOG.error("Error updating call info '" + callId + "' by '" + currentUserName + "'", e);
-                 * remote.deliver(serverSession,
-                 * channel,
-                 * ErrorInfo.serverError("Error updating call record").asJSON());
-                 * }
-                 * } else {
-                 * remote.deliver(serverSession,
-                 * channel,
-                 * ErrorInfo.clientError("Wrong request parameters: userId").asJSON());
-                 * }
-                 */
               } else {
                 LOG.warn("Unknown call command for '" + callId + "' from '" + currentUserId + "': "
                     + command);
@@ -856,6 +800,238 @@ public class CometdVideoCallsService implements Startable {
                        channelId,
                        ErrorInfo.serverError("Error parsing call request").asJSON());
       }
+    }
+
+    @RemoteCall(CALLS_CHANNEL_NAME)
+    public void rcCalls(final RemoteCall.Caller caller, final Object data) {
+      final ServerSession session = caller.getServerSession();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Calls remote call by " + session.getId() + " data: " + data);
+      }
+
+      // TODO use thread pool (take in account CPUs number of cores etc)
+      new Thread(new Runnable() {
+        @SuppressWarnings("deprecation")
+        @Override
+        public void run() {
+          try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> arguments = (Map<String, Object>) data;
+            String currentUserId = (String) arguments.get("exoId");
+            if (currentUserId != null) {
+              String containerName = (String) arguments.get("exoContainerName");
+              if (containerName != null) {
+                // Do all the job under actual (requester) user: set this user as current identity in eXo
+                // XXX We rely on EXoContinuationBayeux.EXoSecurityPolicy for user security here (exoId above)
+                // We also set user's eXo container in the context (for proper work of eXo apps, like Social
+                // identity)
+                ExoContainer exoContainer = ExoContainerContext.getContainerByName(containerName);
+                if (exoContainer != null) {
+                  ExoContainer contextContainer = ExoContainerContext.getCurrentContainerIfPresent();
+                  try {
+                    // User context (1)
+                    ExoContainerContext.setCurrentContainer(exoContainer);
+                    // Use services acquired from context container
+                    IdentityRegistry identityRegistry =
+                                                      exoContainer.getComponentInstanceOfType(IdentityRegistry.class);
+                    SessionProviderService sessionProviders =
+                                                            exoContainer.getComponentInstanceOfType(SessionProviderService.class);
+                    VideoCallsService videoCalls =
+                                                 exoContainer.getComponentInstanceOfType(VideoCallsService.class);
+                    // TODO should we check for NPE of the above services?
+                    Identity userIdentity = identityRegistry.getIdentity(currentUserId);
+                    if (userIdentity != null) {
+                      ConversationState contextState = ConversationState.getCurrent();
+                      SessionProvider contextProvider = sessionProviders.getSessionProvider(null);
+                      try {
+                        // User context (2)
+                        ConversationState convState = new ConversationState(userIdentity);
+                        convState.setAttribute(ConversationState.SUBJECT, userIdentity.getSubject());
+                        ConversationState.setCurrent(convState);
+                        SessionProvider userProvider = new SessionProvider(convState);
+                        sessionProviders.setSessionProvider(null, userProvider);
+                        // Process the request
+                        String id = (String) arguments.get("id");
+                        if (id != null) {
+                          String command = (String) arguments.get("command");
+                          if (command != null) {
+                            if (COMMAND_GET.equals(command)) {
+                              try {
+                                CallInfo call = videoCalls.getCall(id);
+                                if (call != null) {
+                                  caller.result(asJSON(call));
+                                } else {
+                                  caller.failure(ErrorInfo.notFoundError("Call not found").asJSON());
+                                }
+                              } catch (Throwable e) {
+                                LOG.error("Error reading call info '" + id + "' by '" + currentUserId + "'",
+                                          e);
+                                caller.failure(ErrorInfo.serverError("Error reading call record").asJSON());
+                              }
+                            } else if (COMMAND_UPDATE.equals(command)) {
+                              String state = (String) arguments.get("state");
+                              if (state != null) {
+                                try {
+                                  boolean stateRecognized = true;
+                                  CallInfo call;
+                                  if (CallState.STARTED.equals(state)) {
+                                    call = videoCalls.startCall(id);
+                                  } else if (CallState.STOPPED.equals(state)) {
+                                    call = videoCalls.stopCall(id, false);
+                                  } else if (UserState.JOINED.equals(state)) {
+                                    call = videoCalls.joinCall(id, currentUserId);
+                                  } else if (UserState.LEAVED.equals(state)) {
+                                    call = videoCalls.leaveCall(id, currentUserId);
+                                  } else {
+                                    call = null;
+                                    stateRecognized = false;
+                                  }
+                                  if (stateRecognized) {
+                                    if (call != null) {
+                                      caller.result(asJSON(call));
+                                    } else {
+                                      caller.failure(ErrorInfo.notFoundError("Call not found").asJSON());
+                                    }
+                                  } else {
+                                    caller.failure(ErrorInfo.clientError("Wrong request parameters: state not recognized")
+                                                            .asJSON());
+                                  }
+                                } catch (Throwable e) {
+                                  LOG.error("Error updating call '" + id + "' by '" + currentUserId + "'", e);
+                                  caller.failure(ErrorInfo.serverError("Error updating call record")
+                                                          .asJSON());
+                                }
+                              } else {
+                                caller.failure(ErrorInfo.clientError("Wrong request parameters: state")
+                                                        .asJSON());
+                              }
+                            } else if (COMMAND_CREATE.equals(command)) {
+                              String ownerId = (String) arguments.get("owner");
+                              if (ownerId != null) {
+                                String ownerType = (String) arguments.get("ownerType");
+                                if (ownerType != null) {
+                                  String providerType = (String) arguments.get("provider");
+                                  if (providerType != null) {
+                                    String title = (String) arguments.get("title"); // topic
+                                    if (title != null) {
+                                      String pstr = (String) arguments.get("participants");
+                                      if (pstr != null) {
+                                        List<String> participants = Arrays.asList(pstr.split(";"));
+                                        try {
+                                          CallInfo call =
+                                                        videoCalls.addCall(id,
+                                                                           ownerId,
+                                                                           ownerType,
+                                                                           title,
+                                                                           providerType,
+                                                                           participants);
+                                          caller.result(asJSON(call));
+                                        } catch (CallInfoException e) {
+                                          // aka BAD_REQUEST
+                                          caller.failure(ErrorInfo.clientError(e.getMessage()).asJSON());
+                                        } catch (Throwable e) {
+                                          LOG.error("Error creating call for '" + id + "' by '"
+                                              + currentUserId + "'", e);
+                                          caller.failure(ErrorInfo.serverError("Error creating call record")
+                                                                  .asJSON());
+                                        }
+                                      } else {
+                                        caller.failure(ErrorInfo.clientError("Wrong request parameters: participants")
+                                                                .asJSON());
+                                      }
+                                    } else {
+                                      caller.failure(ErrorInfo.clientError("Wrong request parameters: title")
+                                                              .asJSON());
+                                    }
+                                  } else {
+                                    caller.failure(ErrorInfo.clientError("Wrong request parameters: provider")
+                                                            .asJSON());
+                                  }
+                                } else {
+                                  caller.failure(ErrorInfo.clientError("Wrong request parameters: ownerType")
+                                                          .asJSON());
+                                }
+                              } else {
+                                caller.failure(ErrorInfo.clientError("Wrong request parameters: owner")
+                                                        .asJSON());
+                              }
+                            } else if (COMMAND_DELETE.equals(command)) {
+                              try {
+                                CallInfo call = videoCalls.stopCall(id, true);
+                                if (call != null) {
+                                  caller.result(asJSON(call));
+                                } else {
+                                  caller.failure(ErrorInfo.notFoundError("Call not found").asJSON());
+                                }
+                              } catch (Throwable e) {
+                                LOG.error("Error deleting call '" + id + "' by '" + currentUserId + "'", e);
+                                caller.failure(ErrorInfo.serverError("Error deleting call record").asJSON());
+                              }
+                            } else if (COMMAND_GET_CALLS_STATE.equals(command)) {
+                              String userId;
+                              if (IdentityInfo.ME.equals(id)) {
+                                userId = currentUserId;
+                              } else {
+                                userId = id;
+                              }
+                              if (userId.equals(currentUserId)) {
+                                try {
+                                  CallState[] calls = videoCalls.getUserCalls(userId);
+                                  caller.result(asJSON(calls));
+                                } catch (Throwable e) {
+                                  LOG.error("Error reading users calls for '" + id + "'", e);
+                                  caller.failure(ErrorInfo.serverError("Error reading users calls").asJSON());
+                                }
+                              } else {
+                                // Don't let read other user calls
+                                caller.failure(ErrorInfo.clientError("Wrong request parameters: id (does not match)")
+                                                        .asJSON());
+                              }
+                            } else {
+                              LOG.warn("Unknown call command " + command + " for '" + id + "' from '"
+                                  + currentUserId + "'");
+                              caller.failure(ErrorInfo.clientError("Unknown command").asJSON());
+                            }
+                          } else {
+                            caller.failure(ErrorInfo.clientError("Wrong request parameters: command")
+                                                    .asJSON());
+                          }
+                        } else {
+                          caller.failure(ErrorInfo.clientError("Wrong request parameters: id").asJSON());
+                        }
+                      } finally {
+                        // Restore context (2)
+                        ConversationState.setCurrent(contextState);
+                        sessionProviders.setSessionProvider(null, contextProvider);
+                      }
+                    } else {
+                      LOG.warn("User identity not found " + currentUserId + " for remote call of "
+                          + CALLS_CHANNEL_NAME);
+                      caller.failure(ErrorInfo.clientError("User identity not found").asJSON());
+                    }
+                  } finally {
+                    // Restore context (1)
+                    ExoContainerContext.setCurrentContainer(contextContainer);
+                  }
+                } else {
+                  LOG.warn("Container not found " + containerName + " for remote call of "
+                      + CALLS_CHANNEL_NAME);
+                  caller.failure(ErrorInfo.clientError("Container not found").asJSON());
+                }
+              } else {
+                caller.failure(ErrorInfo.clientError("Container required").asJSON());
+              }
+            } else {
+              caller.failure(ErrorInfo.clientError("Unauthorized user").asJSON());
+            }
+          } catch (Throwable e) {
+            LOG.error("Error processing call request from client " + session.getId() + " with data: " + data,
+                      e);
+            caller.failure(ErrorInfo.serverError("Error processing call request: " + e.getMessage())
+                                    .asJSON());
+          }
+        }
+      }).start();
     }
 
   }

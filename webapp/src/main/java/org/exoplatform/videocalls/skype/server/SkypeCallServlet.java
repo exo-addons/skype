@@ -119,12 +119,13 @@ public class SkypeCallServlet extends AbstractHttpServlet {
                 CometdVideoCallsService cometd =
                                                container.getComponentInstanceOfType(CometdVideoCallsService.class);
                 if (cometd != null) {
-                  context = new ContextInfo(spaceId,
+                  context = new ContextInfo(container.getContext().getName(),
+                                            spaceId,
                                             roomTitle,
                                             cometd.getCometdServerPath(),
                                             cometd.getUserToken(remoteUser));
                 } else {
-                  context = new ContextInfo(spaceId, roomTitle);
+                  context = new ContextInfo(container.getContext().getName(), spaceId, roomTitle);
                 }
                 httpReq.setAttribute("contextInfo", asJSON(context));
 

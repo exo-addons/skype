@@ -360,7 +360,7 @@ public class VideoCallsService implements Startable {
       if (userInfo == null) {
         // if owner user not found, it's possibly an external user, thus treat it as a chat room
         owner = new RoomInfo(ownerId, ownerId, title);
-        ownerUri = ParticipantInfo.EMPTY_NAME;
+        ownerUri = IdentityInfo.EMPTY;
         ownerAvatar = LinkProvider.PROFILE_DEFAULT_AVATAR_URL;
       } else {
         owner = userInfo;
@@ -378,13 +378,13 @@ public class VideoCallsService implements Startable {
       } else {
         LOG.warn("Cannot find call's owner space " + ownerId);
         owner = new RoomInfo(ownerId, ownerId, title);
-        ownerUri = ParticipantInfo.EMPTY_NAME;
+        ownerUri = IdentityInfo.EMPTY;
         ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
       }
     } else if (isRoom) {
       owner = new RoomInfo(ownerId, ownerId, title);
       // XXX room members stay empty
-      ownerUri = ParticipantInfo.EMPTY_NAME;
+      ownerUri = IdentityInfo.EMPTY;
       ownerAvatar = LinkProvider.SPACE_DEFAULT_AVATAR_URL;
     } else {
       throw new CallInfoException("Wrong call owner type: " + ownerType);
@@ -477,6 +477,7 @@ public class VideoCallsService implements Startable {
                               String userId,
                               boolean remove,
                               boolean notifyUser) throws Exception {
+    // TODO exception if user not a participant
     if (remove) {
       deleteCall(info);
     } else {
@@ -514,6 +515,7 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo startCall(String id) throws Exception {
+    // TODO exception if user not a participant
     CallInfo info = readCallById(id);
     if (info != null) {
       info.setState(CallState.STARTED);
@@ -548,6 +550,7 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo joinCall(String id, String userId) throws Exception {
+    // TODO exception if user not a participant
     CallInfo info = readCallById(id);
     if (info != null) {
       if (CallState.STARTED.equals(info.getState())) {
@@ -583,6 +586,7 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo leaveCall(String id, String userId) throws Exception {
+    // TODO exception if user not a participant
     CallInfo info = readCallById(id);
     if (info != null) {
       if (CallState.STARTED.equals(info.getState())) {

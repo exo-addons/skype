@@ -1006,7 +1006,7 @@
 								return videoCalls.addCall(callId, callInfo).done(function(call) {
 									log(">>> Added " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 								}).fail(function(err) {
-									registered = false;
+									added = false;
 									log(">>> ERROR adding " + callId + ": " + JSON.stringify(err));
 								});
 							}
@@ -1019,14 +1019,19 @@
 								log("<<< ERROR starting " + callId + ": " + JSON.stringify(err));
 							});
 						};
+						var deleted = false;
 						var deleteCall = function() {
-							log(">>> Deleting " + callId + " > " + new Date().getTime());
-							callStateUpdate("stopped");
-							return videoCalls.deleteCall(callId).done(function() {
-								log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
-							}).fail(function(err) {
-								log("<<< ERROR deleting " + callId + ": " + JSON.stringify(err));
-							});
+							if (!deleted) {
+								deleted = true;
+								log(">>> Deleting " + callId + " > " + new Date().getTime());
+								callStateUpdate("stopped");
+								return videoCalls.deleteCall(callId).done(function() {
+									log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+								}).fail(function(err) {
+									deleted = false;
+									log("<<< ERROR deleting " + callId + ": " + JSON.stringify(err));
+								});								
+							}
 						};
 						var joined = false;
 						var joinedGroupCall = function() {
@@ -1604,7 +1609,6 @@
 					var callerMessage, callerLink, callerAvatar, callerId, callerType, callerRoom;
 					var callStateUpdate = function(state, modality, error) {
 						var res = { 
-							state :  state,
 							saved : saved,
 							callId : callId,
 							peer : {
@@ -1619,6 +1623,8 @@
 						}
 						if (error) {
 							res.error = error;
+						} else {
+							res.state = state;
 						}
 						callUpdate(res);
 					};
@@ -1984,9 +1990,13 @@
 									showCallPopover();
 								}).fail(function(err, status) {
 									log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
-									if (typeof(status) == "number" && status == 404) {
-										// Call not registered, we treat it as a call started outside Video Calls
-										showCallPopover();	
+									if (err) {
+										if (err.code == "NOT_FOUND_ERROR" || (typeof(status) == "number" && status == 404)) {
+											// Call not registered, we treat it as a call started outside Video Calls
+											showCallPopover();	
+										}	else {
+											accept.reject(err.message);
+										}
 									} else {
 										accept.reject("call info error");
 									}
@@ -2135,7 +2145,7 @@
 									});
 								}
 							}
-							log(">>> User has registered group calls - start long polling for these calls updates " + JSON.stringify(list));
+							log(">>> User has registered group calls: " + JSON.stringify(list));
 							var userId = videoCalls.getUser().id;
 							videoCalls.onUserUpdate(userId, function(update, status) {
 								// Update handler
@@ -2229,9 +2239,9 @@
 										}
 									}
 								} else if (update.eventType == "call_joined") {
-									// TODO what is here?
+									// TODO not used (not fired)
 								} else if (update.eventType == "call_leaved") {
-									// TODO what is here?
+									// TODO not used (not fired)
 								} else if (update.eventType == "retry") {
 									log("<<< Retry for user updates [" + status + "]");
 								} else {
