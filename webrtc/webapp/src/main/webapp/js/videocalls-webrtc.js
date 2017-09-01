@@ -72,108 +72,255 @@
 				var button = $.Deferred();
 				if (settings && context && context.currentUser) {
 					// TODO do WebRTC call here
-					
-					
-					
-					////////
-					var currentUserSkype = videoCalls.imAccount(context.currentUser, "webrtc");
-					if (currentUserSkype) {
-						context.currentUserSkype = currentUserSkype; 
+					if (!context.isGroup) {
 						context.details().done(function(target) { // users, convName, convTitle
 							var rndText = Math.floor((Math.random() * 1000000) + 1);
-							var linkId = "WebrtcCall-" + target.id + "-" + rndText;
+							var linkId = "WebrtcCall-" + context.userId + "-" + rndText;
+							var callId = "p/" + context.currentUser.id + "@" + target.id;
+							var link = settings.callUri + "/" + callId;
+							//var disabledClass = hasJoinedCall(targetId) ? "callDisabled" : "";
 							// TODO i18n for title
-							var ims = [];
-							var wrongUsers = [];
-							var addParticipant = function(user) {
-								var uskype = videoCalls.imAccount(user, "webrtc");
-								if (uskype && uskype.id != context.currentUserSkype.id) {
-									// extra check for valid skype account: it should not contain whitespaces
-									if (uskype.id && uskype.id.search(NON_WHITESPACE_PATTERN) < 0) {
-										// this is a regular Skype, it cannot call business users
-										ims.push(uskype.id);											
-									} else {
-										wrongUsers.push(user);
-									}
-								} // else, skip this user
-							};
-							if (target.group) {
-								for ( var uname in target.members) {
-									if (target.members.hasOwnProperty(uname)) {
-										var u = target.members[uname];
-										addParticipant(u);
-									}
-								}								
-							} else {
-								addParticipant(target);
-							}
-							if (ims.length > 0) {
-								var userIMs = ims.join(";");
-								// use Skype URI for regular Skype user
-								var link = "skype:" + userIMs + "?call&amp;video=true";
-								if (ims.length > 2) {
-									link += "&amp;topic=" + encodeURIComponent(target.title);
+							var $button = $("<a id='" + linkId + "' title='" + target.title + "'"
+										+ " class='webrtcCallAction'>"
+										+ "<i class='uiIconWebrtcCall uiIconForum uiIconLightGray'></i>"
+										+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");
+							var longTitle = self.getTitle() + " " + self.getCallTitle();
+							setTimeout(function() {
+								if (!$button.hasClass("btn")) {
+									// in dropdown show longer description
+									$button.find(".callTitle").text(longTitle);
 								}
-								var $button = $("<a id='" + linkId + "' title='" + target.title + "' href='" + link
-											+ "' class='webrtcCallAction'>"
-											+ "<i class='uiIconWebrtcCall uiIconForum uiIconLightGray'></i>"
-											+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");
-								setTimeout(function() {
-									if (!$button.hasClass("btn")) {
-										// in dropdown show longer description
-										$button.find(".callTitle").text(self.getTitle() + " " + self.getCallTitle());
-									}
-								}, 1000);
-								$button.click(function() {
-									if (wrongUsers.length > 0) {
-										// inform the caller
-										var userNames = "";
-										for (var i=0; i<wrongUsers.length; i++) {
-											if (i > 0) {
-												userNames += ", ";
-											}
-											var wu = wrongUsers[i];
-											userNames += wu.firstName + " " + wu.lastName;
-										}
-										var s, have, who; 
-										if (wrongUsers.length > 1) {
-											s = "s";
-											have = "have";
-											who = "They were";
-										} else {
-											s = "";
-											have = "has";
-											who = "It was";
-										}
-										var title = "Wrong Skype account" + s;
-										var message = "Following user " + s + " " + have + " wrong Skype account: " + 
-											userNames + ". " + who + " not added to the call.";
-										log(title, message);
-										videoCalls.showWarn(title, message);
-									}
+							}, 1000);
+							$button.click(function() {
+								// Open a window for a new call
+								var callWindow = videoCalls.showCallPopup(link, longTitle);
+								// Create a call
+								var callInfo = {
+									owner : context.currentUser.id,
+									ownerType : "user",  
+									provider : self.getType(),
+									title : target.title,
+									participants : [context.currentUser.id, target.id].join(";") // eXo user ids separated by ';' !
+								};
+								videoCalls.addCall(callId, callInfo).done(function(call) {
+									log(">> Added " + callId + " > " + new Date().getTime());
+									// Tell the window to start the call  
+									callWindow.document.title = longTitle + ": " + target.title;
+									$(callWindow).on("load", function() {
+										// XXX Wait 5sec for debug only - remove in production
+										setTimeout(function() {
+											callWindow.eXo.videoCalls.startCall(call).fail(function(err) {
+												videoCalls.showError("Error starting call", err);
+											});											
+										}, 5000);
+									});
+								}).fail(function(err) {
+									log("ERROR adding " + callId + ": " + JSON.stringify(err));
+									videoCalls.showError("Call error", err.message);
 								});
-								button.resolve($button);
-							} else {
-								button.reject("No " + self.getTitle() + " users found");
-							}
+							});
+							button.resolve($button);
 						}).fail(function(err) {
-							button.reject("Error getting participants for " + self.getTitle() + ": " + err);
-						});;
+							log("Error getting context details for " + self.getTitle() + ": " + err);
+							videoCalls.showWarn("Error starting a call", err.message);
+						});
 					} else {
-						button.reject("Not Skype user");
+						button.reject("Group calls not supported by WebRTC provider");
 					}
 				} else {
 					button.reject("Not configured or empty context for " + self.getTitle());
 				}
 				return button.promise();
-			}
+			};
+			
+			var acceptCallPopover = function(callerLink, callerAvatar, callerMessage) {
+				// TODO show an info popover in bottom right corner of the screen as specified in CALLEE_01
+				log(">> acceptCallPopover '" + callerMessage + "' caler:" + callerLink + " avatar:" + callerAvatar);
+				var process = $.Deferred();
+				var $call = $("div.uiIncomingCall");
+				if ($call.length > 0) {
+					try {
+						$call.dialog("destroy");
+					} catch(e) {
+						log(">>> acceptCallPopover: error destroing prev dialog ", e);
+					}
+					$call.remove();
+				}
+				$call = $("<div class='uiIncomingCall' title='" + provider.getTitle() + " call'></div>");
+				//<span class='ui-icon messageIcon' style='float:left; margin:12px 12px 20px 0;'></span>
+				$call.append($("<div class='messageAuthor'><a target='_blank' href='" + callerLink + "' class='avatarMedium'>"
+					+ "<img src='" + callerAvatar + "'></a></div>"
+					+ "<div class='messageBody'><div class='messageText'>" + callerMessage + "</div></div>"));
+				// eXo UX guides way
+				//$call.append($("<ul class='singleMessage popupMessage'><li><span class='messageAuthor'>"
+				//		+ "<a class='avatarMedium'><img src='" + callerAvatar + "'></a></span>"
+				//		+ "<span class='messageText'>" + callerMessage + "</span></li></ul>"));
+				$(document.body).append($call);
+				$call.dialog({
+					resizable: false,
+					height: "auto",
+					width: 400,
+					modal: false,
+					buttons: {
+					  "Answer": function() {
+					  	process.resolve("accepted");
+					  	$call.dialog("close");
+					  },
+					  "Decline": function() {
+					  	process.reject("declined");
+					  	$call.dialog("close");
+					  }
+					} 
+				});
+				$call.on("dialogclose", function( event, ui ) {
+					if (process.state() == "pending") {
+						process.reject("closed");
+					}
+				});
+				process.notify($call);
+				// Start ringing 
+				// TODO use original WebRTC ringtone
+				var $ring = $("<audio controls loop style='display: none;'>"
+							+ "<source src='https://latest-swx.cdn.skype.com/assets/v/0.0.300/audio/m4a/call-outgoing-p1.m4a' type='audio/mpeg'>"  
+							+ "Your browser does not support the audio element.</audio>");
+				$(document.body).append($ring);
+				var player = $ring.get(0);
+				player.pause();
+				//player.currentTime = 0;
+				setTimeout(function () {      
+					player.play();
+				}, 250);
+				process.always(function() {
+					player.pause();
+					$ring.remove();
+				});
+				return process.promise();
+			};
+			
+			this.init = function(context) {
+				var currentUserId = videoCalls.getUser().id;
+				var $callPopup; 
+				var closeCallPopup = function(callId) {
+					if ($callPopup && $callPopup.callId && $callPopup.callId == callId) {
+						if ($callPopup.is(":visible")) {
+							$callPopup.dialog("close");
+						}
+					}
+				};
+				var lockCallButton = function(callId, callerId, callerRoom) {
+				};
+				var unlockCallButton = function(callId, callerId, callerRoom) {
+				};
+				if (videoCalls.hasChatApplication()) {
+					// Care about marking chat rooms for active calls
+					var $chat = $("#chat-application");
+					if ($chat.length > 0) {
+						var $chats = $chat.find("#chats");
+						if ($chats.length > 0) {
+							var $users = $chat.find("#chat-users");
+							// Implement Chat specific logic
+							var getCallButton = function() {
+								return $chat.find("#room-detail .webrtcCallAction");
+							};
+							lockCallButton = function(callId, callerId, callerRoom) {
+								var roomId = chatApplication.targetUser;
+								if (roomId == callerRoom) {
+									var $callButton = getCallButton();
+									if (!$callButton.hasClass("callDisabled")) {
+										$callButton.addClass("callDisabled");
+									}								
+								}
+							};
+							unlockCallButton = function(callId, callerId, callerRoom) {
+								var roomId = chatApplication.targetUser;
+								if (roomId == callerRoom) {
+									var $callButton = getCallButton();
+									$callButton.removeClass("callDisabled");
+								}
+							};
+						} else {
+							log("Cannot find #chats element");
+						} 
+					} else {
+						log("Chat application element not found.");
+					}
+				}
+				videoCalls.onUserUpdate(currentUserId, function(update, status) {
+					if (update.eventType == "call_state") {
+						if (update.caller.type == "user") {
+							log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
+							var callId = update.callId;
+							if (update.callState == "started") {
+								videoCalls.getCall(callId).done(function(call) {
+									log(">>> Got registered " + callId + " > " + new Date().getTime());
+									var callerId = call.owner.id;
+									var callerLink = call.ownerLink;
+									var callerAvatar = call.avatarLink;
+									var callerMessage = call.owner.title + " is calling.";
+									var callerRoom = callerId;
+									//
+									var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
+									popover.progress(function($call) {
+										$callPopup = $call;
+										$callPopup.callId = callId;
+									}); 
+									popover.done(function(msg) {
+										log(">>> user " + msg + " call " + callId);
+										var longTitle = self.getTitle() + " " + self.getCallTitle();
+										var link = settings.callUri + "/" + callId;
+										var callWindow = videoCalls.showCallPopup(link, longTitle);
+										// Tell the window to start the call  
+										callWindow.document.title = longTitle + ": " + call.owner.title;
+										$(callWindow).on("load", function() {
+											callWindow.eXo.videoCalls.startCall(call).done(function(state) {
+												lockCallButton(callId, callerId, callerRoom);
+											}).fail(function(err) {
+												videoCalls.showError("Error starting call", err);
+											});
+										});
+									});
+									popover.fail(function(err) {
+										log("<<< user " + err + " call " + callId);
+									});
+								}).fail(function(err, status) {
+									log(">>> Call info error: " + JSON.stringify(err) + " [" + status + "]");
+									if (err) {
+										videoCalls.showError("Incoming call error", err.message);
+									} else {
+										videoCalls.showError("Incoming call error", "Error read call information from the server");
+									}
+								});
+							} else if (update.callState == "stopped") {
+								// Hide accept popover for this call
+								closeCallPopup(callId);
+								// Unclock the call button
+								unlockCallButton(callId, callerId, callerRoom);
+							}							
+						} else {
+							log(">>> Group calls not supported: " + JSON.stringify(update) + " [" + status + "]");
+						}
+					} else if (update.eventType == "call_joined") {
+						// TODO not used (not fired)
+					} else if (update.eventType == "call_leaved") {
+						// TODO not used (not fired)
+					} else if (update.eventType == "retry") {
+						log("<<< Retry for user updates [" + status + "]");
+					} else {
+						log("<<< Unexpected user update: " + JSON.stringify(update) + " [" + status + "]");
+					}
+				}, function(err) {
+					// Error handler
+					log(err);
+				});
+			};
 		}
 
 		var provider = new WebrtcProvider();
 
-		// Add Skype provider into videoCalls object of global eXo namespace (for non AMD uses)
+		// Add WebRTC provider into videoCalls object of global eXo namespace (for non AMD uses)
 		if (globalVideoCalls) {
-			globalVideoCalls.skype = provider;
+			globalVideoCalls.webrtc = provider;
+			log("> Added eXo.videoCalls.webrtc");
 		} else {
 			log("eXo.videoCalls not defined");
 		}

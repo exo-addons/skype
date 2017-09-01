@@ -1,18 +1,18 @@
-/* Styles for SfB call page */
-#mssfb-call-frame {
+/* Styles for WebRTC call page */
+#webrtc-call-frame {
 	position: relative;
 	margin: 0px;
     padding: 0px;
 }
 
-#mssfb-call-frame > .actionHover {
+#webrtc-call-frame > .actionHover {
 	position: absolute;
 	left: 0px;
     top: 0px;
     padding: 2px;
 }
 
-#mssfb-call-starting {
+#webrtc-call-starting {
 	position: relative;
 	width: 100%;
 	height: auto;
@@ -37,43 +37,4 @@
 .startInfo {
     padding-top: 20%;
     font-size: x-large;
-}
-
-/* For embedded calls */
-#mssfb-call-container {
-	position: absolute;
-	margin: 0px;
-}
-
-#mssfb-call-container>.callHoverBar {
-	position: absolute;
-	/*top: 4px;*/
-	/*left: 4px;*/
-	width: 100%;
-	margin: 0px;
-	z-index: 1000;
-}
-
-#mssfb-call-container>.callHoverBar .callClose {
-	position: relative;
-	top: 0px;
-    left: 0px;
-}
-
-#mssfb-call-container>.callHoverBar .callClose .uiIconClose:before {
-	font-size: 18px;
-}
-
-.mssfb-call-container {
-	margin: 15px;
-	height: 400px;
-}
-
-#mssfb-call-conversation {
-	width: 100%;
-	height: 100%;
-}
-
-#mssfb-call-container + .ui-dialog {
-	z-index: 1000;
 }

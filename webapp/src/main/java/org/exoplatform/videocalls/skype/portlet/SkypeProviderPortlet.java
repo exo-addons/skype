@@ -79,7 +79,7 @@ public class SkypeProviderPortlet extends GenericPortlet {
                                                                                     IOException {
     if (this.provider != null) {
       try {
-        SkypeSettings settings = provider.getSettings().build();
+        SkypeSettings settings = provider.settings().build();
         String settingsJson = asJSON(settings);
 
         JavascriptManager js =

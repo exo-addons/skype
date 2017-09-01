@@ -55,6 +55,19 @@
       <type>war</type>
       <scope>provided</scope>
     </dependency>
+    <!-- Temporal: WebRTC here-->
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-webrtc-services</artifactId>
+      <type>jar</type>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-webrtc-webapp</artifactId>
+      <type>war</type>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <build>
     <resources>

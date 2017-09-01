@@ -29,7 +29,7 @@ import org.exoplatform.videocalls.ProviderSettings;
 public class WebrtcSettings extends ProviderSettings {
 
   /** The call URI. */
-  protected final String callURI;
+  protected final String callUri;
 
   /**
    * Instantiates a new webrtc settings.
@@ -40,7 +40,7 @@ public class WebrtcSettings extends ProviderSettings {
    * @param callTitle the call title
    * @param joinTitle the join title
    * @param version the version
-   * @param callURI the call URI
+   * @param callUri the call URI
    */
   public WebrtcSettings(String type,
                         String[] supportedTypes,
@@ -48,9 +48,9 @@ public class WebrtcSettings extends ProviderSettings {
                         String callTitle,
                         String joinTitle,
                         String version,
-                        String callURI) {
+                        String callUri) {
     super(type, supportedTypes, title, callTitle, joinTitle, version);
-    this.callURI = callURI;
+    this.callUri = callUri;
   }
 
   /**
@@ -58,8 +58,8 @@ public class WebrtcSettings extends ProviderSettings {
    *
    * @return the call URI
    */
-  public String getCallURI() {
-    return callURI;
+  public String getCallUri() {
+    return callUri;
   }
   
 

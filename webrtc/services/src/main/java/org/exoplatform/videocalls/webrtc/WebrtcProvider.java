@@ -49,16 +49,16 @@ public class WebrtcProvider extends VideoCallsProvider {
   public class SettingsBuilder {
 
     /** The call URI. */
-    protected String callURI;
+    protected String callUri;
 
     /**
      * Call URI.
      *
-     * @param callURI the call URI
+     * @param callUri the call URI
      * @return the settings builder
      */
-    public SettingsBuilder callURI(String callURI) {
-      this.callURI = callURI;
+    public SettingsBuilder callUri(String callUri) {
+      this.callUri = callUri;
       return this;
     }
 
@@ -74,7 +74,7 @@ public class WebrtcProvider extends VideoCallsProvider {
                                 "Call", // TODO in18n
                                 "Join", // TODO in18n
                                 getVersion(),
-                                callURI);
+                                callUri);
     }
   }
 

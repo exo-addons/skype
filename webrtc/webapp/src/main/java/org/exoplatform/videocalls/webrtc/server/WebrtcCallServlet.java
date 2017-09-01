@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -18,6 +19,7 @@ import org.exoplatform.container.web.AbstractHttpServlet;
 import org.exoplatform.videocalls.ContextInfo;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
+import org.exoplatform.videocalls.VideoCallsUtils;
 import org.exoplatform.videocalls.webrtc.WebrtcProvider;
 import org.exoplatform.videocalls.webrtc.WebrtcSettings;
 import org.gatein.common.logging.Logger;
@@ -108,7 +110,7 @@ public class WebrtcCallServlet extends AbstractHttpServlet {
               if (roomTitle == null) {
                 roomTitle = EMPTY_STRING;
               }
-              ContextInfo context = new ContextInfo(spaceId, roomTitle);
+              ContextInfo context = VideoCallsUtils.getCurrentContext(remoteUser);
               httpReq.setAttribute("contextInfo", asJSON(context));
 
               UserInfo exoUser = videoCalls.getUserInfo(remoteUser);
@@ -122,11 +124,18 @@ public class WebrtcCallServlet extends AbstractHttpServlet {
                                       "/portal/webrtc/call",
                                       null,
                                       null);
-                WebrtcSettings settings = provider.settings().callURI(callURI.toString()).build();
+                WebrtcSettings settings = provider.settings().callUri(callURI.toString()).build();
                 httpReq.setAttribute("settings", asJSON(settings));
 
+                // XXX nasty-nasty-nasty include of CometD script
+                httpReq.getRequestDispatcher("/WEB-INF/pages/call_part1.jsp").include(httpReq, httpRes);
+                ServletContext cometdContext = httpReq.getSession().getServletContext().getContext("/cometd");
+                cometdContext.getRequestDispatcher("/javascript/eXo/commons/commons-cometd3.js")
+                             .include(httpReq, httpRes);
+                httpReq.getRequestDispatcher("/WEB-INF/pages/call_part2.jsp").include(httpReq, httpRes);
+
                 // to JSP page
-                httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
+                // httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
               } else {
                 LOG.warn("WebRTC servlet cannot be initialized: user info cannot be obtained for "
                     + remoteUser);

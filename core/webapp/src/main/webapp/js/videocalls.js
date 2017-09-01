@@ -615,10 +615,10 @@
 							workers.push(bworker.promise());
 						}
 						// we have an one button for each provider
-						//log(">>> addCallButton > " + contextName + " for " + context.currentUser.id + " providers: " + addProviders.length);
+						log(">>> addCallButton > " + contextName + " for " + context.currentUser.id + " providers: " + addProviders.length);
 						for (var i = 0; i < addProviders.length; i++) {
 							var p = addProviders[i];
-							//log(">>> addCallButton > next provider > " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.id + " providers: " + addProviders.length);
+							log(">>> addCallButton > next provider > " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.id + " providers: " + addProviders.length);
 							if ($container.data(providerFlag + p.getType())) {
 								log("<<< addCallButton DONE (already) < " + contextName + "(" + p.getTitle() + ") for " + context.currentUser.id);
 							} else {
@@ -1227,6 +1227,8 @@
 				        this.unsubscribe(subscriptionHandle);
 				    }
 					}
+				} else {
+					log("WARN: CometD not found in context settings");
 				}
 				
 				// also init registered providers
@@ -1276,6 +1278,7 @@
 			// TODO avoid duplicates, use map like?
 			if (provider.getSupportedTypes && provider.hasOwnProperty("getSupportedTypes") && provider.getTitle && provider.hasOwnProperty("getTitle")) {
 				if (provider.callButton && provider.hasOwnProperty("callButton")) {
+					log("Added provider " + provider.getType() + " (" + provider.getTitle() + ")");
 					providers.push(provider);
 					// care about providers added after Video Calls initialization
 					if (currentUser && !provider.isInitialized && provider.init && provider.hasOwnProperty("init")) {
@@ -1385,21 +1388,23 @@
 		this.getSpaceInfo = getSpaceInfoReq;
 		this.getRoomInfo = getRoomInfoReq;
 		
-		var tryParseJson = function(data) {
-			if (data) {
+		var tryParseJson = function(message) {
+			var src = message.data ? message.data : (message.error ? message.error : message.failure); 
+			if (src) {
 				try {
-					return typeof data == "string" ? JSON.parse(data) : data;
+					return typeof src == "string" ? JSON.parse(src) : src;
 				} catch(e) {
-					log("> Error parsing '" + data + "' as JSON: " + e, e);
-					return data;
+					log("> Error parsing '" + src + "' as JSON: " + e, e);
+					return src;
 				}				
 			} else {
-				return data;
+				return src;
 			}
 		};
 		
 		var cometdError = function(response) {
-			return "[" + response.id + "] " + response.channel + " " + JSON.stringify(response.error ? response.error : response.data)
+			return "[" + response.id + "] " + response.channel + " " 
+					+ JSON.stringify(response.error ? response.error : (response.failure ? response.failure : response.data));
 		};
 		
 		var cometdInfo = function(response) {
@@ -1419,7 +1424,7 @@
 				});
 				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
 					if (response.successful) {
-						var result = tryParseJson(response.data);
+						var result = tryParseJson(response);
 						log("<< getCall:/videocalls/calls:" + id + " - success: " + cometdInfo(response));
 					  process.resolve(result, 200);
 					} else {
@@ -1446,7 +1451,7 @@
 					state : state
 				});
 				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
-					var result = tryParseJson(response.data);
+					var result = tryParseJson(response);
 					if (response.successful) {
 						log("<< updateCall:/videocalls/calls:" + id + " - success: " + cometdInfo(response));
 					  process.resolve(result, 200);
@@ -1473,7 +1478,7 @@
 					id : id
 				});
 				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
-					var result = tryParseJson(response.data);
+					var result = tryParseJson(response);
 					if (response.successful) {
 						log("<< deleteCall:/videocalls/calls:" + id + " - success: " + cometdInfo(response));
 					  process.resolve(result, 200);
@@ -1500,7 +1505,7 @@
 					id : id
 				}));
 				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
-					var result = tryParseJson(response.data);
+					var result = tryParseJson(response);
 					if (response.successful) {
 						log("<< addCall:/videocalls/calls:" + id + " - success: " + cometdInfo(response));
 					  process.resolve(result, 200);
@@ -1524,7 +1529,7 @@
 					command : "get_calls_state"
 				});
 				cometd.remoteCall("/videocalls/calls", callProps, function(response) {
-					var result = tryParseJson(response.data);
+					var result = tryParseJson(response);
 					if (response.successful) {
 						log("<< getUserGroupCalls:/videocalls/calls - success: " + cometdInfo(response));
 					  process.resolve(result, 200);
@@ -1554,9 +1559,9 @@
 		this.onUserUpdate = function(userId, onUpdate, onError) {
 			if (cometd) {
 				// /service/videocalls/calls
-				cometd.subscribe("/eXo/Application/VideoCalls/user/" + userId, function(message) {
+				var subscription = cometd.subscribe("/eXo/Application/VideoCalls/user/" + userId, function(message) {
 					// Channel message handler
-					var result = tryParseJson(message.data);
+					var result = tryParseJson(message);
 					if (message.data.error) {
 						if (typeof onError == "function") {
 							onError(result, 400);
@@ -1579,22 +1584,98 @@
 						}
 					}
 				});
+				return {
+					off : function(callback) {
+						cometd.unsubscribe(subscription, callback);
+					}
+				};
 			} else {
-				(function poll(prevData, prevStatus) {
-					var timeout = prevStatus == 0 ? 60000 : (prevStatus >= 400 ? 15000 : 250);
-					setTimeout(function() {
-						pollUserUpdates(userId).done(function(update, status) {
-							if (typeof onUpdate == "function") {
-								onUpdate(update, status);								
-							}
-						}).fail(function(err, status) {
-							if (typeof onError == "function") {
-								onError(err, status);								
-							}
-						}).always(poll);
-					}, timeout);
-				})();
+				var loop = true;
+				var poll = function(prevData, prevStatus) {
+					if (loop) {
+						var timeout = prevStatus == 0 ? 60000 : (prevStatus >= 400 ? 15000 : 250);
+						setTimeout(function() {
+							pollUserUpdates(userId).done(function(update, status) {
+								if (typeof onUpdate == "function") {
+									onUpdate(update, status);								
+								}
+							}).fail(function(err, status) {
+								if (typeof onError == "function") {
+									onError(err, status);								
+								}
+							}).always(poll);
+						}, timeout);						
+					}
+				};
+				poll();
+				return {
+					off : function(callback) {
+						loop = false;
+						if (typeof callback == "function") {
+							callback();
+						}
+					}
+				};
 			}
+		};
+		
+		this.onCallUpdate = function(callId, onUpdate, onError) {
+			if (cometd) {
+				var subscription = cometd.subscribe("/eXo/Application/VideoCalls/call/" + callId, function(message) {
+					// Channel message handler
+					var result = tryParseJson(message);
+					if (message.data.error) {
+						if (typeof onError == "function") {
+							onError(result, 400);
+						}
+					} else {
+						if (typeof onUpdate == "function") {
+							onUpdate(result, 200);
+						}							
+					}
+				}, function(subscribeReply) {
+					// Subscription status callback
+					if (subscribeReply.successful) {
+		        // The server successfully subscribed this client to the channel.
+						log("<< Call updates subscribed successfully: " + JSON.stringify(subscribeReply));
+					} else {
+						var err = subscribeReply.error ? subscribeReply.error : (subscribeReply.failure ? subscribeReply.failure.reason : "Undefined");
+						log("<< Call updates subscription failed: " + err);
+						if (typeof onError == "function") {
+							onError("Call updates subscription failed (" + err + ")", 0);								
+						}
+					}
+				});
+				return {
+					off : function(callback) {
+						cometd.unsubscribe(subscription, callback);
+					}
+				};
+			} else {
+				log("ERROR: Call updates require CometD");
+				return {
+					off : function() {}
+				}
+			}
+		};
+				
+		this.toCallUpdate = function(callId, data) {
+			var process = $.Deferred();
+			if (cometd) {
+				cometd.publish("/eXo/Application/VideoCalls/call/" + callId, data, function(publishAck) {
+			    if (publishAck.successful) {
+			    	log("<< Call update reached the server: " + JSON.stringify(publishAck));
+			    	process.resolve("Successful", 200);
+			    } else {
+			    	log("<< Call update failed to reach the server: " + JSON.stringify(publishAck));
+			    	process.reject(publishAck.failure ? publishAck.failure.reason : publishAck.error, 500);
+			    }
+				});
+			} else {
+				log("ERROR: Call updates require CometD");
+				process.reject("CometD required", 400);
+			}
+			return process.promise();
 		};
 	}
 	

@@ -87,13 +87,13 @@ public class WebrtcProviderPortlet extends GenericPortlet {
                               "/portal/webrtc/call",
                               null,
                               null);
-        WebrtcSettings settings = provider.settings().callURI(callURI.toString()).build();
+        WebrtcSettings settings = provider.settings().callUri(callURI.toString()).build();
         String settingsJson = asJSON(settings);
 
         JavascriptManager js =
                              ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
         js.require("SHARED/videoCalls", "videoCalls")
-          .require("SHARED/videoCalls_skype", "webrtcProvider")
+          .require("SHARED/videoCalls_webrtc", "webrtcProvider")
           .addScripts("if (webrtcProvider) { webrtcProvider.configure(" + settingsJson
               + "); videoCalls.addProvider(webrtcProvider); videoCalls.update(); }");
       } catch (Exception e) {

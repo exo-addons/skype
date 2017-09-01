@@ -219,7 +219,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
   /**
    * {@inheritDoc}
    */
-  public WebSettingsBuilder getSettings() {
+  public WebSettingsBuilder settings() {
     return new WebSettingsBuilder();
   }
 

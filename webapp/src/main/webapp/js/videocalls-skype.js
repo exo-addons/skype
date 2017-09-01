@@ -158,8 +158,8 @@
 								button.reject("No " + self.getTitle() + " users found");
 							}
 						}).fail(function(err) {
-							button.reject("Error getting participants for " + self.getTitle() + ": " + err);
-						});;
+							button.reject("Error getting context details for " + self.getTitle() + ": " + err);
+						});
 					} else {
 						button.reject("Not Skype user");
 					}

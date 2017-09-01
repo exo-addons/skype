@@ -79,25 +79,15 @@
   </portlet-skin -->
   
   <module>
-    <name>skypeWeb</name>
-    <url>https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js</url>
-  </module>
-  <module>
-    <name>videoCalls_skype</name>
+    <name>webrtcAdapter</name>
     <script>
-      <path>/js/videocalls-skype.js</path>
+      <path>/js/adapter-4.2.2.js</path>
     </script>
-    <depends>
-      <module>videoCallsJquery</module>
-    </depends>
-    <depends>
-      <module>videoCalls</module>
-    </depends>
   </module>
   <module>
-    <name>videoCalls_mssfb</name>
+    <name>videoCalls_webrtc</name>
     <script>
-      <path>/js/videocalls-mssfb.js</path>
+      <path>/js/videocalls-webrtc.js</path>
     </script>
     <depends>
       <module>videoCallsJquery</module>
@@ -106,26 +96,18 @@
       <module>videoCalls</module>
     </depends>
     <depends>
-      <module>skypeWeb</module>
+      <module>webrtcAdapter</module>
     </depends>
   </module>
   
   <portlet>
-    <name>SkypeProviderPortlet</name>
+    <name>WebrtcProviderPortlet</name>
     <module>
       <depends>
         <module>videoCallsJquery</module>
       </depends>
       <depends>
-        <module>videoCalls_skype</module>
-      </depends>
-    </module>
-  </portlet>
-  <portlet>
-    <name>SkypeBusinessProviderPortlet</name>
-    <module>
-      <depends>
-        <module>videoCallsJquery</module>
+        <module>videoCalls_webrtc</module>
       </depends>
     </module>
   </portlet>

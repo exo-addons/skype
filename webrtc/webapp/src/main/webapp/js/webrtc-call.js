@@ -20,430 +20,357 @@ if (eXo.videoCalls) {
 				}
 			}
 		};
-		//log("> Loading at " + location.origin + location.pathname);
+		// log("> Loading at " + location.origin + location.pathname);
 		
-		var mssfb = videoCalls.getProvider("webrtc");
-		if (mssfb) {
-			var hashLine = location.hash;
-			var hasToken = /#access_token=/.test(hashLine);
-			var hasError = /#error=/.test(hashLine);
-			var isLogin = /\/login/.test(location.pathname);
-			var isNewCall = /\/\w+\//.test(location.pathname); // need make an outgoing call
-			var isP2PCall = /\/p\//.test(location.pathname); // incoming p2p call 
-			var isGroupCall = /\/g\//.test(location.pathname); // incoming group call
-			var isCall = isNewCall || isP2PCall || isGroupCall;
-			var isClosed = false;
+		var isP2PCall = /\/p\//.test(location.pathname); // incoming p2p call
+		var isGroupCall = /\/g\//.test(location.pathname); // incoming group call
+		//var isHost = /\?host/.test(location.search); // create new call
 
-			function getParameterByName(name, url) {
-				if (!url) {
-					url = window.location.href;
-				}
-				name = name.replace(/[\[\]]/g, "\\$&");
-				var regex = new RegExp("[?&#]" + name + "(=([^&#]*)|&|#|$)"), results = regex.exec(url);
-				if (!results)
-					return null;
-				if (!results[2])
-					return "";
-				return decodeURIComponent(results[2].replace(/\+/g, " "));
-			}
-
-			function alignLoader() {
-				var $throber = $("#mssfb-call-starting>.waitThrobber");
-				if ($throber.length > 0) {
-					var newHeight = $(window).height() - 30; // 15px for margins top/bottom
-					var oldHeight = $throber.height();
-					if (newHeight > 0) {
-						$throber.height(newHeight);
-					}
+		function alignLoader() {
+			var $throber = $("#webrtc-call-starting>.waitThrobber");
+			if ($throber.length > 0) {
+				var newHeight = $(window).height() - 30; // 15px for margins top/bottom
+				var oldHeight = $throber.height();
+				if (newHeight > 0) {
+					$throber.height(newHeight);
 				}
 			}
-			
-			function addToContainer($content) {
-				var $container = $("div.mssfb-call-container");
-				if ($container.length == 0) {
-					$container = $("<div class='mssfb-call-container' style='display: none;'></div>");
-					var newHeight = $(window).height() - 30; // 15px for margins top/bottom
-					var oldHeight = $container.height();
-					if (newHeight > 0) {
-						$container.height(newHeight);
-					}
-					$(document.body).append($container);
+		}
+		
+		function addToContainer($content) {
+			var $container = $("div.webrtc-call-container");
+			if ($container.length == 0) {
+				$container = $("<div class='webrtc-call-container' style='display: none;'></div>");
+				var newHeight = $(window).height() - 30; // 15px for margins top/bottom
+				var oldHeight = $container.height();
+				if (newHeight > 0) {
+					$container.height(newHeight);
 				}
-				$container.append($content);
-				$container.show();
+				$(document.body).append($container);
 			}
+			$container.append($content);
+			$container.show();
+		}
 
-			function decodeMessage(msg) {
-				var dmsg = decodeURIComponent(msg);
-				return dmsg.replace(/\+/g, " ");
+		function decodeMessage(msg) {
+			var dmsg = decodeURIComponent(msg);
+			return dmsg.replace(/\+/g, " ");
+		}
+
+		function showError(title, message) {
+			$("#webrtc-call-conversation, #webrtc-call-starting").hide();
+			var $error = $("#webrtc-call-error");
+			if ($error.length == 0) {
+				$error = $("<div id='webrtc-call-error'></div>");
+				addToContainer($error);
 			}
+//			var $title = $error.find(".error-title");
+//			if ($title.length == 0) {
+//				$title = $("<h1 class='error-title'></h1>");
+//				$error.append($title);
+//			}
+//			$title.text(title);
+//			var $description = $error.find(".error-description");
+//			if ($description.length == 0) {
+//				$description = $("<div class='error-description'></div>");
+//				$error.append($description);
+//			}
+//			$description.text(message);
 
-			function handleError() {
-				$("#mssfb-call-conversation").hide();
-				var $error = $("#mssfb-call-error");
-				if ($error.length == 0) {
-					$error = $("<div id='mssfb-call-error'></div>");
-					addToContainer($error);
-				}
-				var hasharr = location.hash.substr(1).split("&");
-				hasharr.forEach(function(hashelem) {
-					var elemarr = hashelem.split("=");
-					if (elemarr[0] == "error") {
-						var $title = $("<h1 class='error-title'></h1>");
-						$title.text(decodeMessage(elemarr[1]));
-						$error.append($title);
-					} else if (elemarr[0] == "error_description") {
-						var $description = $("<div class='error-description'></div>");
-						$description.text(decodeMessage(elemarr[1]));
-						$error.append($description);
+			// Append errors (for history)
+			var $title = $("<h1 class='error-title'></h1>");
+			$title.text(title);
+			$error.append($title);
+			var $description = $("<div class='error-description'></div>");
+			$description.text(message);
+			$error.append($description);
+		}
+		
+		function showStarted(message) {
+			var $starting = $("#webrtc-call-starting");
+			$starting.empty();
+			var $info = $(".startInfo");
+			if ($info.length == 0) {
+				$info = $("<div class='startInfo'></div>");
+				$starting.append($info);
+			}
+			$info.text(message);
+		}
+		
+		function objectUrl(obj) {
+			if (window.URL) {
+		  	return window.URL.createObjectURL(obj);
+		  } else {
+		  	return obj;
+		  }
+		}
+		
+		$(function() {
+			alignLoader();
+		});
+		
+		eXo.videoCalls.startCall = function(call) {
+			var process = $.Deferred();
+			$(function() {
+				var webrtc = videoCalls.getProvider("webrtc");
+				if (webrtc) {
+					log(">> WebRTC call: " + location.origin + location.pathname);
+					var callId = call.id;
+					var isGroup = callId.startsWith("g/");
+					if (isGroup) {
+						log(">> Group calls not supported by WebRTC");
+						showError("Warning", "Group calls not supported by WebRTC provider");
+						setTimeout(function() {
+							window.close();
+						}, 7000);
+						process.reject("Group calls not supported by WebRTC");
 					} else {
-						var $extrainfo = $("<div class='error-extrainfo'></div>");
-						$extrainfo.text(decodeMessage(elemarr[0]) + ": " + decodeMessage(elemarr[1]));
-						$error.append($extrainfo);
-					}
-				}, this);
-			}
-
-			function showError(title, message) {
-				$("#mssfb-call-conversation, #mssfb-call-starting").hide();
-				var $error = $("#mssfb-call-error");
-				if ($error.length == 0) {
-					$error = $("<div id='mssfb-call-error'></div>");
-					addToContainer($error);
-				}
-				var $title = $("<h1 class='error-title'></h1>");
-				$title.text(title);
-				$error.append($title);
-				var $description = $("<div class='error-description'></div>");
-				$description.text(message);
-				$error.append($description);
-			}
-			
-			function showStarted(message) {
-				var $starting = $("#mssfb-call-starting");
-				$starting.empty();
-				var $info = $(".startInfo");
-				if ($info.length == 0) {
-					$info = $("<div class='startInfo'></div>");
-					$starting.append($info);
-				}
-				$info.text(message);
-			}
-
-			if (isLogin) {
-				// FYI it's what WebSDK calls an "empty page"
-				log(">> MSSFB login: " + mssfb.tokenHashInfo(hashLine));
-				$(function() {
-					alignLoader();
-				});
-				var parent = window.opener ? window.opener : (window.parent ? window.parent : null);
-				if (hasToken) {
-					// FYI we assume expiration time in seconds
-					var expiresIn;
-					try {
-						expiresIn = parseInt(getParameterByName("expires_in", hashLine));
-					} catch(e) {
-						log("Error parsing token expiration time: " + e);
-						expiresIn = 0;
-					}
-					var token = {
-						"access_token" : getParameterByName("access_token", hashLine),
-						"token_type" : getParameterByName("token_type", hashLine),
-						"session_state" : getParameterByName("session_state", hashLine),
-						"hash_line" : hashLine,
-						"expires_in" : expiresIn,
-						"created" : Math.floor(new Date().getTime()/1000)
-					};
-					// FYI window.opener.eXo.videoCalls.mssfb.loginToken will exist only within provider.init() execution and short time
-					// thus this if-block should not execute for call authentication
-					if (parent && parent.eXo && parent.eXo.videoCalls && parent.eXo.videoCalls.mssfb) {
-						//var parentUri = parent.location.href;
-						//log(">>>> MSSFB login opener: " + parentUri);
-						// **** TODO experiments with ADSL to obtain auth token for SDK calls later
-						/*var settings = {
-									clientId : clientId,
-									cacheLocation: "localStorage"
-								};
-						var msOnlineContext = new AuthenticationContext(settings);
-						msOnlineContext.login();
-						msOnlineContext.acquireToken("https://login.microsoftonline.com/common", function(res) {
-		        	log("msOnlineContext.acquireTokenSilentAsync: " + JSON.stringify(res));
-		        });
-						var winGraphContext = new AuthenticationContext(settings);
-						winGraphContext.acquireToken("https://graph.windows.net", function(res) {
-		        	log("winGraphContext.acquireTokenSilentAsync: " + JSON.stringify(res));
-		        });*/
-						//
+						log("Preparing call " + callId + " > " + new Date().getTime());
+						var currentUserId = videoCalls.getUser().id;
+						var callerId = call.owner.id;
+						var callerLink = call.ownerLink;
+						var callerAvatar = call.avatarLink;
+						var isOwner = currentUserId == callerId;  
 						
-						if (parent.eXo.videoCalls.mssfb.loginToken) {
-							log(">>> use parent.eXo.videoCalls.mssfb.loginToken()");
-							parent.eXo.videoCalls.mssfb.loginToken(token).always(function() {
-								showStarted("Successfully authorized in " + mssfb.getTitle() + " account."); // TODO is it correct sentense?
-								setTimeout(function() {
-									window.close();
-								}, 2500);
-							});	
-						} else {
-							log("<<< WARN: parent.eXo.videoCalls.mssfb.loginToken() not found");
+						$("#webrtc-call-starting").hide();
+						var $convo = $("#webrtc-call-conversation");
+						if ($convo.length == 0) {
+							$convo = $("<div id='webrtc-call-conversation'></div>");
+							addToContainer($convo);
 						}
-					} else {
-						log("<<< ERROR: login has no opener or not initialized for callback token");
-					}
-				}
-				if (hasError) {
-					log("MSSFB login error: " + location.hash);
-					handleError();
-				}
-				log("<< MSSFB login");
-			} else {
-				$(function() {
-					alignLoader();
-					var clientId = mssfb.getClientId();
-					if (isCall) {
-						//log(">> MSSFB call: " + location.origin + location.pathname);
-						var pageCallId;
-						var ciIndex = location.pathname.indexOf("call/") + 5;
-						if (ciIndex > 5 && location.pathname.length > ciIndex) {
-							pageCallId = decodeURIComponent(location.pathname.substring(ciIndex));
-						} else {
-							pageCallId = "???" + location.pathname;
-						}
-						// it's call window, user may be already authenticated, but may be not
-						if (hasToken) {
-							var redirectUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
-							var uiInitializer = mssfb.uiApplication(redirectUri);
-							uiInitializer.done(function(api, app) {
+						var $title = $("<div id='webrtc-call-title'><h1 class='call-title'>" + call.title + "</h1></div>");
+						$convo.append($title);
+						
+						var $localVideo = $("<video id='video-local' autoplay></video>");
+						$convo.append($localVideo);
+						var $remoteVideo = $("<video id='video-remote' autoplay></video>");
+						$convo.append($remoteVideo);
+						var $controls = $("<div></div>");
+						// var $startButton = $("<button id='start-button'>Start</button>");
+						// var $callButton = $("<button id='call-button'>Call</button>");
+						var $hangupButton = $("<button id='hangup-button'>Hang Up</button>");
+						$controls.append($hangupButton);
+						$convo.append($controls);
+						// WebRTC connection to establish a call connection
+						var pc = new RTCPeerConnection(); // TODO servers
+						var handleError = function(title, message) {
+							showError(title, message);
+							if (!(pc.signalingState == "closed" || pc.connectionState == "closed")) {
 								try {
-									log(">>> SDK app created OK, user: " + app.personsAndGroupsManager.mePerson.displayName());
-									var currentUserSip = app.personsAndGroupsManager.mePerson.id();
-									
-									$("#mssfb-call-starting").hide();
-									var $convo = $("#mssfb-call-conversation");
-									if ($convo.length == 0) {
-										$convo = $("<div id='mssfb-call-conversation'></div>");
-										addToContainer($convo);
-									}
-									var container = mssfb.newCallContainer($convo);
-									
-									log(">>> Conversation is creating in " + $convo.get(0) + " " + pageCallId);
-									
-									// it's a new outgoing call
-									/*var outgoingConversation = function(options) {
-										options.modalities = [ "Chat" ]; // , "Video"
-										api.renderConversation($convo.get(0), options).then(function(conversation) {
-											currentConversation = conversation;
-											mssfb.logConversation(conversation);
-											if (mssfbCallTitle) {
-												conversation.topic(mssfbCallTitle);
-											}
-											// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
-											var callId = mssfb.getCallId(conversation);
-											var registerCall = function() {
-												var ownerId, ownerType;
-												if (conversation.isGroupConversation()) {
-													var spaceId = videoCalls.getCurrentSpaceId();
-													if (spaceId != null) {
-														ownerId = spaceId;
-														ownerType = "space";
-													} else {
-														var roomTitle = videoCalls.getCurrentRoomTitle();
-														if (roomTitle != null) {
-															ownerId = roomTitle;
-															ownerType = "chat_room";
-														}
-													}
-												} else {
-													ownerId = videoCalls.getUser().id;
-													ownerType = "user";
-												}
-												// call creator goes first in the ID of p2p
-												var participants = [];
-												for (var i=0; i<conversation.participantsCount(); i++) {
-													var pid = conversation.participants(i).person.id();
-													participants.push(pid);
-												}
-												var callInfo = {
-													owner : ownerId,
-													ownerType : ownerType,  
-													provider : mssfb.getType(),
-													title : conversation.topic(),
-													participants : participants.join("+")
-												};
-												videoCalls.registerCall(callId, callInfo).done(function(call) {
-													log(">>>> MSSFB call " + callId + " registered");
-												}).fail(function(err) {
-													log(">>>> MSSFB call " + callId + " registration failed " + JSON.stringify(err));
-												});
-											};
-											var unregisterCall = function() {
-												videoCalls.unregisterCall(callId).done(function(call) {
-													log("<<<< MSSFB call " + callId + " unregistered");
-												}).fail(function(err) {
-													log("<<<< MSSFB call " + callId + " unregistration failed " + JSON.stringify(err));
-												});
-											};
-											registerCall();
-											conversation.videoService.start().then(function() {
-												log(">>>> MSSFB video STARTED");
-											}, function(videoError) {
-												// error starting videoService, cancel (by this user) also will go here
-												log("<<<< Error starting MSSFB video: " + JSON.stringify(videoError));
-												var finisWithError = function(error) {
-													unregisterCall();
-													handleError(error);
-												};
-												if (mssfb.isModalityUnsupported(videoError)) {
-													// ok, try audio
-													conversation.audioService.start().then(function() {
-														log(">>>> MSSFB audio STARTED");
-													}, function(audioError) {
-														log("<<<< Error starting MSSFB audio: " + JSON.stringify(audioError));
-														if (mssfb.isModalityUnsupported(audioError)) {
-															// well, it will be chat (it should work everywhere)
-															conversation.chatService.start().then(function() {
-																log(">>>> MSSFB chat STARTED");
-															}, function(chatError) {
-																log("<<<< Error starting MSSFB chat: " + JSON.stringify(chatError));
-																// we show original error
-																finisWithError(videoError);
-															});
-														} else {
-															finisWithError(videoError);
-														}
-													});
-												} else {
-													finisWithError(videoError);
-												}
-											});
-											window.addEventListener("beforeunload", beforeunloadListener);
-											window.addEventListener("unload", unloadListener);
-										}, function(err) {
-											// error rendering Conversation Control
-											if (err.name && err.message) {
-												log(">>> MSSFB conversation rendering error: " + err.name + " " + err.message, err);
-												showError(err.name, err.message);
-											} else {
-												log(">>> MSSFB conversation rendering error: " + JSON.stringify(err));
-											}
-										});
-									};*/
-									/*if (pageCallId.startsWith("g/")) {
-										// Group call
-										var options = {
-											conversationId : pageCallId.substring(2)
-										};
-										//outgoingConversation(options);
-									} else if (pageCallId.startsWith("p/")) {
-										// P2P call
-										var participants = pageCallId.substring(2).split(";");
-										var options = {
-											participants : participants
-										};
-										//outgoingConversation(options);
-									} else {*/
-									// It's a call request, call ID format for it: 'target_type'/'target_id', e.g. space/product_team
-									var tdelim = pageCallId.indexOf("/");
-									if (tdelim > 0 && tdelim < pageCallId.length - 1) {
-										var startOutgoingCall = function(details) {
-											mssfb.startOutgoingCall(api, app, container, details);
-										};
-										var targetType = pageCallId.substring(0, tdelim);
-										var targetId = pageCallId.substring(tdelim + 1);
-										if (targetType == "space") {
-											videoCalls.getSpaceInfo(targetId).done(function(space) {
-												var details = mssfb.readTargetDetails(currentUserSip, space);
-												startOutgoingCall(details);
-											}).fail(function(err, status) {
-												log("ERROR: Space info request failure [" + status + "] " + err.code + " " + err.message, err);
-												showError("Space error", err.message);
-											});
-										} else if (targetType == "chat_room") {
-											videoCalls.getRoomInfo(targetId).done(function(room) {
-												var details = mssfb.readTargetDetails(currentUserSip, room);
-												startOutgoingCall(details);
-											}).fail(function(err, status) {
-												log("ERROR: Room info request failure [" + status + "] " + err.code + " " + err.message, err);
-												showError("Chat room error", err.message);
-											});
-										} else if (targetType == "user") {
-											videoCalls.getUserInfo(targetId).done(function(user) {
-												var details = mssfb.readTargetDetails(currentUserSip, user);
-												startOutgoingCall(details);
-											}).fail(function(err, status) {
-												log("ERROR: User info request failure [" + status + "] " + err.code + " " + err.message, err);
-												showError("User error", err.message);
-											});
+									//pc.close();
+								} catch(e) {
+									log("WARN Failed to close peer connection: ", e);
+								}								
+							}
+						}
+						// Show current user camera in the video,
+						// TODO if camera not found then show something for audio presence
+						
+						// var userMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+						var constraints = {
+						  audio: true,
+						  video: true
+						};
+						// TODO handle cases when video/audio not available
+						navigator.mediaDevices.getUserMedia(constraints).then(function(localStream) {
+							// successCallback
+							// show local camera output
+							// $localVideo.attr("src", objectUrl(localStream));
+							var localVideo = $localVideo.get(0);
+							localVideo.srcObject = localStream;
+							localVideo.onloadedmetadata = function(event) {
+								localVideo.play();
+							};
+						  // Subscribe to the call updates
+							var listener = videoCalls.onCallUpdate(callId, function(message) {
+								// TODO handle the remote side data
+								if (message.provider == webrtc.getType()) {
+									if (message.sender != currentUserId) {
+										log(">>> Received call update for " + callId + ": " + JSON.stringify(message) + " > " + new Date().getTime());
+										if (message.offer) {
+											log(">>> Received offer for " + callId);
+											// Offer of a caller on calee side
+											// was: new RTCSessionDescription(message.offer)
+											pc.setRemoteDescription(message.offer).then(function() {
+												log(">>>> Apllied offer for " + callId + " > " + new Date().getTime());
+									      // if we received an offer, we need to answer
+									      if (pc.remoteDescription.type == "offer") {
+									      	pc.createAnswer().then(function(desc) {
+									      		pc.setLocalDescription(desc).then(function() {
+									      			videoCalls.toCallUpdate(callId, {
+												    		"provider" : webrtc.getType(),
+												    		"sender" : currentUserId,
+												    		"answer": pc.localDescription
+												      }).done(function() {
+												      	log(">>>>> Published answer to " + callId + " > " + new Date().getTime());
+															}).fail(function(err) {
+																log("ERROR publishing answer to " + callId + ": " + JSON.stringify(err));
+																handleError("Error of sharing connection", err);
+															});									      			
+									      		}).catch(function(err) {
+									      			log("ERROR setting local answer for " + callId + ": " + JSON.stringify(err));
+										      		handleError("Error accepting call", err);
+									      		});
+									      	}).catch(function(err) {
+									      		log("ERROR answering offer for " + callId + ": " + JSON.stringify(err));
+									      		handleError("Error answering call", err);
+									      	});
+									      }
+									    }).catch(function(err) {
+									    	log("ERROR setting remote offer for " + callId + ": " + JSON.stringify(err));
+									    	handleError("Error applying call", err);
+									    });
+										} else if (message.answer) {
+											// Answer of a callee to the caller: it's final stage of the parties discovery
+											log(">>> Received answer for " + callId);
+											pc.setRemoteDescription(message.answer).then(function() {
+									      log(">>>> Apllied answer for " + callId + " > " + new Date().getTime());
+									    }).catch(function(err) {
+									    	log("ERROR setting remote answer for " + callId + ": " + JSON.stringify(err));
+									    	handleError("Error answering call", err);
+									    });
+										} else if (message.candidate) {
+											// ICE candidate of remote party
+											log(">>> Received candidate for " + callId);
+											pc.addIceCandidate(new RTCIceCandidate(message.candidate)).then(function() {
+									      log(">>>> Apllied candidate for " + callId + " > " + new Date().getTime());
+									    }).catch(function(err) {
+									    	log("ERROR adding candidate for " + callId + ": " + JSON.stringify(err));
+									    	handleError("Error establishing call", err);
+									    });
+										} else if (message.hello) {
+											// Initiator of the call sends "hello" - first message in the flow
+											log(">>> Received hello for " + callId + ": " + JSON.stringify(message.hello) + " > " + new Date().getTime());
+										} else if (message.bye) {
+											// Remote part leaved the call: stop listen the call
+											log(">>> Received bye for " + callId + ": " + JSON.stringify(message.bye) + " > " + new Date().getTime());
+											listener.off();
+											// TODO Tell local user, close the window?
 										} else {
-											log("ERROR: unsupported target type in call ID: " + pageCallId);
+											log(">>> Received unexpected message for " + callId);
 										}
 									} else {
-										log("ERROR: wrong call ID: " + pageCallId);
+										//log("<<< skip own update");
 									}
-									//}
-								} catch (err) {
-									log(">>> MSSFB call error:", err);
-									showError("Call Error", err);
 								}
+							}, function(err) {
+								log("ERROR subscribe to " + callId + ": " + JSON.stringify(err));
+								process.reject("Error setting up connection (subscribe call updates): " + err);
+								handleError("Connection error", err.message);
 							});
-							uiInitializer.fail(function(err) {
-								// TODO we have an error, check if it's auth problem, then force to login
-								log(">>> MSSFB app error: " + err);
-								showError("Application Error", err);
-							});
-						}
-						if (hasError) {
-							log("<<< MSSFB call error: " + location.hash); // show fill hash, it contains an error
-							handleError();
-						}
-						log("<< MSSFB call");
-					} else {
-						log(">> MSSFB default page " + location.origin + location.pathname);
-						var hasIdToken = /#id_token=/.test(hashLine);
-						if (hasIdToken && location.hash.indexOf("admin_consent=True") >= 0) {
-							log(">>> MSSFB admin consent: " + mssfb.tokenHashInfo(hashLine));
-							var $root = $("#mssfb-call-root");
-							if ($root.length == 0) {
-								$root = $("<div id='mssfb-call-root'></div>");
-								addToContainer($root);
-							}
-							var $title = $("<h1 class='consent-success'></h1>");
-							$title.text("Success");
-							$root.append($title);
-							var $description = $("<h3 class='consent-description'></h3>");
-							$description.text("Successfully granted app with Admin Consent");
-							$root.append($description);
-							var hasharr = location.hash.substr(1).split("&");
-							hasharr.forEach(function(hashelem) {
-								var elemarr = hashelem.split("=");
-								var $info = $("<div class='consent-info'></div>");
-								$info.text(decodeMessage(elemarr[0]) + ": " + decodeMessage(elemarr[1]));
-								$root.append($info);
-							}, this);
-							addToContainer($("<p><a href='/portal'>Home</a></p>"));
-						}
-						if (hasToken) {
-							log(">>> MSSFB token: " + mssfb.tokenHashInfo(hashLine));
-							var $root = $("#mssfb-call-root");
-							if ($root.length == 0) {
-								$root = $("<div id='mssfb-call-root'></div>");
-								addToContainer($root);
-							}
-							$root.text("Skype Calls default page. Please go to Portal Home and start a call from there.");
-							addToContainer($("<div><a href='/portal'>Home</a></div>"));
-						}
-						if (hasError) {
-							log("<<< MSSFB error: " + location.hash);
-							handleError();
-						}
-						log("<< MSSFB default page");
+							pc.onicecandidate = function (event) {
+								// This will happen when browser will be ready to exchange peers setup
+								log(">>> onIceCandidate for " + callId + ": " + JSON.stringify(event) + " > " + new Date().getTime());
+						    if (event.candidate) {
+						    	videoCalls.toCallUpdate(callId, {
+						    		"provider" : webrtc.getType(),
+						    		"sender" : currentUserId,
+						    		// "type" : "candidate",
+						    		// "sdpMLineIndex" : event.candidate.sdpMLineIndex,
+						        // "sdpMid": event.candidate.sdpMid,
+						        "candidate" : event.candidate
+						      }).done(function() {
+						      	log(">>>> Published candidate to " + callId);
+						      	// At this stage we resolve the deferred process,
+						      	// further errors (processing of remote updates) will not be reported to the caller
+						      	// process.resolve("Started");
+									}).fail(function(err) {
+										log("ERROR publishing candidate to " + callId + ": " + JSON.stringify(err));
+										// TODO retry or cancel the call?
+										process.reject("Error of sharing connection (send call update): " + err);
+										handleError("Error of sharing connection", err);
+									});
+						    } else {
+						      // else All ICE candidates have been sent. ICE gathering has finished.
+						    	// TODO any action is expected here?
+						    }
+						  };
+						  if (isOwner) {
+						 // let the 'negotiationneeded' event trigger offer generation
+							  pc.onnegotiationneeded = function () {
+							  	// This will be fired after adding a local media stream and browser readiness
+							  	log(">>> onNegotiationNeeded for " + callId + " > " + new Date().getTime());
+							    pc.createOffer().then(function(desc) {
+							    	pc.setLocalDescription(desc).then(function() {
+							    		videoCalls.toCallUpdate(callId, {
+								    		"provider" : webrtc.getType(),
+								    		"sender" : currentUserId,
+								    		"hello": call.title
+								      }).done(function() {
+								      	log(">>>> Published hello to " + callId);
+											}).fail(function(err) {
+												log("ERROR publishing hello to " + callId + ": " + JSON.stringify(err));
+											});
+							        videoCalls.toCallUpdate(callId, {
+								    		"provider" : webrtc.getType(),
+								    		"sender" : currentUserId,
+								    		"offer": JSON.stringify(pc.localDescription)
+								      }).done(function() {
+								      	log(">>>> Published offer to " + callId);
+								      	// process.progress("Shared");
+											}).fail(function(err) {
+												log("ERROR publishing offer to " + callId + ": " + JSON.stringify(err));
+												// TODO May retry?
+												// process.reject("Error of sharing connection (send call update): " + err);
+												handleError("Error of sharing connection", err);
+											});
+							      }).catch(function(err) {
+							      	// process.reject("Error of preparing connection (setting local descriptor): " + err);
+							      	log(">>> Error settings local offer for " + callId);
+							      	handleError("Error of preparing connection", err);
+								    });
+							    }).catch(function(err) {
+							    	// process.reject("Error of starting connection (create offer): " + err);
+							    	log(">>> Error creating offer for " + callId);
+							    	handleError("Error of starting connection", err);
+							    });
+							  };						  	
+						  }
+						  // once remote stream arrives, show it in the remote video element
+						  /*pc.ontrack = function(event) {
+						  	log(">>> onTrack for " + callId + " > " + new Date().getTime());
+						  	$remoteVideo.get(0).srcObject = event.streams[0];
+						  };*/
+							pc.onaddstream = function (event) { 
+								log(">>> onAddStream for " + callId + " > " + new  Date().getTime()); 
+								//$remoteVideo.attr("src", objectUrl(event.stream));
+								var video = $remoteVideo.get(0);
+								video.srcObject = event.stream;
+								video.onloadedmetadata = function(event1) {
+									video.play();
+								};
+							};
+						  pc.onremovestream = function(event) {
+						  	// TODO check the event stream URL before removal?
+						  	log(">>> onRemoveStream for " + callId + " > " + new Date().getTime());
+						  	$remoteVideo.removeAttr("src");
+						  };
+						  // add local stream
+						  pc.addStream(localStream); // It's deprecated way but Chrome works using it
+						  //localStream.getTracks().forEach(function(track) {
+						  //  pc.addTrack(track, localStream);
+						  //});
+						  
+						  log("Starting call " + callId + " > " + new Date().getTime());
+						  //
+						  // process.progress("Starting");
+						}).catch(function(err) {
+							// errorCallback
+							log(">> User media error: " + JSON.stringify(err));
+							// process.reject("User media error: " + err);
+							handleError("Media error", err);
+						});
+						process.resolve("Started");
 					}
-				});
-			}
-		} else {
-			console.log("MSSFB provider not found for mssfb-call.js");
-		}
+				} else {
+					process.reject("WebRTC provider not found");
+				}
+			});
+			return process.promise();
+		};
+		
 		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
 	})(eXo.videoCalls);
 } else {
-	console.log("eXo.videoCalls not defined for mssfb-call.js");
+	console.log("eXo.videoCalls not defined for webrtc-call.js");
 }

@@ -19,7 +19,7 @@ import org.exoplatform.container.web.AbstractHttpServlet;
 import org.exoplatform.videocalls.ContextInfo;
 import org.exoplatform.videocalls.UserInfo;
 import org.exoplatform.videocalls.VideoCallsService;
-import org.exoplatform.videocalls.cometd.CometdVideoCallsService;
+import org.exoplatform.videocalls.VideoCallsUtils;
 import org.exoplatform.videocalls.skype.SkypeBusinessProvider;
 import org.exoplatform.videocalls.skype.SkypeSettings;
 import org.gatein.common.logging.Logger;
@@ -103,10 +103,6 @@ public class SkypeCallServlet extends AbstractHttpServlet {
               if (exoUser != null) {
                 httpReq.setAttribute("userInfo", asJSON(exoUser));
 
-                // init page scope with settings for videoCalls and Skype provider
-                String title = httpReq.getParameter("title");
-                httpReq.setAttribute("callTitle", title != null ? title : EMPTY_STRING);
-
                 String spaceId = httpReq.getParameter("space");
                 if (spaceId == null) {
                   spaceId = EMPTY_STRING;
@@ -115,18 +111,7 @@ public class SkypeCallServlet extends AbstractHttpServlet {
                 if (roomTitle == null) {
                   roomTitle = EMPTY_STRING;
                 }
-                ContextInfo context;
-                CometdVideoCallsService cometd =
-                                               container.getComponentInstanceOfType(CometdVideoCallsService.class);
-                if (cometd != null) {
-                  context = new ContextInfo(container.getContext().getName(),
-                                            spaceId,
-                                            roomTitle,
-                                            cometd.getCometdServerPath(),
-                                            cometd.getUserToken(remoteUser));
-                } else {
-                  context = new ContextInfo(container.getContext().getName(), spaceId, roomTitle);
-                }
+                ContextInfo context = VideoCallsUtils.getCurrentContext(remoteUser);
                 httpReq.setAttribute("contextInfo", asJSON(context));
 
                 URI redirectURI = new URI(httpReq.getScheme(),
@@ -136,7 +121,7 @@ public class SkypeCallServlet extends AbstractHttpServlet {
                                           "/portal/skype/call",
                                           null,
                                           null);
-                SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
+                SkypeSettings settings = provider.settings().redirectURI(redirectURI.toString()).build();
                 httpReq.setAttribute("settings", asJSON(settings));
 
                 // XXX nasty-nasty-nasty include of CometD script

@@ -95,7 +95,7 @@ public class SkypeBusinessProviderPortlet extends GenericPortlet {
                                   "/portal/skype/call",
                                   null,
                                   null);
-        SkypeSettings settings = provider.getSettings().redirectURI(redirectURI.toString()).build();
+        SkypeSettings settings = provider.settings().redirectURI(redirectURI.toString()).build();
         String settingsJson = asJSON(settings);
 
         JavascriptManager js =

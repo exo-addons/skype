@@ -86,32 +86,37 @@ import org.picocontainer.Startable;
  */
 public class CometdVideoCallsService implements Startable {
 
-  public static final String             CALLS_CHANNEL_NAME                = "/videocalls/calls";
+  public static final String             CALLS_CHANNEL_NAME                    = "/videocalls/calls";
 
-  public static final String             CALLS_SERVICE_CHANNEL_NAME        = "/service" + CALLS_CHANNEL_NAME;
+  public static final String             CALLS_SERVICE_CHANNEL_NAME            =
+                                                                    "/service" + CALLS_CHANNEL_NAME;
 
-  public static final String             USERS_SERVICE_CHANNEL_NAME        = "/service/videocalls/users";
+  public static final String             USERS_SERVICE_CHANNEL_NAME            = "/service/videocalls/users";
 
-  public static final String             CALL_SUBSCRIPTION_CHANNEL_NAME    =
-                                                                        "/eXo/Application/VideoCalls/call/{callId}";
+  public static final String             CALL_SUBSCRIPTION_CHANNEL_NAME_ALL    =
+                                                                            "/eXo/Application/VideoCalls/call/**";
 
-  public static final String             USER_SUBSCRIPTION_CHANNEL_NAME    =
+  public static final String             CALL_SUBSCRIPTION_CHANNEL_NAME_PARAMS =
+                                                                               "/eXo/Application/VideoCalls/call/{callType}/{callInfo}";
+
+  public static final String             USER_SUBSCRIPTION_CHANNEL_NAME        =
                                                                         "/eXo/Application/VideoCalls/user";
 
-  public static final String             USER_SUBSCRIPTION_CHANNEL_PATTERN = USER_SUBSCRIPTION_CHANNEL_NAME
-      + "/{userId}";
+  public static final String             USER_SUBSCRIPTION_CHANNEL_PATTERN     =
+                                                                           USER_SUBSCRIPTION_CHANNEL_NAME
+                                                                               + "/{userId}";
 
-  public static final String             COMMAND_GET                       = "get";
+  public static final String             COMMAND_GET                           = "get";
 
-  public static final String             COMMAND_CREATE                    = "create";
+  public static final String             COMMAND_CREATE                        = "create";
 
-  public static final String             COMMAND_UPDATE                    = "update";
+  public static final String             COMMAND_UPDATE                        = "update";
 
-  public static final String             COMMAND_DELETE                    = "delete";
+  public static final String             COMMAND_DELETE                        = "delete";
 
-  public static final String             COMMAND_GET_CALLS_STATE           = "get_calls_state";
+  public static final String             COMMAND_GET_CALLS_STATE               = "get_calls_state";
 
-  private static final Log               LOG                               =
+  private static final Log               LOG                                   =
                                              ExoLogger.getLogger(CometdVideoCallsService.class);
 
   protected final VideoCallsService      videoCalls;
@@ -153,7 +158,7 @@ public class CometdVideoCallsService implements Startable {
         String channelId = channel.getId();
         String currentUserId = currentUserId(message);
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Subscribed: " + currentUserId + ", client:" + clientId + ", channel:" + channelId);
+          LOG.debug(">> Subscribed: " + currentUserId + ", client:" + clientId + ", channel:" + channelId);
         }
         if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
           try {
@@ -166,7 +171,7 @@ public class CometdVideoCallsService implements Startable {
                 Set<String> clients = channelClients.computeIfAbsent(channelId,
                                                                      k -> ConcurrentHashMap.newKeySet());
                 if (clients.contains(clientId) && clientUserListeners.containsKey(clientId)) {
-                  LOG.warn("Subscription is already active for " + currentUserId + ", client: " + clientId
+                  LOG.warn(">>> Subscription is already active for " + currentUserId + ", client: " + clientId
                       + ", channel: " + channelId);
                   remote.deliver(serverSession,
                                  channelId,
@@ -238,8 +243,8 @@ public class CometdVideoCallsService implements Startable {
                   // add listener for removed session cleanup
                   remote.addListener(sessionRemoveListener);
                   if (LOG.isDebugEnabled()) {
-                    LOG.debug("Added user call listener for " + userId + ", client:" + clientId + ", channel:"
-                        + channelId);
+                    LOG.debug("<<< Added user call listener for " + userId + ", client:" + clientId
+                        + ", channel:" + channelId);
                   }
                 }
               } else {
@@ -262,7 +267,7 @@ public class CometdVideoCallsService implements Startable {
           } catch (IndexOutOfBoundsException e) {
             // Ignore channel w/o a subpath (userId here) at the end
             if (LOG.isDebugEnabled()) {
-              LOG.debug("Ignore user channel w/o user ID at the end: " + channelId, e);
+              LOG.debug(">> Ignore user channel w/o user ID at the end: " + channelId, e);
             }
           }
         }
@@ -274,7 +279,7 @@ public class CometdVideoCallsService implements Startable {
         String clientId = session.getId();
         String channelId = channel.getId();
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Unsubscribed client:" + clientId + ", channel:" + channelId);
+          LOG.debug("<< Unsubscribed client:" + clientId + ", channel:" + channelId);
         }
         // cleanup session stuff, note that disconnected session already unsubscribed and has not channels
         boolean hasClient = channelClients.getOrDefault(channelId, Collections.emptySet()).remove(clientId);
@@ -283,7 +288,7 @@ public class CometdVideoCallsService implements Startable {
           if (listener != null) {
             videoCalls.removeUserCallListener(listener);
             if (LOG.isDebugEnabled()) {
-              LOG.debug("Removed call listener for user " + listener.getUserId() + ", client:" + clientId
+              LOG.debug("<<< Removed call listener for user " + listener.getUserId() + ", client:" + clientId
                   + ", channel:" + channelId);
             }
           } else {
@@ -383,18 +388,33 @@ public class CometdVideoCallsService implements Startable {
       clientUserListeners.clear();
     }
 
-    @Subscription(CALL_SUBSCRIPTION_CHANNEL_NAME)
-    public void subscribeCalls(Message message, @Param("callId") String callId) {
-      LOG.info("Call published in " + message.getChannel() + " by " + message.getClientId() + " callId: "
-          + callId + " data: " + message.getJSON());
+    @Subscription(CALL_SUBSCRIPTION_CHANNEL_NAME_PARAMS)
+    public void subscribeCalls(Message message,
+                               @Param("callType") String callType,
+                               @Param("callInfo") String callInfo) {
+      String callId = callId(callType, callInfo);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Call published in " + message.getChannel() + " by " + message.get("sender") + " callId: "
+            + callId + " data: " + message.getJSON());
+      }
+      // TODO all data exchanged between peers of a call will go there, WebRTC stuff etc.
+    }
+    
+    //@Subscription(CALL_SUBSCRIPTION_CHANNEL_NAME_ALL)
+    public void subscribeCallsAll(Message message) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Call published in " + message.getChannel() + " by " + message.getClientId() + " data: " + message.getJSON());
+      }
       // TODO all data exchanged between peers of a call will go there, WebRTC stuff etc.
     }
 
     @Subscription(USER_SUBSCRIPTION_CHANNEL_NAME)
     public void subscribeUser(Message message, @Param("userId") String userId) {
       final String channelId = message.getChannel();
-      LOG.info("User published in " + channelId + " by " + message.getClientId() + " userId: " + userId
-          + " data: " + message.getJSON());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("User published in " + channelId + " by " + message.getClientId() + " userId: " + userId
+            + " data: " + message.getJSON());
+      }
       // here will come user publications about his state
     }
 
@@ -1168,5 +1188,16 @@ public class CometdVideoCallsService implements Startable {
 
   protected String channelsAsString(Set<ServerChannel> channles) {
     return channles.stream().map(c -> c.getId()).collect(Collectors.joining(", "));
+  }
+
+  /**
+   * Call id.
+   *
+   * @param type the type
+   * @param info the id
+   * @return the string
+   */
+  protected String callId(String type, String info) {
+    return new StringBuffer(type).append('/').append(info).toString();
   }
 }

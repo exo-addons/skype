@@ -414,10 +414,10 @@ public class VideoCallsService implements Startable {
     call.setState(CallState.STARTED);
     String prevId = readOwnerCallId(ownerId);
     saveCall(call);
+    String userId = currentUserId();
     if (isSpace || isRoom) {
       // it's group call
       saveOwnerCallId(ownerId, id);
-      String userId = currentUserId();
       for (UserInfo part : participants) {
         if (part.getType() == UserInfo.TYPE_NAME) {
           if (prevId != null) {
@@ -430,6 +430,15 @@ public class VideoCallsService implements Startable {
           saveUserGroupCallId(part.getId(), id);
           if (!userId.equals(part.getId())) {
             // fire group's user listener for incoming, except of the caller
+            fireUserCallState(part.getId(), id, CallState.STARTED, ownerId, ownerType);
+          }
+        }
+      }
+    } else if (isUser) {
+      for (UserInfo part : participants) {
+        if (part.getType() == UserInfo.TYPE_NAME) {
+          if (!userId.equals(part.getId())) {
+            // fire P2P user listener for incoming
             fireUserCallState(part.getId(), id, CallState.STARTED, ownerId, ownerType);
           }
         }
