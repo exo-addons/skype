@@ -4,7 +4,7 @@
 <head>
 	<meta charset="UTF-8">
 	<title>WebRTC Call</title>
-	<link href="/skype/skin/mssfb-call.css" rel="stylesheet" type="text/css"/>
+	<link href="/webrtc/skin/webrtc-call.css" rel="stylesheet" type="text/css"/>
     <script type="text/javascript" src="/videocalls/js/jquery-3.2.1.js"></script>
     <script type="text/javascript" src="/videocalls/js/jquery-ui.min.js"></script>
     <script type="text/javascript" src="/videocalls/js/jquery.pnotify.min.js"></script>

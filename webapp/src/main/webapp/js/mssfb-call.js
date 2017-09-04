@@ -227,120 +227,6 @@ if (eXo.videoCalls) {
 									
 									log(">>> Conversation is creating in " + $convo.get(0) + " " + pageCallId);
 									
-									// it's a new outgoing call
-									/*var outgoingConversation = function(options) {
-										options.modalities = [ "Chat" ]; // , "Video"
-										api.renderConversation($convo.get(0), options).then(function(conversation) {
-											currentConversation = conversation;
-											mssfb.logConversation(conversation);
-											if (mssfbCallTitle) {
-												conversation.topic(mssfbCallTitle);
-											}
-											// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
-											var callId = mssfb.getCallId(conversation);
-											var registerCall = function() {
-												var ownerId, ownerType;
-												if (conversation.isGroupConversation()) {
-													var spaceId = videoCalls.getCurrentSpaceId();
-													if (spaceId != null) {
-														ownerId = spaceId;
-														ownerType = "space";
-													} else {
-														var roomTitle = videoCalls.getCurrentRoomTitle();
-														if (roomTitle != null) {
-															ownerId = roomTitle;
-															ownerType = "chat_room";
-														}
-													}
-												} else {
-													ownerId = videoCalls.getUser().id;
-													ownerType = "user";
-												}
-												// call creator goes first in the ID of p2p
-												var participants = [];
-												for (var i=0; i<conversation.participantsCount(); i++) {
-													var pid = conversation.participants(i).person.id();
-													participants.push(pid);
-												}
-												var callInfo = {
-													owner : ownerId,
-													ownerType : ownerType,  
-													provider : mssfb.getType(),
-													title : conversation.topic(),
-													participants : participants.join("+")
-												};
-												videoCalls.registerCall(callId, callInfo).done(function(call) {
-													log(">>>> MSSFB call " + callId + " registered");
-												}).fail(function(err) {
-													log(">>>> MSSFB call " + callId + " registration failed " + JSON.stringify(err));
-												});
-											};
-											var unregisterCall = function() {
-												videoCalls.unregisterCall(callId).done(function(call) {
-													log("<<<< MSSFB call " + callId + " unregistered");
-												}).fail(function(err) {
-													log("<<<< MSSFB call " + callId + " unregistration failed " + JSON.stringify(err));
-												});
-											};
-											registerCall();
-											conversation.videoService.start().then(function() {
-												log(">>>> MSSFB video STARTED");
-											}, function(videoError) {
-												// error starting videoService, cancel (by this user) also will go here
-												log("<<<< Error starting MSSFB video: " + JSON.stringify(videoError));
-												var finisWithError = function(error) {
-													unregisterCall();
-													handleError(error);
-												};
-												if (mssfb.isModalityUnsupported(videoError)) {
-													// ok, try audio
-													conversation.audioService.start().then(function() {
-														log(">>>> MSSFB audio STARTED");
-													}, function(audioError) {
-														log("<<<< Error starting MSSFB audio: " + JSON.stringify(audioError));
-														if (mssfb.isModalityUnsupported(audioError)) {
-															// well, it will be chat (it should work everywhere)
-															conversation.chatService.start().then(function() {
-																log(">>>> MSSFB chat STARTED");
-															}, function(chatError) {
-																log("<<<< Error starting MSSFB chat: " + JSON.stringify(chatError));
-																// we show original error
-																finisWithError(videoError);
-															});
-														} else {
-															finisWithError(videoError);
-														}
-													});
-												} else {
-													finisWithError(videoError);
-												}
-											});
-											window.addEventListener("beforeunload", beforeunloadListener);
-											window.addEventListener("unload", unloadListener);
-										}, function(err) {
-											// error rendering Conversation Control
-											if (err.name && err.message) {
-												log(">>> MSSFB conversation rendering error: " + err.name + " " + err.message, err);
-												showError(err.name, err.message);
-											} else {
-												log(">>> MSSFB conversation rendering error: " + JSON.stringify(err));
-											}
-										});
-									};*/
-									/*if (pageCallId.startsWith("g/")) {
-										// Group call
-										var options = {
-											conversationId : pageCallId.substring(2)
-										};
-										//outgoingConversation(options);
-									} else if (pageCallId.startsWith("p/")) {
-										// P2P call
-										var participants = pageCallId.substring(2).split(";");
-										var options = {
-											participants : participants
-										};
-										//outgoingConversation(options);
-									} else {*/
 									// It's a call request, call ID format for it: 'target_type'/'target_id', e.g. space/product_team
 									var tdelim = pageCallId.indexOf("/");
 									if (tdelim > 0 && tdelim < pageCallId.length - 1) {
@@ -379,7 +265,6 @@ if (eXo.videoCalls) {
 									} else {
 										log("ERROR: wrong call ID: " + pageCallId);
 									}
-									//}
 								} catch (err) {
 									log(">>> MSSFB call error:", err);
 									showError("Call Error", err);

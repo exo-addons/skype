@@ -38,3 +38,9 @@
     padding-top: 20%;
     font-size: x-large;
 }
+
+#video-local {
+	position: relative;
+	top: 0px;
+	left: -160px;
+}

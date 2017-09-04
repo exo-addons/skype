@@ -34,7 +34,7 @@
 		function WebrtcProvider() {
 			var NON_WHITESPACE_PATTERN = /\s+/;
 			var self = this;
-			var settings, currentKey;
+			var settings, currentKey, clientId;
 			
 			this.getType = function() {
 				if (settings) {
@@ -67,7 +67,39 @@
 			this.isConfigured = function() {
 				return settings != null;
 			};
+			
+			this.getClientId = function() {
+				return clientId;
+			};
+			
+			var getRandomArbitrary = function(min, max) {
+			  return Math.random() * (max - min) + min;
+			};
+			
+			this.createId = function(prefix) {
+				var rnd = Math.floor(getRandomArbitrary(10000, 99998) + 1);
+				return prefix + "-" + rnd;
+			};
 
+			var deleteCall = function(callId) {
+				// For P2P we delete closed call
+				var process = $.Deferred();
+				videoCalls.deleteCall(callId).done(function() {
+					log("<< Deleted " + callId + " > " + new Date().getTime());
+					process.resolve();
+				}).fail(function(err) {
+					if (err && (err.code == "NOT_FOUND_ERROR" || (typeof(status) == "number" && status == 404))) {
+						// already deleted
+						log("<< Call not found " + callId);
+						process.resolve();
+					} else {
+						log("ERROR deleting " + callId + ": " + JSON.stringify(err));
+						process.reject(err);
+					}
+				});
+				return process.promise();
+			};
+			
 			this.callButton = function(context) {
 				var button = $.Deferred();
 				if (settings && context && context.currentUser) {
@@ -75,7 +107,7 @@
 					if (!context.isGroup) {
 						context.details().done(function(target) { // users, convName, convTitle
 							var rndText = Math.floor((Math.random() * 1000000) + 1);
-							var linkId = "WebrtcCall-" + context.userId + "-" + rndText;
+							var linkId = "WebrtcCall-" + clientId;
 							var callId = "p/" + context.currentUser.id + "@" + target.id;
 							var link = settings.callUri + "/" + callId;
 							//var disabledClass = hasJoinedCall(targetId) ? "callDisabled" : "";
@@ -109,10 +141,13 @@
 									$(callWindow).on("load", function() {
 										// XXX Wait 5sec for debug only - remove in production
 										setTimeout(function() {
-											callWindow.eXo.videoCalls.startCall(call).fail(function(err) {
+											callWindow.eXo.videoCalls.startCall(call, function() {
+												// onStop
+												return deleteCall(callId);
+											}).fail(function(err) {
 												videoCalls.showError("Error starting call", err);
 											});											
-										}, 5000);
+										}, 5);
 									});
 								}).fail(function(err) {
 									log("ERROR adding " + callId + ": " + JSON.stringify(err));
@@ -199,6 +234,7 @@
 			
 			this.init = function(context) {
 				var currentUserId = videoCalls.getUser().id;
+				clientId = self.createId(currentUserId);
 				var $callPopup; 
 				var closeCallPopup = function(callId) {
 					if ($callPopup && $callPopup.callId && $callPopup.callId == callId) {
@@ -224,7 +260,7 @@
 							};
 							lockCallButton = function(callId, callerId, callerRoom) {
 								var roomId = chatApplication.targetUser;
-								if (roomId == callerRoom) {
+								if (roomId == (callerRoom ? callerRoom : callerId)) {
 									var $callButton = getCallButton();
 									if (!$callButton.hasClass("callDisabled")) {
 										$callButton.addClass("callDisabled");
@@ -233,7 +269,7 @@
 							};
 							unlockCallButton = function(callId, callerId, callerRoom) {
 								var roomId = chatApplication.targetUser;
-								if (roomId == callerRoom) {
+								if (roomId == (callerRoom ? callerRoom : callerId)) {
 									var $callButton = getCallButton();
 									$callButton.removeClass("callDisabled");
 								}
@@ -258,6 +294,7 @@
 									var callerAvatar = call.avatarLink;
 									var callerMessage = call.owner.title + " is calling.";
 									var callerRoom = callerId;
+									call.title = call.owner.title; // for callee the call title is a caller name
 									//
 									var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
 									popover.progress(function($call) {
@@ -272,7 +309,10 @@
 										// Tell the window to start the call  
 										callWindow.document.title = longTitle + ": " + call.owner.title;
 										$(callWindow).on("load", function() {
-											callWindow.eXo.videoCalls.startCall(call).done(function(state) {
+											callWindow.eXo.videoCalls.startCall(call, function() {
+												// onStop
+												return deleteCall(callId);
+											}).done(function(state) {
 												lockCallButton(callId, callerId, callerRoom);
 											}).fail(function(err) {
 												videoCalls.showError("Error starting call", err);
@@ -280,7 +320,12 @@
 										});
 									});
 									popover.fail(function(err) {
-										log("<<< user " + err + " call " + callId);
+										log("<<< User " + err + " call " + callId + ", deleting it.");
+										videoCalls.deleteCall(callId).done(function() {
+											log("<<< Deleted " + callId + " > " + new Date().getLocaleString);
+										}).fail(function(err) {
+											log("ERROR deleting " + callId + ": " + JSON.stringify(err));
+										});
 									});
 								}).fail(function(err, status) {
 									log(">>> Call info error: " + JSON.stringify(err) + " [" + status + "]");
@@ -294,7 +339,8 @@
 								// Hide accept popover for this call
 								closeCallPopup(callId);
 								// Unclock the call button
-								unlockCallButton(callId, callerId, callerRoom);
+								var callerId = update.callerId; // callerRoom is the same as callerId for P2P
+								unlockCallButton(callId, callerId, callerId); 
 							}							
 						} else {
 							log(">>> Group calls not supported: " + JSON.stringify(update) + " [" + status + "]");

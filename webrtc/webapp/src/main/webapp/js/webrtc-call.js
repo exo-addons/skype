@@ -109,7 +109,7 @@ if (eXo.videoCalls) {
 			alignLoader();
 		});
 		
-		eXo.videoCalls.startCall = function(call) {
+		eXo.videoCalls.startCall = function(call, onStop/*, onError*/) {
 			var process = $.Deferred();
 			$(function() {
 				var webrtc = videoCalls.getProvider("webrtc");
@@ -127,10 +127,11 @@ if (eXo.videoCalls) {
 					} else {
 						log("Preparing call " + callId + " > " + new Date().getTime());
 						var currentUserId = videoCalls.getUser().id;
-						var callerId = call.owner.id;
-						var callerLink = call.ownerLink;
-						var callerAvatar = call.avatarLink;
-						var isOwner = currentUserId == callerId;  
+						var clientId = webrtc.getClientId();
+						var isOwner = currentUserId == call.owner.id;
+						// Use this for avatar when no video stream available
+						//var callerLink = call.ownerLink;
+						//var callerAvatar = call.avatarLink;
 						
 						$("#webrtc-call-starting").hide();
 						var $convo = $("#webrtc-call-conversation");
@@ -141,18 +142,21 @@ if (eXo.videoCalls) {
 						var $title = $("<div id='webrtc-call-title'><h1 class='call-title'>" + call.title + "</h1></div>");
 						$convo.append($title);
 						
-						var $localVideo = $("<video id='video-local' autoplay></video>");
-						$convo.append($localVideo);
 						var $remoteVideo = $("<video id='video-remote' autoplay></video>");
 						$convo.append($remoteVideo);
+						var $localVideo = $("<video id='video-local' width='160' height='120' autoplay></video>");
+						$convo.append($localVideo);
 						var $controls = $("<div></div>");
 						// var $startButton = $("<button id='start-button'>Start</button>");
 						// var $callButton = $("<button id='call-button'>Call</button>");
 						var $hangupButton = $("<button id='hangup-button'>Hang Up</button>");
 						$controls.append($hangupButton);
 						$convo.append($controls);
+						
 						// WebRTC connection to establish a call connection
 						var pc = new RTCPeerConnection(); // TODO servers
+						var negotiation = $.Deferred();
+						var connection = $.Deferred();
 						var handleError = function(title, message) {
 							showError(title, message);
 							if (!(pc.signalingState == "closed" || pc.connectionState == "closed")) {
@@ -163,9 +167,301 @@ if (eXo.videoCalls) {
 								}								
 							}
 						}
+						connection.fail(function(err) {
+							log("ERROR starting connection for " + callId + ": " + JSON.stringify(err));
+							handleError("Error of starting connection", err);
+						});
+						var sendMessage = function(message) {
+							return videoCalls.toCallUpdate(callId, $.extend({
+				    		"provider" : webrtc.getType(),
+				    		"sender" : currentUserId,
+				    		"client" : clientId,
+				    		"host" : isOwner
+				      }, message)).done(function(status) {
+				      	log("<< " + status + " data: " + JSON.stringify(message));
+				      });
+						};
+						var helloCounter = 0;
+						var sendHello = function() {
+							// It is a first message send on the call channel by a peer, 
+							// it tells that the end is ready to exchange other information (i.e. accepted the call)
+							// If it will be required to change a host in future, then this message should be send
+							// by a new host with '__all__' content, others should understand this and update their 
+							// owner ID to this sender ID.
+							return sendMessage({
+				    		"hello": isOwner ? "__all__" : call.owner.id
+				      }).done(function() {
+				      	log("<< Published hello to " + callId);
+							}).fail(function(err) {
+								log("ERROR publishing hello to " + callId + ": " + JSON.stringify(err));
+							}).always(function() {
+								helloCounter++;
+							});
+						};
+						var sendOffer = function(localDescription) {
+							return sendMessage({
+				    		"offer": JSON.stringify(localDescription)
+				      }).done(function() {
+				      	log("<< Published offer to " + callId);
+							}).fail(function(err) {
+								log("ERROR publishing offer to " + callId + ": " + JSON.stringify(err));
+								// TODO May retry?
+								handleError("Error of sharing media offer", err);
+							});
+						};
+						var sendAnswer = function(localDescription) {
+							return sendMessage({
+				    		"answer": JSON.stringify(localDescription)
+				      }).done(function() {
+				      	log("<< Published answer to " + callId + " > " + new Date().getTime());
+							}).fail(function(err) {
+								log("ERROR publishing answer to " + callId + ": " + JSON.stringify(err));
+								handleError("Error of sharing media answer", err);
+							});
+						};
+						var sendCandidate = function(candidate) {
+							return sendMessage({
+				    		// "sdpMLineIndex" : event.candidate.sdpMLineIndex,
+				        // "sdpMid": event.candidate.sdpMid,
+				        "candidate" : candidate
+				      }).done(function() {
+				      	log("<< Published candidate to " + callId);
+							}).fail(function(err) {
+								log("ERROR publishing candidate to " + callId + ": " + JSON.stringify(err));
+								handleError("Error of sharing connection", err);
+							});
+						};
+						
+						// 'Hang Up' and page close actions to end call properly
+						var stopping = false;
+						var stopCall = function() {
+							// TODO here we also could send 'bye' message - it will work for 'Hang Up' button, 
+							// but in case of page close it may not be sent to others, thus we call the callback onStop
+							// to let the caller page handle the call end in its own way.
+							if (!stopping) {
+								stopping = true;
+								function stopLocal() {
+									try {
+										pc.close();
+									} catch(e) {
+										log("WARN Failed to close peer connection: ", e);
+									}
+									window.removeEventListener("beforeunload", beforeunloadListener);
+									window.removeEventListener("unload", unloadListener);
+								}
+								if (typeof onStop == "function") {
+									onStop().done(function() {
+										stopLocal();
+									}).fail(function(err) {
+										log("ERROR Call failed to stop properly");
+									});
+								} else {
+									stopLocal();
+								}
+							}
+						};
+						var beforeunloadListener = function(e) {
+							stopCall();
+						};
+						var unloadListener = function(e) {
+							stopCall();
+						};
+						window.addEventListener("beforeunload", beforeunloadListener);
+						window.addEventListener("unload", unloadListener);
+						var stopCallWaitClose = function() {
+							stopCall();
+							setTimeout(function() {
+								window.close();
+							}, 3500);
+						};
+						$hangupButton.click(function() {
+							stopCallWaitClose();
+						});
+						
+						// Add peer listeners for connection flow
+						pc.onicecandidate = function (event) {
+							// This will happen when browser will be ready to exchange peers setup
+							log(">>> onIceCandidate for " + callId + ": " + JSON.stringify(event) + " > " + new Date().toLocaleString());
+					    if (event.candidate) {
+					    	connection.then(function() {
+					    		sendCandidate(event.candidate);
+					    	});
+					    } else {
+					      // else All ICE candidates have been sent. ICE gathering has finished.
+					    	// TODO any action is expected here?
+					    	log("<<< All ICE candidates have been sent");
+					    }
+					  };
+				  	// let the 'negotiationneeded' event trigger offer generation
+					  pc.onnegotiationneeded = function () {
+					  	// This will be fired after adding a local media stream and browser readiness
+					  	log(">>> onNegotiationNeeded for " + callId + " > " + new Date().toLocaleString());
+					  	// Ready to join the call: say hello to each other
+			  			if (isOwner) {
+			  				sendHello().then(function() {
+				  				log(">>>> Sent Hello by " + (isOwner ? "owner" : "participant") + " to " + callId + " > " + new Date().toLocaleString());
+				  			});
+					  		// Owner will send the offer when negotiation will be resolved (received Hello from others)
+			  				negotiation.then(function() {
+							    pc.createOffer().then(function(desc) {
+							    	log(">>>> createOffer for " + callId + " > " + new Date().toLocaleString());
+							    	pc.setLocalDescription(desc).then(function() {
+							    		log(">>>>> setLocalDescription for " + callId + " > " + new Date().toLocaleString());
+							    		sendOffer(pc.localDescription).then(function() {
+								    		connection.resolve().then(function() {
+									      	// Owner ready to exchange ICE candidates
+													log("<<<<< Starting exchange network information with peers of " + callId + " > " + new Date().toLocaleString());
+												});
+							    		});
+							      }).catch(function(err) {
+							      	log(">>> Error settings local offer for " + callId);
+							      	handleError("Error of preparing connection", err);
+								    });
+							    }).catch(function(err) {
+							    	log(">>> Error creating offer for " + callId);
+							    	handleError("Error of starting connection", err);
+							    });
+			  				});
+					  	}
+					  };			  	
+					  // once remote stream arrives, show it in the remote video element
+					  /*pc.ontrack = function(event) {
+					  	log(">>> onTrack for " + callId + " > " + new Date().toLocaleString());
+					  	$remoteVideo.get(0).srcObject = event.streams[0];
+					  };*/
+						pc.onaddstream = function (event) { 
+							log(">>> onAddStream for " + callId + " > " + new  Date().getTime()); 
+							//$remoteVideo.attr("src", objectUrl(event.stream));
+							var video = $remoteVideo.get(0);
+							video.srcObject = event.stream;
+							video.onloadedmetadata = function(event1) {
+								video.play();
+							};
+						};
+					  pc.onremovestream = function(event) {
+					  	// TODO check the event stream URL before removal?
+					  	log(">>> onRemoveStream for " + callId + " > " + new Date().toLocaleString());
+					  	$remoteVideo.removeAttr("src");
+					  };
+						
+						// Subscribe to the call updates
+						var listener = videoCalls.onCallUpdate(callId, function(message) {
+							// TODO handle the remote side data
+							if (message.provider == webrtc.getType()) {
+								if (message.sender != currentUserId) {
+									log(">>> Received call update for " + callId + ": " + JSON.stringify(message) + " > " + new Date().toLocaleString());
+									if (message.candidate) {
+										// ICE candidate of remote party (can happen several times)
+										log(">>> Received candidate for " + callId);
+										connection.then(function() {
+											log(">>>> Apply candidate for " + callId);
+											pc.addIceCandidate(new RTCIceCandidate(message.candidate)).then(function() {
+									      log(">>>>> Apllied candidate for " + callId + " > " + new Date().toLocaleString());
+									    }).catch(function(err) {
+									    	log("ERROR adding candidate for " + callId + ": " + JSON.stringify(err));
+									    	handleError("Error establishing call", err);
+									    });											
+										});
+									} else if (message.offer) {
+										log(">>> Received offer for " + callId);
+										// Offer of a caller on callee side
+										if (isOwner) {
+											log("<<< Unexpected offer received on owner side of " + callId);
+										} else {
+											try {
+												var offer = JSON.parse(message.offer);
+												// was: new RTCSessionDescription(offer)
+												negotiation.then(function(localStream) {
+													pc.setRemoteDescription(offer).then(function() {
+														log(">>>> Apllied offer for " + callId + " > " + new Date().toLocaleString());
+											      // if we received an offer, we need to answer
+											      if (pc.remoteDescription.type == "offer") {
+											      	// Add local stream for participant after media negotiation (as in samples) 
+											      	pc.addStream(localStream); // XXX It's deprecated way but Chrome works using it
+											      	// Will it be better to do this in onnegotiationneeded event?
+											      	pc.createAnswer().then(function(desc) {
+											      		pc.setLocalDescription(desc).then(function() {
+											      			sendAnswer(pc.localDescription).then(function() {
+											      				connection.resolve().then(function() {
+											      					// Participant ready to exchange ICE candidates
+																			log("<<<< Starting exchange network information with peers of " + callId + " > " + new Date().toLocaleString());
+																		});
+											      			});
+											      		}).catch(function(err) {
+											      			log("ERROR setting local answer for " + callId + ": " + JSON.stringify(err));
+												      		handleError("Error accepting call", err);
+											      		});
+											      	}).catch(function(err) {
+											      		log("ERROR answering offer for " + callId + ": " + JSON.stringify(err));
+											      		handleError("Error answering call", err);
+											      	});
+											      }
+											    }).catch(function(err) {
+											    	log("ERROR setting remote offer for " + callId + ": " + JSON.stringify(err));
+											    	handleError("Error applying call", err);
+											    });
+												});
+											} catch(e) {
+												log("Error applying offer: " + message.offer, e);
+											}
+										}
+									} else if (message.answer) {
+										if (isOwner) {
+											// Answer of a callee to the caller: it's final stage of the parties discovery
+											log(">>> Received answer for " + callId);
+											try {
+												var answer = JSON.parse(message.answer);
+												negotiation.then(function() {
+													pc.setRemoteDescription(answer).then(function() {
+											      log(">>>> Apllied answer for " + callId + " > " + new Date().toLocaleString());
+											      // TODO anything else here?
+											    }).catch(function(err) {
+											    	log("ERROR setting remote answer for " + callId + ": " + JSON.stringify(err));
+											    	handleError("Error answering call", err);
+											    });
+												});
+											} catch(e) {
+												log("Error applying answer: " + message.answer, e);
+											}
+										} else {
+											// FYI this could be OK to receive for group call
+											log("<<< Unexpected answer received on participant side of " + callId);
+										}
+									} else if (message.hello) {
+										// To start the call send "hello" - first message in the flow for each client
+										log(">>> Received Hello for " + callId + ": " + JSON.stringify(message.hello) + " > " + new Date().toLocaleString());
+										if (message.hello == currentUserId) {
+											// We assume it's a hello to the call owner: start sending offer and candidates
+											// This will works once (for group calls, need re-initialize the process)
+											negotiation.resolve().then(function() {
+												log("<<< Starting exchange media information of " + callId + " > " + new Date().toLocaleString());
+											});
+										} else {
+											log("<<< Hello was not to me (" + currentUserId + ")");
+										}
+									} else if (message.bye) {
+										// TODO not used
+										// Remote part leaved the call: stop listen the call
+										log(">>> Received bye for " + callId + ": " + JSON.stringify(message.bye) + " > " + new Date().toLocaleString());
+										listener.off();
+										// TODO Tell local user, close the window?
+									} else {
+										log("<<< Received unexpected message for " + callId);
+									}
+								} else {
+									//log("<<< skip own update");
+								}
+							}
+						}, function(err) {
+							log("ERROR subscribe to " + callId + ": " + JSON.stringify(err));
+							process.reject("Error setting up connection (subscribe call updates): " + err);
+							handleError("Connection error", err.message);
+						});
+						
 						// Show current user camera in the video,
 						// TODO if camera not found then show something for audio presence
 						
+						// When using shim adapter.js don't need do the selection like below
 						// var userMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 						var constraints = {
 						  audio: true,
@@ -181,179 +477,38 @@ if (eXo.videoCalls) {
 							localVideo.onloadedmetadata = function(event) {
 								localVideo.play();
 							};
-						  // Subscribe to the call updates
-							var listener = videoCalls.onCallUpdate(callId, function(message) {
-								// TODO handle the remote side data
-								if (message.provider == webrtc.getType()) {
-									if (message.sender != currentUserId) {
-										log(">>> Received call update for " + callId + ": " + JSON.stringify(message) + " > " + new Date().getTime());
-										if (message.offer) {
-											log(">>> Received offer for " + callId);
-											// Offer of a caller on calee side
-											// was: new RTCSessionDescription(message.offer)
-											pc.setRemoteDescription(message.offer).then(function() {
-												log(">>>> Apllied offer for " + callId + " > " + new Date().getTime());
-									      // if we received an offer, we need to answer
-									      if (pc.remoteDescription.type == "offer") {
-									      	pc.createAnswer().then(function(desc) {
-									      		pc.setLocalDescription(desc).then(function() {
-									      			videoCalls.toCallUpdate(callId, {
-												    		"provider" : webrtc.getType(),
-												    		"sender" : currentUserId,
-												    		"answer": pc.localDescription
-												      }).done(function() {
-												      	log(">>>>> Published answer to " + callId + " > " + new Date().getTime());
-															}).fail(function(err) {
-																log("ERROR publishing answer to " + callId + ": " + JSON.stringify(err));
-																handleError("Error of sharing connection", err);
-															});									      			
-									      		}).catch(function(err) {
-									      			log("ERROR setting local answer for " + callId + ": " + JSON.stringify(err));
-										      		handleError("Error accepting call", err);
-									      		});
-									      	}).catch(function(err) {
-									      		log("ERROR answering offer for " + callId + ": " + JSON.stringify(err));
-									      		handleError("Error answering call", err);
-									      	});
-									      }
-									    }).catch(function(err) {
-									    	log("ERROR setting remote offer for " + callId + ": " + JSON.stringify(err));
-									    	handleError("Error applying call", err);
-									    });
-										} else if (message.answer) {
-											// Answer of a callee to the caller: it's final stage of the parties discovery
-											log(">>> Received answer for " + callId);
-											pc.setRemoteDescription(message.answer).then(function() {
-									      log(">>>> Apllied answer for " + callId + " > " + new Date().getTime());
-									    }).catch(function(err) {
-									    	log("ERROR setting remote answer for " + callId + ": " + JSON.stringify(err));
-									    	handleError("Error answering call", err);
-									    });
-										} else if (message.candidate) {
-											// ICE candidate of remote party
-											log(">>> Received candidate for " + callId);
-											pc.addIceCandidate(new RTCIceCandidate(message.candidate)).then(function() {
-									      log(">>>> Apllied candidate for " + callId + " > " + new Date().getTime());
-									    }).catch(function(err) {
-									    	log("ERROR adding candidate for " + callId + ": " + JSON.stringify(err));
-									    	handleError("Error establishing call", err);
-									    });
-										} else if (message.hello) {
-											// Initiator of the call sends "hello" - first message in the flow
-											log(">>> Received hello for " + callId + ": " + JSON.stringify(message.hello) + " > " + new Date().getTime());
-										} else if (message.bye) {
-											// Remote part leaved the call: stop listen the call
-											log(">>> Received bye for " + callId + ": " + JSON.stringify(message.bye) + " > " + new Date().getTime());
-											listener.off();
-											// TODO Tell local user, close the window?
-										} else {
-											log(">>> Received unexpected message for " + callId);
-										}
-									} else {
-										//log("<<< skip own update");
+						  log("Starting call " + callId + " > " + new Date().toLocaleString());
+						  // add local stream for owner right now
+						  if (isOwner) {
+							  pc.addStream(localStream); // XXX It's deprecated way but Chrome works using it
+							  //localStream.getTracks().forEach(function(track) {
+							  //  pc.addTrack(track, localStream);
+							  //});
+						  } else {
+						  	// Participant sends Hello to the other end to initiate a negotiation there
+						  	sendHello().then(function() {
+				  				log(">>>> Sent Hello by participant to " + callId + " > " + new Date().toLocaleString());
+				  				// Participant on the other end is ready for negotiation and waits for an offer message
+						  		negotiation.resolve(localStream).then(function() {
+										log("<<<< Starting exchange media information of " + callId + " > " + new Date().toLocaleString());
+									});
+				  			});
+						  }
+						  
+						  // Finally subscribe to user calls to know if this call updated/stopped remotely
+						  videoCalls.onUserUpdate(currentUserId, function(update, status) {
+								if (update.eventType == "call_state") {
+									if (update.caller.type == "user") {
+										var callId = update.callId;
+										if (update.callState == "stopped" && update.callId == callId) {
+											log(">>> Call stopped remotelly: " + JSON.stringify(update) + " [" + status + "]");
+											stopCallWaitClose();
+										}							
 									}
 								}
 							}, function(err) {
-								log("ERROR subscribe to " + callId + ": " + JSON.stringify(err));
-								process.reject("Error setting up connection (subscribe call updates): " + err);
-								handleError("Connection error", err.message);
+								log("ERROR User calls subscription failure: " + err, err);
 							});
-							pc.onicecandidate = function (event) {
-								// This will happen when browser will be ready to exchange peers setup
-								log(">>> onIceCandidate for " + callId + ": " + JSON.stringify(event) + " > " + new Date().getTime());
-						    if (event.candidate) {
-						    	videoCalls.toCallUpdate(callId, {
-						    		"provider" : webrtc.getType(),
-						    		"sender" : currentUserId,
-						    		// "type" : "candidate",
-						    		// "sdpMLineIndex" : event.candidate.sdpMLineIndex,
-						        // "sdpMid": event.candidate.sdpMid,
-						        "candidate" : event.candidate
-						      }).done(function() {
-						      	log(">>>> Published candidate to " + callId);
-						      	// At this stage we resolve the deferred process,
-						      	// further errors (processing of remote updates) will not be reported to the caller
-						      	// process.resolve("Started");
-									}).fail(function(err) {
-										log("ERROR publishing candidate to " + callId + ": " + JSON.stringify(err));
-										// TODO retry or cancel the call?
-										process.reject("Error of sharing connection (send call update): " + err);
-										handleError("Error of sharing connection", err);
-									});
-						    } else {
-						      // else All ICE candidates have been sent. ICE gathering has finished.
-						    	// TODO any action is expected here?
-						    }
-						  };
-						  if (isOwner) {
-						 // let the 'negotiationneeded' event trigger offer generation
-							  pc.onnegotiationneeded = function () {
-							  	// This will be fired after adding a local media stream and browser readiness
-							  	log(">>> onNegotiationNeeded for " + callId + " > " + new Date().getTime());
-							    pc.createOffer().then(function(desc) {
-							    	pc.setLocalDescription(desc).then(function() {
-							    		videoCalls.toCallUpdate(callId, {
-								    		"provider" : webrtc.getType(),
-								    		"sender" : currentUserId,
-								    		"hello": call.title
-								      }).done(function() {
-								      	log(">>>> Published hello to " + callId);
-											}).fail(function(err) {
-												log("ERROR publishing hello to " + callId + ": " + JSON.stringify(err));
-											});
-							        videoCalls.toCallUpdate(callId, {
-								    		"provider" : webrtc.getType(),
-								    		"sender" : currentUserId,
-								    		"offer": JSON.stringify(pc.localDescription)
-								      }).done(function() {
-								      	log(">>>> Published offer to " + callId);
-								      	// process.progress("Shared");
-											}).fail(function(err) {
-												log("ERROR publishing offer to " + callId + ": " + JSON.stringify(err));
-												// TODO May retry?
-												// process.reject("Error of sharing connection (send call update): " + err);
-												handleError("Error of sharing connection", err);
-											});
-							      }).catch(function(err) {
-							      	// process.reject("Error of preparing connection (setting local descriptor): " + err);
-							      	log(">>> Error settings local offer for " + callId);
-							      	handleError("Error of preparing connection", err);
-								    });
-							    }).catch(function(err) {
-							    	// process.reject("Error of starting connection (create offer): " + err);
-							    	log(">>> Error creating offer for " + callId);
-							    	handleError("Error of starting connection", err);
-							    });
-							  };						  	
-						  }
-						  // once remote stream arrives, show it in the remote video element
-						  /*pc.ontrack = function(event) {
-						  	log(">>> onTrack for " + callId + " > " + new Date().getTime());
-						  	$remoteVideo.get(0).srcObject = event.streams[0];
-						  };*/
-							pc.onaddstream = function (event) { 
-								log(">>> onAddStream for " + callId + " > " + new  Date().getTime()); 
-								//$remoteVideo.attr("src", objectUrl(event.stream));
-								var video = $remoteVideo.get(0);
-								video.srcObject = event.stream;
-								video.onloadedmetadata = function(event1) {
-									video.play();
-								};
-							};
-						  pc.onremovestream = function(event) {
-						  	// TODO check the event stream URL before removal?
-						  	log(">>> onRemoveStream for " + callId + " > " + new Date().getTime());
-						  	$remoteVideo.removeAttr("src");
-						  };
-						  // add local stream
-						  pc.addStream(localStream); // It's deprecated way but Chrome works using it
-						  //localStream.getTracks().forEach(function(track) {
-						  //  pc.addTrack(track, localStream);
-						  //});
-						  
-						  log("Starting call " + callId + " > " + new Date().getTime());
-						  //
-						  // process.progress("Starting");
 						}).catch(function(err) {
 							// errorCallback
 							log(">> User media error: " + JSON.stringify(err));

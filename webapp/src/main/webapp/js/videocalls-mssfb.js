@@ -2156,8 +2156,8 @@
 						var userId = videoCalls.getUser().id;
 						videoCalls.onUserUpdate(userId, function(update, status) {
 							if (update.eventType == "call_state") {
+								// Ignore remote P2P calls, SDK will fire them via added conversation
 								if (update.caller.type != "user") {
-									// Ignore remote P2P calls, SDK will fire them via added conversation
 									log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
 									if (update.callState == "started") {
 										var conversation = app.conversationsManager.getConversationByUri(update.callId.substring(2));

@@ -435,14 +435,7 @@ public class VideoCallsService implements Startable {
         }
       }
     } else if (isUser) {
-      for (UserInfo part : participants) {
-        if (part.getType() == UserInfo.TYPE_NAME) {
-          if (!userId.equals(part.getId())) {
-            // fire P2P user listener for incoming
-            fireUserCallState(part.getId(), id, CallState.STARTED, ownerId, ownerType);
-          }
-        }
-      }
+      notifyUserCallState(call, userId, CallState.STARTED);
     }
 
     return call;
@@ -472,7 +465,7 @@ public class VideoCallsService implements Startable {
     String userId = currentUserId();
     CallInfo info = readCallById(id);
     if (info != null) {
-      stopCall(info, userId, remove, false);
+      stopCall(info, userId, remove);
     } else if (remove) {
       // XXX for a case of previous version storage format, cleanup saved call ID
       if (userId != null && id.startsWith("g/")) {
@@ -482,29 +475,26 @@ public class VideoCallsService implements Startable {
     return info;
   }
 
-  protected CallInfo stopCall(CallInfo info,
-                              String userId,
-                              boolean remove,
-                              boolean notifyUser) throws Exception {
+  protected CallInfo stopCall(CallInfo call, String userId, boolean remove) throws Exception {
     // TODO exception if user not a participant
     if (remove) {
-      deleteCall(info);
+      deleteCall(call);
     } else {
-      info.setState(CallState.STOPPED);
-      saveCall(info);
+      call.setState(CallState.STOPPED);
+      saveCall(call);
     }
-    if (info.getOwner().isGroup()) {
-      String callId = info.getId();
-      for (UserInfo part : info.getParticipants()) {
+    if (call.getOwner().isGroup()) {
+      String callId = call.getId();
+      for (UserInfo part : call.getParticipants()) {
         if (part.getType() == UserInfo.TYPE_NAME) {
-          // it's eXo user: fire user listener for stopped call, but to the stopper (given user)
-          boolean otherUser = !userId.equals(part.getId());
-          if (otherUser || (notifyUser && !otherUser)) {
+          // it's eXo user: fire user listener for stopped call, 
+          // but not to the initiator (given user, which also can be null when not possible to define it)
+          if (userId == null || !userId.equals(part.getId())) {
             fireUserCallState(part.getId(),
-                              info.getId(),
+                              call.getId(),
                               CallState.STOPPED,
-                              info.getOwner().getId(),
-                              info.getOwner().getType());
+                              call.getOwner().getId(),
+                              call.getOwner().getType());
           }
           if (remove) {
             // remove from participant's group calls
@@ -512,8 +502,10 @@ public class VideoCallsService implements Startable {
           }
         }
       }
+    } else {
+      notifyUserCallState(call, userId, CallState.STOPPED);
     }
-    return info;
+    return call;
   }
 
   /**
@@ -619,7 +611,7 @@ public class VideoCallsService implements Startable {
             }
           }
           if (leaved == info.getParticipants().size()) {
-            stopCall(info, userId, false, true);
+            stopCall(info, userId, false);
           } else {
             if (userLeaved) {
               saveCall(info);
@@ -1277,4 +1269,24 @@ public class VideoCallsService implements Startable {
     return null; // IdentityConstants.ANONIM
   }
 
+  /**
+   * Notify user call state.
+   *
+   * @param call the call
+   * @param initiatorId the initiator id
+   * @param state the state
+   */
+  protected void notifyUserCallState(CallInfo call, String initiatorId, String state) {
+    for (UserInfo part : call.getParticipants()) {
+      if (part.getType() == UserInfo.TYPE_NAME) {
+        if (initiatorId == null || !initiatorId.equals(part.getId())) {
+          fireUserCallState(part.getId(),
+                            call.getId(),
+                            state,
+                            call.getOwner().getId(),
+                            call.getOwner().getType());
+        }
+      }
+    }
+  }
 }

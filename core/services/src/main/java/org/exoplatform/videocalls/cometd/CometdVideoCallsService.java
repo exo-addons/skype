@@ -22,6 +22,7 @@ import static org.exoplatform.videocalls.VideoCallsUtils.asJSON;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,8 +94,12 @@ public class CometdVideoCallsService implements Startable {
 
   public static final String             USERS_SERVICE_CHANNEL_NAME            = "/service/videocalls/users";
 
+  public static final String             CALL_SUBSCRIPTION_CHANNEL_NAME        =
+                                                                        "/eXo/Application/VideoCalls/call";
+
   public static final String             CALL_SUBSCRIPTION_CHANNEL_NAME_ALL    =
-                                                                            "/eXo/Application/VideoCalls/call/**";
+                                                                            CALL_SUBSCRIPTION_CHANNEL_NAME
+                                                                                + "/**";
 
   public static final String             CALL_SUBSCRIPTION_CHANNEL_NAME_PARAMS =
                                                                                "/eXo/Application/VideoCalls/call/{callType}/{callInfo}";
@@ -281,24 +286,26 @@ public class CometdVideoCallsService implements Startable {
         if (LOG.isDebugEnabled()) {
           LOG.debug("<< Unsubscribed client:" + clientId + ", channel:" + channelId);
         }
-        // cleanup session stuff, note that disconnected session already unsubscribed and has not channels
-        boolean hasClient = channelClients.getOrDefault(channelId, Collections.emptySet()).remove(clientId);
-        if (hasClient) {
-          UserCallListener listener = clientUserListeners.remove(clientId);
+        if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
+          // cleanup session stuff, note that disconnected session already unsubscribed and has not channels
+          boolean hasClient = channelClients.getOrDefault(channelId, Collections.emptySet()).remove(clientId);
+          if (hasClient) {
+            UserCallListener listener = clientUserListeners.remove(clientId);
+            if (listener != null) {
+              videoCalls.removeUserCallListener(listener);
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("<<< Removed call listener for user " + listener.getUserId() + ", client:"
+                    + clientId + ", channel:" + channelId);
+              }
+            } else {
+              LOG.info("User call listener not found for client:" + clientId + ", channel:" + channelId);
+            }
+          }
+          channelClients.values().remove(session.getId());
+          UserCallListener listener = clientUserListeners.remove(session.getId());
           if (listener != null) {
             videoCalls.removeUserCallListener(listener);
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("<<< Removed call listener for user " + listener.getUserId() + ", client:" + clientId
-                  + ", channel:" + channelId);
-            }
-          } else {
-            LOG.info("User call listener not found for client:" + clientId + ", channel:" + channelId);
           }
-        }
-        channelClients.values().remove(session.getId());
-        UserCallListener listener = clientUserListeners.remove(session.getId());
-        if (listener != null) {
-          videoCalls.removeUserCallListener(listener);
         }
       }
     }
@@ -318,7 +325,6 @@ public class CometdVideoCallsService implements Startable {
         }
         if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
           channel.addListener(subscriptionListener);
-          // channel.setAttribute(CHANNEL_LISTENER, listener);
           if (LOG.isDebugEnabled()) {
             LOG.debug("Added subscription listener for channel " + channelId);
           }
@@ -347,6 +353,21 @@ public class CometdVideoCallsService implements Startable {
               }
             }
           }
+        } else if (channelId.startsWith(CALL_SUBSCRIPTION_CHANNEL_NAME)
+            && channelId.length() > CALL_SUBSCRIPTION_CHANNEL_NAME.length()) {
+          String callId = channelId.substring(CALL_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
+          // This call communications ended, in normal way of by network failure - we assume the call ended,
+          // ensure its parties, including those who received incoming notification but not yet accepted/rejected it,
+          // will be notified that the call stopped/removed.
+          try {
+            CallInfo call = videoCalls.getCall(callId);
+            if (call != null) {
+              // TODO may be need leave all them and let that logic to stop the call?
+              videoCalls.stopCall(callId, !call.getOwner().isGroup());
+            }
+          } catch (Exception e) {
+            LOG.error("Error reading call " + callId, e);
+          }
         }
       }
     }
@@ -363,6 +384,8 @@ public class CometdVideoCallsService implements Startable {
     private final Map<String, UserCallListener> clientUserListeners   = new ConcurrentHashMap<>();
 
     private final Map<String, Set<String>>      channelClients        = new ConcurrentHashMap<>();
+
+    private final Map<String, Set<String>>      callUsers             = new ConcurrentHashMap<>();
 
     private final RemoveListener                sessionRemoveListener = new SessionRemoveListener();
 
@@ -396,14 +419,6 @@ public class CometdVideoCallsService implements Startable {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Call published in " + message.getChannel() + " by " + message.get("sender") + " callId: "
             + callId + " data: " + message.getJSON());
-      }
-      // TODO all data exchanged between peers of a call will go there, WebRTC stuff etc.
-    }
-    
-    //@Subscription(CALL_SUBSCRIPTION_CHANNEL_NAME_ALL)
-    public void subscribeCallsAll(Message message) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Call published in " + message.getChannel() + " by " + message.getClientId() + " data: " + message.getJSON());
       }
       // TODO all data exchanged between peers of a call will go there, WebRTC stuff etc.
     }
