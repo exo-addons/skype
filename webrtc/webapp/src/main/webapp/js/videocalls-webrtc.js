@@ -99,6 +99,7 @@
 				});
 				return process.promise();
 			};
+			this.deleteCall = deleteCall;
 			
 			this.callButton = function(context) {
 				var button = $.Deferred();
@@ -141,10 +142,7 @@
 									$(callWindow).on("load", function() {
 										// XXX Wait 5sec for debug only - remove in production
 										setTimeout(function() {
-											callWindow.eXo.videoCalls.startCall(call, function() {
-												// onStop
-												return deleteCall(callId);
-											}).fail(function(err) {
+											callWindow.eXo.videoCalls.startCall(call).fail(function(err) {
 												videoCalls.showError("Error starting call", err);
 											});											
 										}, 5);
@@ -235,11 +233,12 @@
 			this.init = function(context) {
 				var currentUserId = videoCalls.getUser().id;
 				clientId = self.createId(currentUserId);
-				var $callPopup; 
-				var closeCallPopup = function(callId) {
+				var $callPopup;
+				var closeCallPopup = function(callId, state) {
 					if ($callPopup && $callPopup.callId && $callPopup.callId == callId) {
 						if ($callPopup.is(":visible")) {
 							$callPopup.dialog("close");
+							$callPopup.callState = state;
 						}
 					}
 				};
@@ -300,6 +299,7 @@
 									popover.progress(function($call) {
 										$callPopup = $call;
 										$callPopup.callId = callId;
+										$callPopup.callState = update.callState;
 									}); 
 									popover.done(function(msg) {
 										log(">>> user " + msg + " call " + callId);
@@ -309,10 +309,7 @@
 										// Tell the window to start the call  
 										callWindow.document.title = longTitle + ": " + call.owner.title;
 										$(callWindow).on("load", function() {
-											callWindow.eXo.videoCalls.startCall(call, function() {
-												// onStop
-												return deleteCall(callId);
-											}).done(function(state) {
+											callWindow.eXo.videoCalls.startCall(call).done(function(state) {
 												lockCallButton(callId, callerId, callerRoom);
 											}).fail(function(err) {
 												videoCalls.showError("Error starting call", err);
@@ -320,12 +317,14 @@
 										});
 									});
 									popover.fail(function(err) {
-										log("<<< User " + err + " call " + callId + ", deleting it.");
-										videoCalls.deleteCall(callId).done(function() {
-											log("<<< Deleted " + callId + " > " + new Date().getLocaleString);
-										}).fail(function(err) {
-											log("ERROR deleting " + callId + ": " + JSON.stringify(err));
-										});
+										if ($callPopup.callState != "stopped") {
+											log("<<< User " + err + " call " + callId + ", deleting it.");
+											videoCalls.deleteCall(callId).done(function() {
+												log("<<< Deleted " + callId + " > " + new Date().getLocaleString);
+											}).fail(function(err) {
+												log("ERROR deleting " + callId + ": " + JSON.stringify(err));
+											});
+										}
 									});
 								}).fail(function(err, status) {
 									log(">>> Call info error: " + JSON.stringify(err) + " [" + status + "]");
@@ -337,7 +336,7 @@
 								});
 							} else if (update.callState == "stopped") {
 								// Hide accept popover for this call
-								closeCallPopup(callId);
+								closeCallPopup(callId, update.callState);
 								// Unclock the call button
 								var callerId = update.callerId; // callerRoom is the same as callerId for P2P
 								unlockCallButton(callId, callerId, callerId); 

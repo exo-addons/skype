@@ -109,7 +109,7 @@ if (eXo.videoCalls) {
 			alignLoader();
 		});
 		
-		eXo.videoCalls.startCall = function(call, onStop/*, onError*/) {
+		eXo.videoCalls.startCall = function(call) {
 			var process = $.Deferred();
 			$(function() {
 				var webrtc = videoCalls.getProvider("webrtc");
@@ -134,24 +134,23 @@ if (eXo.videoCalls) {
 						//var callerAvatar = call.avatarLink;
 						
 						$("#webrtc-call-starting").hide();
+						$("#webrtc-call-container").show();
 						var $convo = $("#webrtc-call-conversation");
-						if ($convo.length == 0) {
-							$convo = $("<div id='webrtc-call-conversation'></div>");
-							addToContainer($convo);
-						}
-						var $title = $("<div id='webrtc-call-title'><h1 class='call-title'>" + call.title + "</h1></div>");
-						$convo.append($title);
+						var $title = $("#webrtc-call-title > h1");
+						$title.text(call.title);
 						
-						var $remoteVideo = $("<video id='video-remote' autoplay></video>");
-						$convo.append($remoteVideo);
-						var $localVideo = $("<video id='video-local' width='160' height='120' autoplay></video>");
-						$convo.append($localVideo);
-						var $controls = $("<div></div>");
-						// var $startButton = $("<button id='start-button'>Start</button>");
-						// var $callButton = $("<button id='call-button'>Call</button>");
-						var $hangupButton = $("<button id='hangup-button'>Hang Up</button>");
-						$controls.append($hangupButton);
-						$convo.append($controls);
+						var $videos = $convo.find("#videos");
+						var $remoteVideo = $videos.find("#remote-video");
+						var remoteVideo = $remoteVideo.get(0);
+						var $localVideo = $videos.find("#local-video");
+						var localVideo = $localVideo.get(0);
+						var $miniVideo = $videos.find("#mini-video");
+						var miniVideo = $miniVideo.get(0);
+						
+						var $controls = $convo.find("#controls");
+						$controls.addClass("active");
+						$controls.show(); // TODO apply show/hide on timeout 
+						var $hangupButton = $controls.find("#hangup");
 						
 						// WebRTC connection to establish a call connection
 						var pc = new RTCPeerConnection(); // TODO servers
@@ -181,7 +180,6 @@ if (eXo.videoCalls) {
 				      	log("<< " + status + " data: " + JSON.stringify(message));
 				      });
 						};
-						var helloCounter = 0;
 						var sendHello = function() {
 							// It is a first message send on the call channel by a peer, 
 							// it tells that the end is ready to exchange other information (i.e. accepted the call)
@@ -191,11 +189,21 @@ if (eXo.videoCalls) {
 							return sendMessage({
 				    		"hello": isOwner ? "__all__" : call.owner.id
 				      }).done(function() {
-				      	log("<< Published hello to " + callId);
+				      	log("<< Published Hello to " + callId);
 							}).fail(function(err) {
-								log("ERROR publishing hello to " + callId + ": " + JSON.stringify(err));
-							}).always(function() {
-								helloCounter++;
+								log("ERROR publishing Hello to " + callId + ": " + JSON.stringify(err));
+							});
+						};
+						var sendBye = function() {
+							// TODO not used
+							// It is a last message send on the call channel by a peer, 
+							// other side should treat is as call successfully ended and no further action required (don't need delete the call)
+							return sendMessage({
+				    		"bye": isOwner ? "__all__" : call.owner.id
+				      }).done(function() {
+				      	log("<< Published Bye to " + callId);
+							}).fail(function(err) {
+								log("ERROR publishing Bye to " + callId + ": " + JSON.stringify(err));
 							});
 						};
 						var sendOffer = function(localDescription) {
@@ -234,10 +242,9 @@ if (eXo.videoCalls) {
 						
 						// 'Hang Up' and page close actions to end call properly
 						var stopping = false;
-						var stopCall = function() {
+						var stopCall = function(localOnly) {
 							// TODO here we also could send 'bye' message - it will work for 'Hang Up' button, 
-							// but in case of page close it may not be sent to others, thus we call the callback onStop
-							// to let the caller page handle the call end in its own way.
+							// but in case of page close it may not be sent to others, thus we delete the call here.
 							if (!stopping) {
 								stopping = true;
 								function stopLocal() {
@@ -249,15 +256,13 @@ if (eXo.videoCalls) {
 									window.removeEventListener("beforeunload", beforeunloadListener);
 									window.removeEventListener("unload", unloadListener);
 								}
-								if (typeof onStop == "function") {
-									onStop().done(function() {
-										stopLocal();
-									}).fail(function(err) {
-										log("ERROR Call failed to stop properly");
-									});
-								} else {
+								if (localOnly) {
 									stopLocal();
-								}
+								} else {
+									webrtc.deleteCall(callId).always(function() {
+										stopLocal();
+									});
+								}									
 							}
 						};
 						var beforeunloadListener = function(e) {
@@ -268,14 +273,29 @@ if (eXo.videoCalls) {
 						};
 						window.addEventListener("beforeunload", beforeunloadListener);
 						window.addEventListener("unload", unloadListener);
-						var stopCallWaitClose = function() {
-							stopCall();
+						var stopCallWaitClose = function(localOnly) {
+							stopCall(localOnly);
 							setTimeout(function() {
 								window.close();
-							}, 3500);
+							}, 1500);
 						};
 						$hangupButton.click(function() {
 							stopCallWaitClose();
+						});
+						
+						// Subscribe to user calls to know if this call updated/stopped remotely
+					  videoCalls.onUserUpdate(currentUserId, function(update, status) {
+							if (update.eventType == "call_state") {
+								if (update.caller.type == "user") {
+									var callId = update.callId;
+									if (update.callState == "stopped" && update.callId == callId) {
+										log(">>> Call stopped remotelly: " + JSON.stringify(update) + " [" + status + "]");
+										stopCallWaitClose(true);
+									}							
+								}
+							}
+						}, function(err) {
+							log("ERROR User calls subscription failure: " + err, err);
 						});
 						
 						// Add peer listeners for connection flow
@@ -330,18 +350,56 @@ if (eXo.videoCalls) {
 					  	$remoteVideo.get(0).srcObject = event.streams[0];
 					  };*/
 						pc.onaddstream = function (event) { 
-							log(">>> onAddStream for " + callId + " > " + new  Date().getTime()); 
-							//$remoteVideo.attr("src", objectUrl(event.stream));
-							var video = $remoteVideo.get(0);
-							video.srcObject = event.stream;
-							video.onloadedmetadata = function(event1) {
-								video.play();
+							// Remote video added: switch local to a mini and show the remote as main
+							log(">>> onAddStream for " + callId + " > " + new  Date().getTime());
+							// Stop local
+							localVideo.pause();
+							$localVideo.removeClass("active");
+							$localVideo.hide();
+							
+							// Show remote
+							remoteVideo.srcObject = event.stream;
+							remoteVideo.onloadedmetadata = function(event1) {
+								remoteVideo.play();
 							};
+							$remoteVideo.addClass("active");
+							$remoteVideo.show();
+							
+							// Show local in mini
+							miniVideo.srcObject = localVideo.srcObject;
+							localVideo.srcObject = null;
+							miniVideo.onloadedmetadata = function(event1) {
+								miniVideo.play();
+							};
+							$miniVideo.addClass("active");
+							$miniVideo.show();
+							
+							//
+							$videos.addClass("active");
 						};
 					  pc.onremovestream = function(event) {
 					  	// TODO check the event stream URL before removal?
 					  	log(">>> onRemoveStream for " + callId + " > " + new Date().toLocaleString());
-					  	$remoteVideo.removeAttr("src");
+					  	// Stop remote
+					  	remoteVideo.pause();
+							$remoteVideo.removeClass("active");
+							$remoteVideo.hide();
+							remoteVideo.srcObject = null;
+							
+							// Show local
+							localVideo.srcObject = miniVideo.srcObject;
+							localVideo.onloadedmetadata = function(event1) {
+								localVideo.play();
+							};
+							$localVideo.addClass("active");
+							
+							// Hide mini
+							miniVideo.srcObject = null;
+							$miniVideo.removeClass("active");
+							$miniVideo.hide();
+							
+							//
+							$videos.removeClass("active");
 					  };
 						
 						// Subscribe to the call updates
@@ -439,12 +497,17 @@ if (eXo.videoCalls) {
 										} else {
 											log("<<< Hello was not to me (" + currentUserId + ")");
 										}
-									} else if (message.bye) {
+									} else if (message.bye && false) {
 										// TODO not used
 										// Remote part leaved the call: stop listen the call
-										log(">>> Received bye for " + callId + ": " + JSON.stringify(message.bye) + " > " + new Date().toLocaleString());
-										listener.off();
-										// TODO Tell local user, close the window?
+										log(">>> Received Bye for " + callId + ": " + JSON.stringify(message.bye) + " > " + new Date().toLocaleString());
+										if (message.bye == currentUserId || message.bye == "__all__") {
+											// We assume it's a Bye from the call owner or other party to us: ends the call locally and close the window
+											stopCall(true);
+											listener.off();											
+										} else {
+											log("<<< Bye was not to me (" + currentUserId + ")");
+										}
 									} else {
 										log("<<< Received unexpected message for " + callId);
 									}
@@ -465,18 +528,44 @@ if (eXo.videoCalls) {
 						// var userMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 						var constraints = {
 						  audio: true,
-						  video: true
+						  video: {
+						  	optional: [{ minWidth: 640}, { minHeight: 480}]
+						  }
 						};
+						//mediaConstraints: {"audio": true, "video": {"optional": [{"minWidth": "1280"}, {"minHeight": "720"}], "mandatory": {}}}
 						// TODO handle cases when video/audio not available
 						navigator.mediaDevices.getUserMedia(constraints).then(function(localStream) {
 							// successCallback
 							// show local camera output
-							// $localVideo.attr("src", objectUrl(localStream));
-							var localVideo = $localVideo.get(0);
 							localVideo.srcObject = localStream;
 							localVideo.onloadedmetadata = function(event) {
 								localVideo.play();
 							};
+							$localVideo.addClass("active");
+							
+							var $muteAudio = $controls.find("#mute-audio");
+							$muteAudio.click(function() {
+								var audioTracks = localStream.getAudioTracks();
+								if (audioTracks.length > 0) {
+									for (var i = 0; i < audioTracks.length; ++i) {
+										audioTracks[i].enabled = !audioTracks[i].enabled;
+								  }
+									$muteAudio.toggleClass("on");
+									log("Audio " + (audioTracks[0].enabled ? "un" : "") + "muted for " + callId);
+								}
+							});
+							var $muteVideo = $controls.find("#mute-video");
+							$muteVideo.click(function() {
+								var videoTracks = localStream.getVideoTracks();
+								if (videoTracks.length > 0) {
+									for (var i = 0; i < videoTracks.length; ++i) {
+										videoTracks[i].enabled = !videoTracks[i].enabled;
+								  }
+									$muteVideo.toggleClass("on");
+									log("Video " + (videoTracks[0].enabled ? "un" : "") + "muted for " + callId);									
+								}
+							});
+
 						  log("Starting call " + callId + " > " + new Date().toLocaleString());
 						  // add local stream for owner right now
 						  if (isOwner) {
@@ -494,24 +583,9 @@ if (eXo.videoCalls) {
 									});
 				  			});
 						  }
-						  
-						  // Finally subscribe to user calls to know if this call updated/stopped remotely
-						  videoCalls.onUserUpdate(currentUserId, function(update, status) {
-								if (update.eventType == "call_state") {
-									if (update.caller.type == "user") {
-										var callId = update.callId;
-										if (update.callState == "stopped" && update.callId == callId) {
-											log(">>> Call stopped remotelly: " + JSON.stringify(update) + " [" + status + "]");
-											stopCallWaitClose();
-										}							
-									}
-								}
-							}, function(err) {
-								log("ERROR User calls subscription failure: " + err, err);
-							});
 						}).catch(function(err) {
 							// errorCallback
-							log(">> User media error: " + JSON.stringify(err));
+							log(">> User media error: " + err); //  JSON.stringify(err)
 							// process.reject("User media error: " + err);
 							handleError("Media error", err);
 						});
