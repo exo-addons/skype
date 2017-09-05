@@ -58,7 +58,7 @@ if (eXo.videoCalls) {
 		}
 
 		function showError(title, message) {
-			$("#webrtc-call-conversation, #webrtc-call-starting").hide();
+			$("#webrtc-call-conversation, #webrtc-call-title, #webrtc-call-starting").hide();
 			var $error = $("#webrtc-call-error");
 			if ($error.length == 0) {
 				$error = $("<div id='webrtc-call-error'></div>");
@@ -585,7 +585,7 @@ if (eXo.videoCalls) {
 						  }
 						}).catch(function(err) {
 							// errorCallback
-							log(">> User media error: " + err); //  JSON.stringify(err)
+							log(">> User media error: " + err + ", " + JSON.stringify(err));  
 							// process.reject("User media error: " + err);
 							handleError("Media error", err);
 						});
