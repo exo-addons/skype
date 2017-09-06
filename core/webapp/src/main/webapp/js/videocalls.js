@@ -1215,7 +1215,7 @@
 					});
 					cometd = cCometD;
 					cometdContext = {
-						"exoContainerName" : context.containerName,
+						"exoContainerName" : context.containerName
 					};
 					cometd.onListenerException = function(exception, subscriptionHandle, isListener, message) {
 				    // Uh-oh, something went wrong, disable this listener/subscriber

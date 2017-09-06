@@ -80,12 +80,14 @@
   
   <module>
     <name>webrtcAdapter</name>
+    <!-- load-group>videoCallsWebrtcGRP</load-group -->
     <script>
       <path>/js/adapter-4.2.2.js</path>
     </script>
   </module>
   <module>
     <name>videoCalls_webrtc</name>
+    <!-- load-group>videoCallsWebrtcGRP</load-group -->
     <script>
       <path>/js/videocalls-webrtc.js</path>
     </script>
