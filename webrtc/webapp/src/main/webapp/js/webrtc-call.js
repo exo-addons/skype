@@ -596,7 +596,7 @@ if (eXo.videoCalls) {
 							process.resolve("Started");
 						}
 					} else {
-						process.reject("WebRTC not supported on this platform: " + navigator.userAgent);
+						process.reject("WebRTC not supported in this browser: " + navigator.userAgent);
 						showError("Not supported platform", "Your browser does not support WebRTC calls.");
 					}
 				} else {

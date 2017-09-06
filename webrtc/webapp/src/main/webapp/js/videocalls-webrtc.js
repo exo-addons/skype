@@ -199,7 +199,7 @@
 						button.reject("Not configured or empty context for " + self.getTitle());
 					}
 				} else {
-					button.reject("WebRTC not supported on this platform: " + navigator.userAgent);
+					button.reject("WebRTC not supported in this browser: " + navigator.userAgent);
 				}
 				return button.promise();
 			};
@@ -269,134 +269,145 @@
 			};
 			
 			this.init = function(context) {
-				var currentUserId = videoCalls.getUser().id;
-				clientId = self.createId(currentUserId);
-				var $callPopup;
-				var closeCallPopup = function(callId, state) {
-					if ($callPopup && $callPopup.callId && $callPopup.callId == callId) {
-						if ($callPopup.is(":visible")) {
-							$callPopup.dialog("close");
-							$callPopup.callState = state;
-						}
-					}
-				};
-				var lockCallButton = function(callId, callerId, callerRoom) {
-				};
-				var unlockCallButton = function(callId, callerId, callerRoom) {
-				};
-				if (videoCalls.hasChatApplication()) {
-					// Care about marking chat rooms for active calls
-					var $chat = $("#chat-application");
-					if ($chat.length > 0) {
-						var $chats = $chat.find("#chats");
-						if ($chats.length > 0) {
-							var $users = $chat.find("#chat-users");
-							// Implement Chat specific logic
-							var getCallButton = function() {
-								return $chat.find("#room-detail .webrtcCallAction");
-							};
-							lockCallButton = function(callId, callerId, callerRoom) {
-								var roomId = chatApplication.targetUser;
-								if (roomId == (callerRoom ? callerRoom : callerId)) {
-									var $callButton = getCallButton();
-									if (!$callButton.hasClass("callDisabled")) {
-										$callButton.addClass("callDisabled");
-									}								
-								}
-							};
-							unlockCallButton = function(callId, callerId, callerRoom) {
-								var roomId = chatApplication.targetUser;
-								if (roomId == (callerRoom ? callerRoom : callerId)) {
-									var $callButton = getCallButton();
-									$callButton.removeClass("callDisabled");
-								}
-							};
-						} else {
-							log("Cannot find #chats element");
-						} 
-					} else {
-						log("Chat application element not found.");
-					}
-				}
-				videoCalls.onUserUpdate(currentUserId, function(update, status) {
-					if (update.providerType == self.getType()) {
-						if (update.eventType == "call_state") {
-							if (update.caller.type == "user") {
-								log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
-								var callId = update.callId;
-								if (update.callState == "started") {
-									videoCalls.getCall(callId).done(function(call) {
-										log(">>> Got registered " + callId + " > " + new Date().getTime());
-										var callerId = call.owner.id;
-										var callerLink = call.ownerLink;
-										var callerAvatar = call.avatarLink;
-										var callerMessage = call.owner.title + " is calling.";
-										var callerRoom = callerId;
-										call.title = call.owner.title; // for callee the call title is a caller name
-										//
-										var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
-										popover.progress(function($call) {
-											$callPopup = $call;
-											$callPopup.callId = callId;
-											$callPopup.callState = update.callState;
-										}); 
-										popover.done(function(msg) {
-											log(">>> user " + msg + " call " + callId);
-											var longTitle = self.getTitle() + " " + self.getCallTitle();
-											var link = settings.callUri + "/" + callId;
-											var callWindow = videoCalls.showCallPopup(link, longTitle);
-											// Tell the window to start the call  
-											callWindow.document.title = longTitle + ": " + call.owner.title;
-											$(callWindow).on("load", function() {
-												callWindow.eXo.videoCalls.startCall(call).done(function(state) {
-													lockCallButton(callId, callerId, callerRoom);
-												}).fail(function(err) {
-													videoCalls.showError("Error starting call", err);
-												});
-											});
-										});
-										popover.fail(function(err) {
-											if ($callPopup.callState != "stopped") {
-												log("<<< User " + err + " call " + callId + ", deleting it.");
-												videoCalls.deleteCall(callId).done(function() {
-													log("<<< Deleted " + callId + " > " + new Date().getLocaleString);
-												}).fail(function(err) {
-													log("ERROR deleting " + callId + ": " + JSON.stringify(err));
-												});
-											}
-										});
-									}).fail(function(err, status) {
-										log(">>> Call info error: " + JSON.stringify(err) + " [" + status + "]");
-										if (err) {
-											videoCalls.showError("Incoming call error", err.message);
-										} else {
-											videoCalls.showError("Incoming call error", "Error read call information from the server");
-										}
-									});
-								} else if (update.callState == "stopped") {
-									// Hide accept popover for this call
-									closeCallPopup(callId, update.callState);
-									// Unclock the call button
-									var callerId = update.callerId; // callerRoom is the same as callerId for P2P
-									unlockCallButton(callId, callerId, callerId); 
-								}							
-							} else {
-								log(">>> Group calls not supported: " + JSON.stringify(update) + " [" + status + "]");
+				var process = $.Deferred();
+				if (self.isSupportedPlatform()) {
+					var currentUserId = videoCalls.getUser().id;
+					clientId = self.createId(currentUserId);
+					var $callPopup;
+					var closeCallPopup = function(callId, state) {
+						if ($callPopup && $callPopup.callId && $callPopup.callId == callId) {
+							if ($callPopup.is(":visible")) {
+								$callPopup.dialog("close");
+								$callPopup.callState = state;
 							}
-						} else if (update.eventType == "call_joined") {
-							// TODO not used (not fired)
-						} else if (update.eventType == "call_leaved") {
-							// TODO not used (not fired)
-						} else if (update.eventType == "retry") {
-							log("<<< Retry for user updates [" + status + "]");
-						} else {
-							log("<<< Unexpected user update: " + JSON.stringify(update) + " [" + status + "]");
 						}
-					} // it's other provider type
-				}, function(err) {
-					// Error handler
-					log(err);
-				});
+					};
+					var lockCallButton = function(callId, callerId, callerRoom) {
+					};
+					var unlockCallButton = function(callId, callerId, callerRoom) {
+					};
+					if (videoCalls.hasChatApplication()) {
+						// Care about marking chat rooms for active calls
+						var $chat = $("#chat-application");
+						if ($chat.length > 0) {
+							var $chats = $chat.find("#chats");
+							if ($chats.length > 0) {
+								var $users = $chat.find("#chat-users");
+								// Implement Chat specific logic
+								var getCallButton = function() {
+									return $chat.find("#room-detail .webrtcCallAction");
+								};
+								lockCallButton = function(callId, callerId, callerRoom) {
+									var roomId = chatApplication.targetUser;
+									if (roomId == (callerRoom ? callerRoom : callerId)) {
+										var $callButton = getCallButton();
+										if (!$callButton.hasClass("callDisabled")) {
+											$callButton.addClass("callDisabled");
+										}								
+									}
+								};
+								unlockCallButton = function(callId, callerId, callerRoom) {
+									var roomId = chatApplication.targetUser;
+									if (roomId == (callerRoom ? callerRoom : callerId)) {
+										var $callButton = getCallButton();
+										$callButton.removeClass("callDisabled");
+									}
+								};
+							} else {
+								log("Cannot find #chats element");
+							} 
+						} else {
+							log("Chat application element not found.");
+						}
+					}
+					// On portal pages we support incoming calls
+					if (window.location.pathname.startsWith("/portal/")) {
+						videoCalls.onUserUpdate(currentUserId, function(update, status) {
+							if (update.providerType == self.getType()) {
+								if (update.eventType == "call_state") {
+									if (update.caller.type == "user") {
+										log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
+										var callId = update.callId;
+										if (update.callState == "started") {
+											videoCalls.getCall(callId).done(function(call) {
+												log(">>> Got registered " + callId + " > " + new Date().getTime());
+												var callerId = call.owner.id;
+												var callerLink = call.ownerLink;
+												var callerAvatar = call.avatarLink;
+												var callerMessage = call.owner.title + " is calling.";
+												var callerRoom = callerId;
+												call.title = call.owner.title; // for callee the call title is a caller name
+												//
+												var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
+												popover.progress(function($call) {
+													$callPopup = $call;
+													$callPopup.callId = callId;
+													$callPopup.callState = update.callState;
+												}); 
+												popover.done(function(msg) {
+													log(">>> user " + msg + " call " + callId);
+													var longTitle = self.getTitle() + " " + self.getCallTitle();
+													var link = settings.callUri + "/" + callId;
+													var callWindow = videoCalls.showCallPopup(link, longTitle);
+													// Tell the window to start the call  
+													callWindow.document.title = longTitle + ": " + call.owner.title;
+													$(callWindow).on("load", function() {
+														callWindow.eXo.videoCalls.startCall(call).done(function(state) {
+															lockCallButton(callId, callerId, callerRoom);
+														}).fail(function(err) {
+															videoCalls.showError("Error starting call", err);
+														});
+													});
+												});
+												popover.fail(function(err) {
+													if ($callPopup.callState != "stopped") {
+														log("<<< User " + err + " call " + callId + ", deleting it.");
+														videoCalls.deleteCall(callId).done(function() {
+															log("<<< Deleted " + callId + " > " + new Date().getLocaleString);
+														}).fail(function(err) {
+															log("ERROR deleting " + callId + ": " + JSON.stringify(err));
+														});
+													}
+												});
+											}).fail(function(err, status) {
+												log(">>> Call info error: " + JSON.stringify(err) + " [" + status + "]");
+												if (err) {
+													videoCalls.showError("Incoming call error", err.message);
+												} else {
+													videoCalls.showError("Incoming call error", "Error read call information from the server");
+												}
+											});
+										} else if (update.callState == "stopped") {
+											// Hide accept popover for this call
+											closeCallPopup(callId, update.callState);
+											// Unclock the call button
+											var callerId = update.callerId; // callerRoom is the same as callerId for P2P
+											unlockCallButton(callId, callerId, callerId); 
+										}							
+									} else {
+										log(">>> Group calls not supported: " + JSON.stringify(update) + " [" + status + "]");
+									}
+								} else if (update.eventType == "call_joined") {
+									// TODO not used (not fired)
+								} else if (update.eventType == "call_leaved") {
+									// TODO not used (not fired)
+								} else if (update.eventType == "retry") {
+									log("<<< Retry for user updates [" + status + "]");
+								} else {
+									log("<<< Unexpected user update: " + JSON.stringify(update) + " [" + status + "]");
+								}
+							} // it's other provider type
+						}, function(err) {
+							// Error handler
+							log(err);
+						});
+					}
+					//
+					process.resolve();
+				} else {
+					process.reject("WebRTC not supported in this browser: " + navigator.userAgent);
+				}
+				return process.promise();
 			};
 		}
 

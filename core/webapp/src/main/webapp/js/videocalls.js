@@ -531,6 +531,52 @@
 			return $.extend(params, cCometD.eXoSecret, cometdContext);
 		};
 		
+		var initContext = function() {
+			var context = {
+				currentUser : currentUser,
+				isIOS : isIOS,
+				isAndroid : isAndroid,
+				isWindowsMobile : isWindowsMobile,
+				details : function() {
+					// this method should not be used in this context, thus keep it for unification only
+					var data = $.Deferred();
+					data.resolve([], context.space.id, context.space.title);
+					return data.promise();
+				}
+			};
+			if (currentSpaceId) {
+				context.spaceId = currentSpaceId; 
+			} else {
+				context.spaceId = null; 
+			}
+			if (currentRoomTitle) {
+				context.roomTitle = currentRoomTitle;
+			} else {
+				context.roomTitle = null;
+			}
+			return context;
+		};
+
+		
+		var initProvider = function(provider) {
+			var process = $.Deferred();
+			if (provider.init && provider.hasOwnProperty("init")) {
+				provider.init(initContext()).done(function() {
+					provider.isInitialized = true;
+					log("Initialized call provider: " + provider.getType());
+					process.resolve(true);
+				}).fail(function(err) {
+					log("ERROR initializing call provider '" + provider.getType() + "': " + err);
+					process.reject(err);
+				});
+			} else {
+				log("Marked call provider as Initialized: " + provider.getType());
+				provider.isInitialized = true;
+				process.resolve(false);
+			}
+			return process.promise();
+		};
+		
 		/**
 		 * Add call button to given target element.
 		 */
@@ -1040,32 +1086,6 @@
 			return context;
 		};
 		
-		var initContext = function() {
-			var context = {
-				currentUser : currentUser,
-				isIOS : isIOS,
-				isAndroid : isAndroid,
-				isWindowsMobile : isWindowsMobile,
-				details : function() {
-					// this method should not be used in this context, thus keep it for unification only
-					var data = $.Deferred();
-					data.resolve([], context.space.id, context.space.title);
-					return data.promise();
-				}
-			};
-			if (currentSpaceId) {
-				context.spaceId = currentSpaceId; 
-			} else {
-				context.spaceId = null; 
-			}
-			if (currentRoomTitle) {
-				context.roomTitle = currentRoomTitle;
-			} else {
-				context.roomTitle = null;
-			}
-			return context;
-		};
-		
 		/**
 		 * Add call button to space's on-mouse popups and panels.
 		 */
@@ -1232,12 +1252,10 @@
 				}
 				
 				// also init registered providers
-				var context = initContext();
 				for (var i = 0; i < providers.length; i++) {
 					var p = providers[i];
-					if (!p.isInitialized && p.init && p.hasOwnProperty("init")) {
-						p.init(context);
-						p.isInitialized = true;
+					if (!p.isInitialized) {
+						initProvider(p);
 					}
 				}
 			}
@@ -1271,22 +1289,31 @@
 			// it returns a promise, when it resolved there will be a JQuery element of a button(s) container. 
 			//
 			// A provider may support following of API methods:
-			// * update(stateObj) - when Video Calls will need update the state and UI, it will call the method
-			// * init() - will be called when Video Calls user will be initialized in init()
-			//
+			// * init() - will be called when Video Calls user will be initialized in this.init(), this method returns a promise
 			
 			// TODO avoid duplicates, use map like?
 			if (provider.getSupportedTypes && provider.hasOwnProperty("getSupportedTypes") && provider.getTitle && provider.hasOwnProperty("getTitle")) {
 				if (provider.callButton && provider.hasOwnProperty("callButton")) {
-					log("Added provider " + provider.getType() + " (" + provider.getTitle() + ")");
+					// we'll also care about providers added after Video Calls initialization, see this.init()
 					providers.push(provider);
-					// care about providers added after Video Calls initialization
-					if (currentUser && !provider.isInitialized && provider.init && provider.hasOwnProperty("init")) {
-						provider.init(initContext());
-						provider.isInitialized = true;
-					};
+					log("Added call provider: " + provider.getType() + " (" + provider.getTitle() + ")");
+					if (currentUser) {
+						if (!provider.isInitialized) {
+							initProvider(provider).fail(function() {
+								// Provider failed to init, remove it from the working list
+								var index = providers.indexOf(provider);
+								if (index >= 0) {
+							    array.splice(index, 1);
+								}
+							});
+						} else {
+							log("Already initialized provider: " + provider.getType());
+						}
+					} else {
+						log("Current user not set, later will try initialized provider: " + provider.getType());
+					}
 				} else {
-					log("Not compartible provider object: " + provider.getName());
+					log("Not compartible provider object (method callButton() required): " + provider.getTitle());
 				}
 			} else {
 				log("Not a provider object: " + JSON.stringify(provider));

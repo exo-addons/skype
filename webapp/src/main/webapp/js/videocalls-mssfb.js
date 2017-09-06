@@ -2501,6 +2501,7 @@
 			
 			this.init = function(context) {
 				//log("Init at " + location.origin + location.pathname);
+				var process = $.Deferred();
 				if (window.location.pathname.startsWith("/portal/") && window.location.pathname.indexOf("/edit-profile/") > 0) {
 					// in user profile edit page 
 					var $form = $("#UIEditUserProfileForm");
@@ -3071,6 +3072,8 @@
 						log("Error reading access token: local storage not supported.");
 					}
 				} // else, it's also may be a call page - do we need something here?
+				process.resolve();
+				return process.promise();
 			};
 		}
 
