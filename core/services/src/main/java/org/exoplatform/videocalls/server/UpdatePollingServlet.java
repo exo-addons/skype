@@ -78,15 +78,16 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
             }
 
             @Override
-            public void onCallState(String callId, String callState, String callerId, String callerType) {
+            public void onCallState(String callId, String providerType, String callState, String callerId, String callerType) {
               if (polling.compareAndSet(true, false)) {
                 StringBuilder body = new StringBuilder();
                 body.append('{');
                 body.append("\"eventType\": \"call_state\",");
                 body.append("\"callId\": \"");
                 body.append(callId);
-                body.append('\"');
-                body.append(",\"callState\": \"");
+                body.append("\",\"providerType\": \"");
+                body.append(providerType);
+                body.append("\",\"callState\": \"");
                 body.append(callState);
                 body.append("\",\"caller\": {");
                 body.append("\"id\": \"");

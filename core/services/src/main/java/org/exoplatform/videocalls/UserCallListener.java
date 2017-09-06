@@ -58,11 +58,12 @@ public abstract class UserCallListener {
    * Notify.
    *
    * @param callId the call id
+   * @param providerType provider type
    * @param callState the call status
    * @param callerId the caller id
    * @param callerType the caller type
    */
-  public abstract void onCallState(String callId, String callState, String callerId, String callerType);
+  public abstract void onCallState(String callId, String providerType, String callState, String callerId, String callerType);
   
   /**
    * On participant joined.

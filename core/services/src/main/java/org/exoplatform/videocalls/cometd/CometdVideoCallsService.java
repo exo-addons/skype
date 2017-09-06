@@ -215,16 +215,17 @@ public class CometdVideoCallsService implements Startable {
 
                     @Override
                     public void onCallState(String callId,
+                                            String providerType,
                                             String callState,
-                                            String callerId,
-                                            String callerType) {
+                                            String callerId, String callerType) {
                       StringBuilder data = new StringBuilder();
                       data.append('{');
                       data.append("\"eventType\": \"call_state\",");
                       data.append("\"callId\": \"");
                       data.append(callId);
-                      data.append('\"');
-                      data.append(",\"callState\": \"");
+                      data.append("\",\"providerType\": \"");
+                      data.append(providerType);
+                      data.append("\",\"callState\": \"");
                       data.append(callState);
                       data.append("\",\"caller\": {");
                       data.append("\"id\": \"");
@@ -499,9 +500,9 @@ public class CometdVideoCallsService implements Startable {
 
                     @Override
                     public void onCallState(String callId,
+                                            String providerType,
                                             String callState,
-                                            String callerId,
-                                            String callerType) {
+                                            String callerId, String callerType) {
                       StringBuilder data = new StringBuilder();
                       data.append('{');
                       data.append("\"eventType\": \"call_state\",");

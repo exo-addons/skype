@@ -430,7 +430,7 @@ public class VideoCallsService implements Startable {
           saveUserGroupCallId(part.getId(), id);
           if (!userId.equals(part.getId())) {
             // fire group's user listener for incoming, except of the caller
-            fireUserCallState(part.getId(), id, CallState.STARTED, ownerId, ownerType);
+            fireUserCallState(part.getId(), id, providerType, CallState.STARTED, ownerId, ownerType);
           }
         }
       }
@@ -487,11 +487,12 @@ public class VideoCallsService implements Startable {
       String callId = call.getId();
       for (UserInfo part : call.getParticipants()) {
         if (part.getType() == UserInfo.TYPE_NAME) {
-          // it's eXo user: fire user listener for stopped call, 
+          // it's eXo user: fire user listener for stopped call,
           // but not to the initiator (given user, which also can be null when not possible to define it)
           if (userId == null || !userId.equals(part.getId())) {
             fireUserCallState(part.getId(),
                               call.getId(),
+                              call.getProviderType(),
                               CallState.STOPPED,
                               call.getOwner().getId(),
                               call.getOwner().getType());
@@ -517,12 +518,12 @@ public class VideoCallsService implements Startable {
    */
   public CallInfo startCall(String id) throws Exception {
     // TODO exception if user not a participant
-    CallInfo info = readCallById(id);
-    if (info != null) {
-      info.setState(CallState.STARTED);
-      if (info.getOwner().isGroup()) {
+    CallInfo call = readCallById(id);
+    if (call != null) {
+      call.setState(CallState.STARTED);
+      if (call.getOwner().isGroup()) {
         String userId = currentUserId();
-        for (UserInfo part : info.getParticipants()) {
+        for (UserInfo part : call.getParticipants()) {
           if (part.getType() == UserInfo.TYPE_NAME) {
             if (userId.equals(part.getId())) {
               part.setState(UserState.JOINED);
@@ -530,16 +531,17 @@ public class VideoCallsService implements Startable {
               // it's eXo user: fire user listener for started call, but not to the starter (current user)
               fireUserCallState(part.getId(),
                                 id,
+                                call.getProviderType(),
                                 CallState.STARTED,
-                                info.getOwner().getId(),
-                                info.getOwner().getType());
+                                call.getOwner().getId(),
+                                call.getOwner().getType());
             }
           }
         }
       }
-      saveCall(info);
+      saveCall(call);
     }
-    return info;
+    return call;
   }
 
   /**
@@ -719,12 +721,14 @@ public class VideoCallsService implements Startable {
    *
    * @param userId the user id
    * @param callId the call id
+   * @param providerType the provider type
    * @param callState the call state
    * @param callerId the caller id
    * @param callerType the caller type
    */
   protected void fireUserCallState(String userId,
                                    String callId,
+                                   String providerType,
                                    String callState,
                                    String callerId,
                                    String callerType) {
@@ -738,7 +742,7 @@ public class VideoCallsService implements Startable {
         // As a solution, we need a temporal pool to save (deferred) events for given user
         // (listener.getUserId()) until it will send a new request or the pool expired
         if (listener.isListening()) {
-          listener.onCallState(callId, callState, callerId, callerType);
+          listener.onCallState(callId, providerType, callState, callerId, callerType);
         }
       }
     }
@@ -1282,6 +1286,7 @@ public class VideoCallsService implements Startable {
         if (initiatorId == null || !initiatorId.equals(part.getId())) {
           fireUserCallState(part.getId(),
                             call.getId(),
+                            call.getProviderType(),
                             state,
                             call.getOwner().getId(),
                             call.getOwner().getType());
