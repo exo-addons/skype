@@ -157,7 +157,11 @@ if (eXo.videoCalls) {
 							
 							// WebRTC connection to establish a call connection
 							log("Creating RTC peer connection for " + callId + " > " + new Date().getTime());
-							var pc = isEdge ? new RTCPeerConnection({iceServers: []}) : new RTCPeerConnection(); // TODO servers
+							var pc = new RTCPeerConnection({
+								iceServers: [{
+									"urls": "stun:stun.l.google.com:19302"
+								}]
+							});
 							var negotiation = $.Deferred();
 							var connection = $.Deferred();
 							var handleError = function(title, message) {
