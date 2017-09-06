@@ -14,7 +14,7 @@
 }
 
 .startCallButton {
-	text-align: initial;
+	/*text-align: initial;*/
 }
 
 .startCallButton > i:before {

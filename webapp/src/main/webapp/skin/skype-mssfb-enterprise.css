@@ -2,7 +2,7 @@
  * Skype & Skype for Business CSS tweaks for Enterprise skin.
  */ 
 .uiIconSkypeCall:before, .uiIconMssfbCall:before {
-	top: -1px;
+	/*top: -1px;*/
 }
 
 #mssfb-call-container>.callHoverBar .callClose {
