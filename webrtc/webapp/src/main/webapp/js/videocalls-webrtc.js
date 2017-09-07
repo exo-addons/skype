@@ -251,18 +251,23 @@
 				process.notify($call);
 				// Start ringing 
 				// TODO use original WebRTC ringtone
-				var $ring = $("<audio controls loop style='display: none;'>"
+				var $ring = $("<audio loop autoplay style='display: none;'>" // controls 
 							+ "<source src='https://latest-swx.cdn.skype.com/assets/v/0.0.300/audio/m4a/call-outgoing-p1.m4a' type='audio/mpeg'>"  
 							+ "Your browser does not support the audio element.</audio>");
 				$(document.body).append($ring);
 				var player = $ring.get(0);
-				player.pause();
+				//player.pause();
 				//player.currentTime = 0;
-				setTimeout(function () {      
-					player.play();
-				}, 250);
+				// TODO this doesn't work on mobile - requires user gesture
+				/*setTimeout(function () {  
+					try {
+						player.play();
+					} catch(e) {
+						log(">> ERROR playing ringtone: ", e);
+					}
+				}, 0);*/
 				process.always(function() {
-					player.pause();
+					//player.pause();
 					$ring.remove();
 				});
 				return process.promise();
@@ -321,69 +326,84 @@
 						}
 					}
 					// On portal pages we support incoming calls
+					var lastUpdate = null; // XXX it's temp workaround
+					var lastUpdateReset;
 					if (window.location.pathname.startsWith("/portal/")) {
 						videoCalls.onUserUpdate(currentUserId, function(update, status) {
 							if (update.providerType == self.getType()) {
 								if (update.eventType == "call_state") {
 									if (update.caller.type == "user") {
-										log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
 										var callId = update.callId;
-										if (update.callState == "started") {
-											videoCalls.getCall(callId).done(function(call) {
-												log(">>> Got registered " + callId + " > " + new Date().getTime());
-												var callerId = call.owner.id;
-												var callerLink = call.ownerLink;
-												var callerAvatar = call.avatarLink;
-												var callerMessage = call.owner.title + " is calling.";
-												var callerRoom = callerId;
-												call.title = call.owner.title; // for callee the call title is a caller name
-												//
-												var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
-												popover.progress(function($call) {
-													$callPopup = $call;
-													$callPopup.callId = callId;
-													$callPopup.callState = update.callState;
-												}); 
-												popover.done(function(msg) {
-													log(">>> user " + msg + " call " + callId);
-													var longTitle = self.getTitle() + " " + self.getCallTitle();
-													var link = settings.callUri + "/" + callId;
-													var callWindow = videoCalls.showCallPopup(link, longTitle);
-													// Tell the window to start the call  
-													callWindow.document.title = longTitle + ": " + call.owner.title;
-													$(callWindow).on("load", function() {
-														callWindow.eXo.videoCalls.startCall(call).done(function(state) {
-															lockCallButton(callId, callerId, callerRoom);
-														}).fail(function(err) {
-															videoCalls.showError("Error starting call", err);
+										var lastCallId = lastUpdate ? lastUpdate.callId : null;
+										var lastCallState = lastUpdate ? lastUpdate.callState : null;
+										if (callId == lastCallId && update.callState == lastCallState) {
+											log("<<< XXX User call state updated skipped as duplicated: " + JSON.stringify(update) + " [" + status + "]");
+										} else {
+											log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
+											if (lastUpdateReset) {
+												clearTimeout(lastUpdateReset);
+											}
+											lastUpdate = update;
+											lastUpdateReset = setTimeout(function() {
+												lastUpdate = null; // XXX avoid double action on duplicated update - temp solution
+											}, 500);
+											if (update.callState == "started") {
+												videoCalls.getCall(callId).done(function(call) {
+													log(">>> Got registered " + callId + " > " + new Date().getTime());
+													var callerId = call.owner.id;
+													var callerLink = call.ownerLink;
+													var callerAvatar = call.avatarLink;
+													var callerMessage = call.owner.title + " is calling.";
+													var callerRoom = callerId;
+													call.title = call.owner.title; // for callee the call title is a caller name
+													//
+													var popover = acceptCallPopover(callerLink, callerAvatar, callerMessage);
+													popover.progress(function($call) {
+														$callPopup = $call;
+														$callPopup.callId = callId;
+														$callPopup.callState = update.callState;
+													}); 
+													popover.done(function(msg) {
+														log(">>> user " + msg + " call " + callId);
+														var longTitle = self.getTitle() + " " + self.getCallTitle();
+														var link = settings.callUri + "/" + callId;
+														var callWindow = videoCalls.showCallPopup(link, longTitle);
+														// Tell the window to start the call  
+														callWindow.document.title = longTitle + ": " + call.owner.title;
+														$(callWindow).on("load", function() {
+															callWindow.eXo.videoCalls.startCall(call).done(function(state) {
+																lockCallButton(callId, callerId, callerRoom);
+															}).fail(function(err) {
+																videoCalls.showError("Error starting call", err);
+															});
 														});
 													});
-												});
-												popover.fail(function(err) {
-													if ($callPopup.callState != "stopped") {
-														log("<<< User " + err + " call " + callId + ", deleting it.");
-														videoCalls.deleteCall(callId).done(function() {
-															log("<<< Deleted " + callId + " > " + new Date().getLocaleString);
-														}).fail(function(err) {
-															log("ERROR deleting " + callId + ": " + JSON.stringify(err));
-														});
+													popover.fail(function(err) {
+														if ($callPopup.callState != "stopped") {
+															log("<<< User " + err + " call " + callId + ", deleting it.");
+															videoCalls.deleteCall(callId).done(function() {
+																log("<<< Deleted " + callId + " > " + new Date().getLocaleString);
+															}).fail(function(err) {
+																log("ERROR deleting " + callId + ": " + JSON.stringify(err));
+															});
+														}
+													});
+												}).fail(function(err, status) {
+													log(">>> Call info error: " + JSON.stringify(err) + " [" + status + "]");
+													if (err) {
+														videoCalls.showError("Incoming call error", err.message);
+													} else {
+														videoCalls.showError("Incoming call error", "Error read call information from the server");
 													}
 												});
-											}).fail(function(err, status) {
-												log(">>> Call info error: " + JSON.stringify(err) + " [" + status + "]");
-												if (err) {
-													videoCalls.showError("Incoming call error", err.message);
-												} else {
-													videoCalls.showError("Incoming call error", "Error read call information from the server");
-												}
-											});
-										} else if (update.callState == "stopped") {
-											// Hide accept popover for this call
-											closeCallPopup(callId, update.callState);
-											// Unclock the call button
-											var callerId = update.callerId; // callerRoom is the same as callerId for P2P
-											unlockCallButton(callId, callerId, callerId); 
-										}							
+											} else if (update.callState == "stopped") {
+												// Hide accept popover for this call
+												closeCallPopup(callId, update.callState);
+												// Unclock the call button
+												var callerId = update.callerId; // callerRoom is the same as callerId for P2P
+												unlockCallButton(callId, callerId, callerId); 
+											}
+										}
 									} else {
 										log(">>> Group calls not supported: " + JSON.stringify(update) + " [" + status + "]");
 									}

@@ -1580,16 +1580,17 @@
 				});
 				process.notify($call);
 				if (withRing) { 
-					var $ring = $("<audio controls loop style='display: none;'>"
+					var $ring = $("<audio controls loop autoplay style='display: none;'>"
 								+ "<source src='https://latest-swx.cdn.skype.com/assets/v/0.0.300/audio/m4a/call-outgoing-p1.m4a' type='audio/mpeg'>"  
 								+ "Your browser does not support the audio element.</audio>");
 					$(document.body).append($ring);
 					var player = $ring.get(0);
-					player.pause();
+					//player.pause();
 					//player.currentTime = 0;
-					setTimeout(function () {      
+					// TODO this doesn't work on mobile - requires user gesture
+					/*setTimeout(function () {      
 						player.play();
-					}, 250);
+					}, 250);*/
 					process.always(function() {
 						player.pause();
 						$ring.remove();

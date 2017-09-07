@@ -1692,7 +1692,7 @@
 				cometd.publish("/eXo/Application/VideoCalls/call/" + callId, data, function(publishAck) {
 			    if (publishAck.successful) {
 			    	log("<< Call update reached the server: " + JSON.stringify(publishAck));
-			    	process.resolve("Successful", 200);
+			    	process.resolve("successful", 200);
 			    } else {
 			    	log("<< Call update failed to reach the server: " + JSON.stringify(publishAck));
 			    	process.reject(publishAck.failure ? publishAck.failure.reason : publishAck.error, 500);
