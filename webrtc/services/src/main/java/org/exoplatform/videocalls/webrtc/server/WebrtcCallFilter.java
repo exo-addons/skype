@@ -20,6 +20,8 @@
 package org.exoplatform.videocalls.webrtc.server;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletContext;
@@ -46,7 +48,7 @@ import org.gatein.common.logging.LoggerFactory;
 public class WebrtcCallFilter extends AbstractFilter implements Filter {
 
   /** The Constant LOG. */
-  protected static final Logger LOG                 = LoggerFactory.getLogger(WebrtcCallFilter.class);
+  protected static final Logger LOG                  = LoggerFactory.getLogger(WebrtcCallFilter.class);
 
   /** The Constant WEBRTC_CALL_REDIRECT. */
   public static final String    WEBRTC_CALL_REDIRECT = "webrtccall_redirect";
@@ -55,7 +57,13 @@ public class WebrtcCallFilter extends AbstractFilter implements Filter {
   public static final String    WEBRTC_SERVLET_CTX   = "/webrtc";
 
   /** The Constant CALL_SERVLET. */
-  public static final String    CALL_SERVLET        = "/webrtccallservlet".intern();
+  public static final String    CALL_SERVLET         = "/webrtccallservlet".intern();
+
+  /** The Constant SCHEME_HTTP. */
+  public static final String    SCHEME_HTTP          = "http";
+
+  /** The Constant SCHEME_HTTPS. */
+  public static final String    SCHEME_HTTPS         = "https";
 
   /**
    * {@inheritDoc}
@@ -67,11 +75,41 @@ public class WebrtcCallFilter extends AbstractFilter implements Filter {
     HttpServletRequest httpReq = (HttpServletRequest) request;
     HttpServletResponse httpRes = (HttpServletResponse) response;
 
+    String scheme = httpReq.getScheme();
+    if (scheme != null) {
+      scheme = scheme.toUpperCase().toLowerCase();
+    } else {
+      scheme = SCHEME_HTTP;
+    }
+
     if (httpReq.getRemoteUser() != null) {
       String uri = httpReq.getRequestURI();
       if (uri.endsWith("/webrtc/call/home")) {
         // If user needs a Home page redirect him to the portal default page
         httpReq.setAttribute(WEBRTC_CALL_REDIRECT, "/portal");
+      } else if (scheme.equals("http")) {
+        LOG.warn(new StringBuilder("WebRTC call page request with not secure shceme ").append(httpReq.getRequestURL())
+                                                                                      .append(". Redirecting to secure page."));
+        // Redirect to HTTPS
+        String secure;
+        try {
+          URI secureURI = new URI(SCHEME_HTTPS,
+                                  null,
+                                  httpReq.getServerName(),
+                                  httpReq.getServerPort(),
+                                  httpReq.getServletPath(),
+                                  httpReq.getQueryString(),
+                                  null);
+          secure = secureURI.toASCIIString();
+        } catch (URISyntaxException e) {
+          LOG.warn("Error creating secure URL for " + httpReq.getRequestURL().toString(), e);
+          // Replace http to https manually
+          secure = new StringBuilder(SCHEME_HTTPS).append(httpReq.getRequestURL().substring(4))
+                                                  .append('/')
+                                                  .append(httpReq.getQueryString())
+                                                  .toString();
+        }
+        httpReq.setAttribute(WEBRTC_CALL_REDIRECT, secure);
       } else {
         ServletContext context = httpReq.getSession().getServletContext().getContext(WEBRTC_SERVLET_CTX);
         context.getRequestDispatcher(CALL_SERVLET).forward(httpReq, httpRes);

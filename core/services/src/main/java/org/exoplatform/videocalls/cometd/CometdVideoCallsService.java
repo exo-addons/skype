@@ -22,7 +22,6 @@ import static org.exoplatform.videocalls.VideoCallsUtils.asJSON;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,6 +76,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.mortbay.cometd.continuation.EXoContinuationBayeux;
 import org.picocontainer.Startable;
+import org.picocontainer.defaults.ObjectReference;
 
 /**
  * Created by The eXo Platform SAS
@@ -146,7 +146,7 @@ public class CometdVideoCallsService implements Startable {
           LOG.debug("Session removed: " + session.getId() + " timedout:" + timeout + " channels: "
               + channelsAsString(session.getSubscriptions()));
         }
-        // cleanup session stuff, note that disconnected session already unsubscribed and has not channels
+        // cleanup session stuff, note that disconnected session already unsubscribed and has no channels
         channelClients.values().remove(session.getId());
         UserCallListener listener = clientUserListeners.remove(session.getId());
         if (listener != null) {
@@ -173,16 +173,25 @@ public class CometdVideoCallsService implements Startable {
                 // Tracking channel-to-clients mapping looks redundant, at first thought client-to-listener is
                 // enough, but we keep channel's clients also for understanding consistency during development
                 // and debug
-                Set<String> clients = channelClients.computeIfAbsent(channelId,
-                                                                     k -> ConcurrentHashMap.newKeySet());
-                if (clients.contains(clientId) && clientUserListeners.containsKey(clientId)) {
-                  LOG.warn(">>> Subscription is already active for " + currentUserId + ", client: " + clientId
-                      + ", channel: " + channelId);
-                  remote.deliver(serverSession,
-                                 channelId,
-                                 ErrorInfo.clientError("Subscription already active").asJSON());
-                } else {
-                  UserCallListener listener = new UserCallListener(userId) {
+                // Sep 8 2017: We need a single user listener per his channel, if add more then we'll have
+                // multiple events for a single update
+
+                // TODO
+                // Set<String> clients = channelClients.computeIfAbsent(channelId,
+                // k -> ConcurrentHashMap.newKeySet());
+                // if (clients.contains(clientId) && clientUserListeners.containsKey(clientId)) {
+                // LOG.warn(">>> Subscription is already active for " + currentUserId + ", client: " +
+                // clientId
+                // + ", channel: " + channelId);
+                // remote.deliver(serverSession,
+                // channelId,
+                // ErrorInfo.clientError("Subscription already active").asJSON());
+                // } else {
+
+                //// New code
+                AtomicReference<UserCallListener> newListenerRef = new AtomicReference<UserCallListener>();
+                UserCallListener listener = channelUserListeners.computeIfAbsent(channelId, k -> {
+                  UserCallListener newListener = new UserCallListener(userId) {
                     @Override
                     public void onPartLeaved(String callId, String partId) {
                       StringBuilder data = new StringBuilder();
@@ -217,7 +226,8 @@ public class CometdVideoCallsService implements Startable {
                     public void onCallState(String callId,
                                             String providerType,
                                             String callState,
-                                            String callerId, String callerType) {
+                                            String callerId,
+                                            String callerType) {
                       StringBuilder data = new StringBuilder();
                       data.append('{');
                       data.append("\"eventType\": \"call_state\",");
@@ -235,6 +245,10 @@ public class CometdVideoCallsService implements Startable {
                       data.append("\"}");
                       data.append('}');
                       bayeux.getChannel(channelId).publish(serverSession, data.toString());
+                      if (LOG.isDebugEnabled()) {
+                        LOG.debug(">>>> Sent call state update to " + channelId + " by "
+                            + currentUserId(null));
+                      }
                     }
 
                     @Override
@@ -243,13 +257,28 @@ public class CometdVideoCallsService implements Startable {
                       return true;
                     }
                   };
-                  videoCalls.addUserCallListener(listener);
-                  clients.add(clientId);
-                  clientUserListeners.put(clientId, listener);
+                  videoCalls.addUserCallListener(newListener);
+                  // clients.add(clientId);
+                  // clientUserListeners.put(clientId, listener);
                   // add listener for removed session cleanup
                   remote.addListener(sessionRemoveListener);
+                  // newListenerRef.set(newListener);
                   if (LOG.isDebugEnabled()) {
                     LOG.debug("<<< Added user call listener for " + userId + ", client:" + clientId
+                        + ", channel:" + channelId);
+                  }
+                  return newListener;
+                });
+                // }
+                if (newListenerRef.get() == null) {
+                  // Nothing set means a listener should already to exist
+                  if (listener != null) {
+                    if (LOG.isDebugEnabled()) {
+                      LOG.debug("<<< User call listener already registered for " + userId + ", channel:"
+                          + channelId);
+                    }
+                  } else {
+                    LOG.warn("User call listener not registered for " + userId + ", client:" + clientId
                         + ", channel:" + channelId);
                   }
                 }
@@ -358,7 +387,8 @@ public class CometdVideoCallsService implements Startable {
             && channelId.length() > CALL_SUBSCRIPTION_CHANNEL_NAME.length()) {
           String callId = channelId.substring(CALL_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
           // This call communications ended, in normal way of by network failure - we assume the call ended,
-          // ensure its parties, including those who received incoming notification but not yet accepted/rejected it,
+          // ensure its parties, including those who received incoming notification but not yet
+          // accepted/rejected it,
           // will be notified that the call stopped/removed.
           try {
             CallInfo call = videoCalls.getCall(callId);
@@ -382,10 +412,15 @@ public class CometdVideoCallsService implements Startable {
     @Session
     private ServerSession                       serverSession;
 
+    private final Map<String, UserCallListener> channelUserListeners  = new ConcurrentHashMap<>();
+
+    @Deprecated
     private final Map<String, UserCallListener> clientUserListeners   = new ConcurrentHashMap<>();
 
+    @Deprecated
     private final Map<String, Set<String>>      channelClients        = new ConcurrentHashMap<>();
 
+    @Deprecated
     private final Map<String, Set<String>>      callUsers             = new ConcurrentHashMap<>();
 
     private final RemoveListener                sessionRemoveListener = new SessionRemoveListener();
@@ -502,7 +537,8 @@ public class CometdVideoCallsService implements Startable {
                     public void onCallState(String callId,
                                             String providerType,
                                             String callState,
-                                            String callerId, String callerType) {
+                                            String callerId,
+                                            String callerType) {
                       StringBuilder data = new StringBuilder();
                       data.append('{');
                       data.append("\"eventType\": \"call_state\",");

@@ -349,9 +349,9 @@ if (eXo.videoCalls) {
 								    pc.createOffer().then(function(desc) {
 								    	log("<<< createOffer for " + callId);
 								    	pc.setLocalDescription(desc).then(function() {
-								    		log(">>>>> setLocalDescription for " + callId);
+								    		log(">>>> setLocalDescription for " + callId);
 								    		sendOffer(pc.localDescription).then(function() {
-								    			log("<<<<< setLocalDescription for " + callId);
+								    			log("<<<< setLocalDescription for " + callId);
 									    		connection.resolve().then(function() {
 										      	// Owner ready to exchange ICE candidates
 														log("<<<<< Started exchange network information with peers of " + callId);
