@@ -32,7 +32,7 @@
 }
 
 .spaceCall {
-	padding: 2px 4px 2px 5px !important;
+	padding: 1px 4px 2px 5px !important;
 }
 
 .defaultCallButton.spaceCall + .dropdown-toggle {
@@ -45,4 +45,8 @@
 
 #UIBreadCrumbsNavigationPortlet .callButtonContainer {
 	padding-top: 3px;
+}
+
+.callButtonContainer .dropdown-menu .popoverCall {
+	text-align: initial !important;
 }
