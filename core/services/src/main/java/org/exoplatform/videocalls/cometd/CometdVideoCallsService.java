@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -33,7 +32,6 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import org.cometd.annotation.Configure;
 import org.cometd.annotation.Param;
 import org.cometd.annotation.RemoteCall;
 import org.cometd.annotation.ServerAnnotationProcessor;
@@ -70,10 +68,6 @@ import org.exoplatform.videocalls.UserCallListener;
 import org.exoplatform.videocalls.UserState;
 import org.exoplatform.videocalls.VideoCallsService;
 import org.exoplatform.videocalls.client.ErrorInfo;
-import org.exoplatform.ws.frameworks.json.impl.JsonException;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.mortbay.cometd.continuation.EXoContinuationBayeux;
 import org.picocontainer.Startable;
 
@@ -173,7 +167,8 @@ public class CometdVideoCallsService implements Startable {
           }
         } else {
           if (LOG.isDebugEnabled()) {
-            LOG.debug("<<< User call client was not removed for " + listener.getUserId() + ", client:" + clientId);
+            LOG.debug("<<< User call client was not removed for " + listener.getUserId() + ", client:"
+                + clientId);
           }
         }
         return res;
@@ -193,7 +188,8 @@ public class CometdVideoCallsService implements Startable {
           }
         } else {
           if (LOG.isDebugEnabled()) {
-            LOG.debug("<<< User call client was not added for " + listener.getUserId() + ", client:" + clientId);
+            LOG.debug("<<< User call client was not added for " + listener.getUserId() + ", client:"
+                + clientId);
           }
         }
         return res;
@@ -242,20 +238,6 @@ public class CometdVideoCallsService implements Startable {
                 // Sep 8 2017: We need a single user listener per his channel, if add more then we'll have
                 // multiple events for a single update
 
-                // TODO
-                // Set<String> clients = channelClients.computeIfAbsent(channelId,
-                // k -> ConcurrentHashMap.newKeySet());
-                // if (clients.contains(clientId) && clientUserListeners.containsKey(clientId)) {
-                // LOG.warn(">>> Subscription is already active for " + currentUserId + ", client: " +
-                // clientId
-                // + ", channel: " + channelId);
-                // remote.deliver(serverSession,
-                // channelId,
-                // ErrorInfo.clientError("Subscription already active").asJSON());
-                // } else {
-
-                //// New code
-                AtomicBoolean isNewContext = new AtomicBoolean(false);
                 ChannelContext context = channelContext.computeIfAbsent(channelId, k -> {
                   UserCallListener listener = new UserCallListener(userId) {
                     @Override
@@ -327,14 +309,8 @@ public class CometdVideoCallsService implements Startable {
                       return true;
                     }
                   };
-                  // Will be added in addClient()
-                  //videoCalls.addUserCallListener(listener);
-                  // clients.add(clientId);
-                  // clientUserListeners.put(clientId, listener);
-                  // TODO don't needed
-                  // add listener for removed session cleanup
+                  // TODO don't needed: add listener for removed session cleanup
                   // remote.addListener(sessionRemoveListener);
-                  isNewContext.set(true);
                   if (LOG.isDebugEnabled()) {
                     LOG.debug("<<< Created user call context for " + userId + ", client:" + clientId
                         + ", channel:" + channelId);
@@ -342,14 +318,6 @@ public class CometdVideoCallsService implements Startable {
                   return new ChannelContext(listener);
                 });
                 context.addClient(clientId);
-                // }
-                /*if (!isNewContext.get()) {
-                  // Nothing set means a listener should already exist
-                  if (LOG.isDebugEnabled()) {
-                    LOG.debug("<<< User call listener already registered for " + userId + ", channel:"
-                        + channelId);
-                  }
-                }*/
               } else {
                 LOG.warn("Subscribing to other user not possible, was user " + currentUserId + ", channel:"
                     + channelId);
@@ -385,27 +353,6 @@ public class CometdVideoCallsService implements Startable {
           LOG.debug("<< Unsubscribed client:" + clientId + ", channel:" + channelId);
         }
         cleanupChannelClient(channelId, clientId);
-
-        //// TODO
-        // boolean hasClient = channelClients.getOrDefault(channelId,
-        // Collections.emptySet()).remove(clientId);
-        // if (hasClient) {
-        // UserCallListener listener = clientUserListeners.remove(clientId);
-        // if (listener != null) {
-        // videoCalls.removeUserCallListener(listener);
-        // if (LOG.isDebugEnabled()) {
-        // LOG.debug("<<< Removed call listener for user " + listener.getUserId() + ", client:"
-        // + clientId + ", channel:" + channelId);
-        // }
-        // } else {
-        // LOG.info("User call listener not found for client:" + clientId + ", channel:" + channelId);
-        // }
-        // }
-        // channelClients.values().remove(session.getId());
-        // UserCallListener listener = clientUserListeners.remove(session.getId());
-        // if (listener != null) {
-        // videoCalls.removeUserCallListener(listener);
-        // }
       }
     }
 
@@ -448,22 +395,6 @@ public class CometdVideoCallsService implements Startable {
               LOG.debug("<< User call channel context not found for:" + channelId);
             }
           }
-          // TODO
-          // Set<String> clients = channelClients.remove(channelId);
-          // if (clients != null) {
-          // for (String clientId : clients) {
-          // UserCallListener listener = clientUserListeners.remove(clientId);
-          // if (listener != null) {
-          // videoCalls.removeUserCallListener(listener);
-          // if (LOG.isDebugEnabled()) {
-          // LOG.debug("Removed user call listener of client " + clientId + " for channel " + channelId);
-          // }
-          // } else {
-          // LOG.info("Clinet found " + clientId + " but not its user call listener for channel "
-          // + channelId);
-          // }
-          // }
-          // }
         } else if (channelId.startsWith(CALL_SUBSCRIPTION_CHANNEL_NAME)
             && channelId.length() > CALL_SUBSCRIPTION_CHANNEL_NAME.length()) {
           String callId = channelId.substring(CALL_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
@@ -494,15 +425,6 @@ public class CometdVideoCallsService implements Startable {
     private ServerSession                     serverSession;
 
     private final Map<String, ChannelContext> channelContext        = new ConcurrentHashMap<>();
-
-    // @Deprecated
-    // private final Map<String, UserCallListener> clientUserListeners = new ConcurrentHashMap<>();
-
-    // @Deprecated
-    // private final Map<String, Set<String>> channelClients = new ConcurrentHashMap<>();
-
-    // @Deprecated
-    // private final Map<String, Set<String>> callUsers = new ConcurrentHashMap<>();
 
     @Deprecated
     private final RemoveListener              sessionRemoveListener = new SessionRemoveListener();
@@ -548,409 +470,6 @@ public class CometdVideoCallsService implements Startable {
             + " data: " + message.getJSON());
       }
       // here will come user publications about his state
-    }
-
-    // @Listener(Channel.META_SUBSCRIBE)
-    // @Deprecated
-    /*
-     * public void processSubscription(ServerSession remote, ServerMessage message) {
-     * // User subscribed
-     * String clientId = message.getClientId(); // is the same remote.getId() ?
-     * String[] channels;
-     * Object subscription = message.get(Message.SUBSCRIPTION_FIELD);
-     * if (subscription instanceof String[]) {
-     * channels = (String[]) subscription;
-     * } else {
-     * channels = new String[] { (String) subscription };
-     * }
-     * for (String channelId : channels) {
-     * if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
-     * // add user listener
-     * try {
-     * final String userId = channelId.substring(USER_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
-     * final String currentUserId = currentUserId(message);
-     * if (currentUserId != null) {
-     * if (currentUserId.equals(userId)) {
-     * // Tracking channel-to-clients mapping looks redundant, at first thought client-to-listener is
-     * // enough,
-     * // but we keep channel's clients also for understanding consistency during development and
-     * // debug
-     * Set<String> clients = channelClients.computeIfAbsent(channelId,
-     * k -> ConcurrentHashMap.newKeySet());
-     * if (clients.contains(clientId) && clientUserListeners.containsKey(clientId)) {
-     * LOG.warn("Subscribtion already active, user: " + currentUserId + ", client: " + clientId
-     * + ", target: " + channelId);
-     * remote.deliver(serverSession,
-     * channelId,
-     * ErrorInfo.clientError("Subscribtion already active").asJSON());
-     * } else {
-     * UserCallListener listener = new UserCallListener(userId) {
-     * @Override
-     * public void onPartLeaved(String callId, String partId) {
-     * StringBuilder data = new StringBuilder();
-     * data.append('{');
-     * data.append("\"eventType\": \"call_leaved\",");
-     * data.append("\"callId\": \"");
-     * data.append(callId);
-     * data.append("\",\"part\": {");
-     * data.append("\"id\": \"");
-     * data.append(partId);
-     * data.append("\"}");
-     * data.append('}');
-     * bayeux.getChannel(channelId).publish(serverSession, data.toString());
-     * }
-     * @Override
-     * public void onPartJoined(String callId, String partId) {
-     * StringBuilder data = new StringBuilder();
-     * data.append('{');
-     * data.append("\"eventType\": \"call_joined\",");
-     * data.append("\"callId\": \"");
-     * data.append(callId);
-     * data.append("\",\"part\": {");
-     * data.append("\"id\": \"");
-     * data.append(partId);
-     * data.append("\"}");
-     * data.append('}');
-     * bayeux.getChannel(channelId).publish(serverSession, data.toString());
-     * }
-     * @Override
-     * public void onCallState(String callId,
-     * String providerType,
-     * String callState,
-     * String callerId,
-     * String callerType) {
-     * StringBuilder data = new StringBuilder();
-     * data.append('{');
-     * data.append("\"eventType\": \"call_state\",");
-     * data.append("\"callId\": \"");
-     * data.append(callId);
-     * data.append('\"');
-     * data.append(",\"callState\": \"");
-     * data.append(callState);
-     * data.append("\",\"caller\": {");
-     * data.append("\"id\": \"");
-     * data.append(callerId);
-     * data.append("\",\"type\": \"");
-     * data.append(callerType);
-     * data.append("\"}");
-     * data.append('}');
-     * bayeux.getChannel(channelId).publish(serverSession, data.toString());
-     * }
-     * @Override
-     * public boolean isListening() {
-     * return true;
-     * }
-     * };
-     * videoCalls.addUserCallListener(listener);
-     * clients.add(clientId);
-     * clientUserListeners.put(clientId, listener);
-     * // add listener for removed session cleanup
-     * remote.addListener(sessionRemoveListener);
-     * ServerChannel channel = bayeux.getChannel(channelId);
-     * if (channel != null) {
-     * channel.addListener(subscriptionListener);
-     * }
-     * if (LOG.isDebugEnabled()) {
-     * LOG.debug("Subscribed user " + userId + " (client:" + clientId + ") to channel "
-     * + channelId);
-     * }
-     * }
-     * } else {
-     * LOG.warn("Subscribing to other user not possible, user: " + currentUserId + ", target: "
-     * + channelId);
-     * remote.deliver(serverSession,
-     * channelId,
-     * ErrorInfo.clientError("Subscribing to other user not possible").asJSON());
-     * ServerChannel channel = bayeux.getChannel(channelId);
-     * if (channel != null && !channel.unsubscribe(remote)) {
-     * LOG.warn("Unable to unsubscribe user " + currentUserId + " from channel " + channelId);
-     * }
-     * }
-     * } else {
-     * LOG.warn("Subscribing by unauthorized user not possible, was target: " + channelId);
-     * remote.deliver(serverSession, channelId, ErrorInfo.accessError("Unauthorized user").asJSON());
-     * ServerChannel channel = bayeux.getChannel(channelId);
-     * if (channel != null && !channel.unsubscribe(remote)) {
-     * LOG.warn("Unable to unsubscribe unauthorized user from channel " + channelId);
-     * }
-     * }
-     * } catch (IndexOutOfBoundsException e) {
-     * // Ignore channel w/o a subpath (userId here) at the end
-     * if (LOG.isDebugEnabled()) {
-     * LOG.debug("Ignore channel w/o userId at the end: " + channelId, e);
-     * }
-     * }
-     * }
-     * }
-     * }
-     * // @Listener(Channel.META_UNSUBSCRIBE)
-     * @Deprecated
-     * public void processUnsubscription(ServerSession remote, ServerMessage message) {
-     * // User unsubscribed
-     * String clientId = message.getClientId();
-     * String[] channels;
-     * Object subscription = message.get(Message.SUBSCRIPTION_FIELD);
-     * if (subscription instanceof String[]) {
-     * channels = (String[]) subscription;
-     * } else {
-     * channels = new String[] { (String) subscription };
-     * }
-     * for (String channelId : channels) {
-     * if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
-     * try {
-     * final String userId = channelId.substring(USER_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
-     * // remove user listener
-     * final String currentUserId = currentUserId(message);
-     * if (currentUserId != null) {
-     * if (currentUserId.equals(userId)) {
-     * boolean hasClient = channelClients.getOrDefault(channelId, Collections.emptySet())
-     * .remove(clientId);
-     * if (hasClient) {
-     * UserCallListener listener = clientUserListeners.remove(clientId);
-     * if (listener != null) {
-     * videoCalls.removeUserCallListener(listener);
-     * if (LOG.isDebugEnabled()) {
-     * LOG.debug("Unsubscribed user " + userId + " (client:" + clientId + ") from channel "
-     * + channelId);
-     * }
-     * } else {
-     * LOG.info("Clinet found " + clientId
-     * + " but not its user listener for unsubscribing channel " + channelId);
-     * }
-     * }
-     * } else {
-     * LOG.warn("Unsubscribing from other user not possible, user: " + currentUserId + ", target: "
-     * + channelId);
-     * remote.deliver(serverSession,
-     * channelId,
-     * ErrorInfo.clientError("Unsubscribing from other user not possible").asJSON());
-     * }
-     * } else {
-     * LOG.warn("Unsubscribining by unauthorized user not possible, was target: " + channelId);
-     * }
-     * } catch (IndexOutOfBoundsException e) {
-     * // Ignore channel w/o a subpath (userId here) at the end
-     * if (LOG.isDebugEnabled()) {
-     * LOG.debug("Ignore channel w/o userId at the end: " + channelId, e);
-     * }
-     * }
-     * }
-     * }
-     * }
-     */
-
-    @Configure(CALLS_SERVICE_CHANNEL_NAME)
-    public void configureCalls(ConfigurableServerChannel channel) {
-      // TODO
-      // channel.setLazy(true);
-      // channel.addAuthorizer(GrantAuthorizer.GRANT_SUBSCRIBE_PUBLISH);
-    }
-
-    // @Listener(CALLS_SERVICE_CHANNEL_NAME)
-    @Deprecated
-    public void serviceCalls(ServerSession remote, ServerMessage.Mutable message) {
-      String channelId = message.getChannel();
-      String data = (String) message.getData();
-
-      LOG.info("Call request in " + channelId + " by " + message.getClientId() + ": " + message.getJSON());
-      /*
-       * {
-       * owner : ownerId,
-       * ownerType : ownerType,
-       * provider : provider.getType(),
-       * title : conversation.topic(),
-       * participants : userIds.join(";") // eXo user ids here
-       * }
-       */
-      try {
-        final String currentUserId = currentUserId(message);
-        if (currentUserId != null) {
-          JSONObject json = new JSONObject(data);
-          String command = json.optString("command");
-          if (command != null) { // can be "get", "create", "remove", "update"
-            String callId = json.optString("id");
-            if (callId != null) {
-              if (COMMAND_GET.equals(command)) {
-                try {
-                  CallInfo call = videoCalls.getCall(callId);
-                  if (call != null) {
-                    remote.deliver(serverSession, channelId, asJSON(call));
-                  } else {
-                    remote.deliver(serverSession,
-                                   channelId,
-                                   ErrorInfo.notFoundError("Call not found").asJSON());
-                  }
-                } catch (Throwable e) {
-                  LOG.error("Error reading call info '" + callId + "' by '" + currentUserId + "'", e);
-                  remote.deliver(serverSession,
-                                 channelId,
-                                 ErrorInfo.serverError("Error reading call record").asJSON());
-                }
-              } else if (COMMAND_CREATE.equals(command)) {
-                String ownerId = json.optString("owner");
-                if (ownerId != null) {
-                  String ownerType = json.optString("ownerType");
-                  if (ownerType != null) {
-                    String providerType = json.optString("provider");
-                    if (providerType != null) {
-                      String title = json.getString("title"); // topic
-                      if (title != null) {
-                        JSONArray jsonParts = json.optJSONArray("participants");
-                        if (jsonParts != null) {
-                          String[] participants = new String[jsonParts.length()];
-                          for (int i = 0; i < jsonParts.length(); i++) {
-                            participants[i] = jsonParts.getString(i);
-                          }
-                          try {
-                            CallInfo call = videoCalls.addCall(callId,
-                                                               ownerId,
-                                                               ownerType,
-                                                               title,
-                                                               providerType,
-                                                               Arrays.asList(participants));
-                            remote.deliver(serverSession, channelId, asJSON(call));
-                          } catch (CallInfoException e) {
-                            // aka BAD_REQUEST
-                            remote.deliver(serverSession,
-                                           channelId,
-                                           ErrorInfo.clientError(e.getMessage()).asJSON());
-                          } catch (JsonException e) {
-                            // It's eXo WS JSON Generator error
-                            LOG.error("Error generating call response for creation of '" + callId + "' by '"
-                                + currentUserId, e);
-                            remote.deliver(serverSession,
-                                           channelId,
-                                           ErrorInfo.serverError("Error generating call response").asJSON());
-                          } catch (Throwable e) {
-                            LOG.error("Error creating call for '" + callId + "' by '" + currentUserId + "'",
-                                      e);
-                            remote.deliver(serverSession,
-                                           channelId,
-                                           ErrorInfo.serverError("Error creating call record").asJSON());
-                          }
-                        } else {
-                          remote.deliver(serverSession,
-                                         channelId,
-                                         ErrorInfo.clientError("Wrong request parameters: participants")
-                                                  .asJSON());
-                        }
-                      } else {
-                        remote.deliver(serverSession,
-                                       channelId,
-                                       ErrorInfo.clientError("Wrong request parameters: title").asJSON());
-                      }
-                    } else {
-                      remote.deliver(serverSession,
-                                     channelId,
-                                     ErrorInfo.clientError("Wrong request parameters: provider").asJSON());
-                    }
-                  } else {
-                    remote.deliver(serverSession,
-                                   channelId,
-                                   ErrorInfo.clientError("Wrong request parameters: ownerType").asJSON());
-                  }
-                } else {
-                  remote.deliver(serverSession,
-                                 channelId,
-                                 ErrorInfo.clientError("Wrong request parameters: owner").asJSON());
-                }
-              } else if (COMMAND_UPDATE.equals(command)) {
-                String state = json.optString("state");
-                if (state != null) {
-                  try {
-                    if (CallState.STOPPED.equals(state)) {
-                      CallInfo call = videoCalls.stopCall(callId, false);
-                      if (call != null) {
-                        remote.deliver(serverSession, channelId, asJSON(call));
-                      } else {
-                        // NOT_FOUND
-                        remote.deliver(serverSession,
-                                       channelId,
-                                       ErrorInfo.notFoundError("Call not found").asJSON());
-                      }
-                    } else if (CallState.STARTED.equals(state)) {
-                      CallInfo call = videoCalls.startCall(callId);
-                      if (call != null) {
-                        remote.deliver(serverSession, channelId, asJSON(call));
-                      } else {
-                        // NOT_FOUND
-                        remote.deliver(serverSession,
-                                       channelId,
-                                       ErrorInfo.notFoundError("Call not found").asJSON());
-                      }
-                    } else {
-                      remote.deliver(serverSession,
-                                     channelId,
-                                     ErrorInfo.clientError("Wrong request parameters: state not recognized")
-                                              .asJSON());
-                    }
-                  } catch (JsonException e) {
-                    // It's eXo WS JSON Generator error
-                    LOG.error("Error generating call response for update of '" + callId + "' by '"
-                        + currentUserId, e);
-                    remote.deliver(serverSession,
-                                   channelId,
-                                   ErrorInfo.serverError("Error generating call response").asJSON());
-                  } catch (Throwable e) {
-                    LOG.error("Error updating call info '" + callId + "' by '" + currentUserId + "'", e);
-                    remote.deliver(serverSession,
-                                   channelId,
-                                   ErrorInfo.serverError("Error updating call record").asJSON());
-                  }
-                } else {
-                  remote.deliver(serverSession,
-                                 channelId,
-                                 ErrorInfo.clientError("Wrong request parameters: state").asJSON());
-                }
-              } else if (COMMAND_DELETE.equals(command)) {
-                try {
-                  CallInfo call = videoCalls.stopCall(callId, true);
-                  if (call != null) {
-                    remote.deliver(serverSession, channelId, asJSON(call));
-                  } else {
-                    // NOT_FOUND
-                    remote.deliver(serverSession,
-                                   channelId,
-                                   ErrorInfo.notFoundError("Call not found").asJSON());
-                  }
-                } catch (JsonException e) {
-                  // It's eXo WS JSON Generator error
-                  LOG.error("Error generating call response for deletion of '" + callId + "' by '"
-                      + currentUserId, e);
-                  remote.deliver(serverSession,
-                                 channelId,
-                                 ErrorInfo.serverError("Error generating call response").asJSON());
-                } catch (Throwable e) {
-                  LOG.error("Error deleting call '" + callId + "' by '" + currentUserId + "'", e);
-                  remote.deliver(serverSession,
-                                 channelId,
-                                 ErrorInfo.serverError("Error deleting call record").asJSON());
-                }
-              } else {
-                LOG.warn("Unknown call command for '" + callId + "' from '" + currentUserId + "': "
-                    + command);
-                remote.deliver(serverSession, channelId, ErrorInfo.clientError("Unknown command").asJSON());
-              }
-            } else {
-              remote.deliver(serverSession,
-                             channelId,
-                             ErrorInfo.clientError("Wrong request parameters: id").asJSON());
-            }
-          } else {
-            remote.deliver(serverSession,
-                           channelId,
-                           ErrorInfo.clientError("Wrong request parameters: command").asJSON());
-          }
-        } else {
-          remote.deliver(serverSession, channelId, ErrorInfo.clientError("Unauthorized user").asJSON());
-        }
-      } catch (JSONException e) {
-        // It's error of reading request JSON
-        LOG.error("Error parsing call request", e);
-        remote.deliver(serverSession,
-                       channelId,
-                       ErrorInfo.serverError("Error parsing call request").asJSON());
-      }
     }
 
     @RemoteCall(CALLS_CHANNEL_NAME)
@@ -1191,25 +710,6 @@ public class CometdVideoCallsService implements Startable {
         ChannelContext context = channelContext.get(channelId);
         if (context != null) {
           context.removeClient(clientId);
-          /*if (context.removeClient(clientId)) {
-            if (context.hasNoClients()) {
-              UserCallListener listener = context.getListener();
-              videoCalls.removeUserCallListener(listener);
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("<<< Removed user call listener for " + listener.getUserId() + ", client:"
-                    + clientId + ", channel:" + channelId);
-              }
-            } else {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("<<< Removed user call channel client " + clientId + ", channel:" + channelId);
-              }
-            }
-          } else {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("<<< User call channel client was not registered:" + clientId + ", channel:"
-                  + channelId);
-            }
-          }*/
         } else {
           if (LOG.isDebugEnabled()) {
             LOG.debug("<<< User call channel context not found for client: " + clientId + ", channel:"
@@ -1274,6 +774,7 @@ public class CometdVideoCallsService implements Startable {
         // Nothing
       }
     });
+
     // TODO This listener not required for work?
     exoBayeux.addListener(new BayeuxServer.SessionListener() {
       @Override

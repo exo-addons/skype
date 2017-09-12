@@ -36,31 +36,6 @@
 			var self = this;
 			var settings, currentKey, clientId;
 			
-			// TODO do need Platform detection for WebRTC? 
-			/*var isFirefox = /Firefox/.test(navigator.userAgent);
-			var isEdge = /Edge/.test(navigator.userAgent);
-			var isOpera = /Opera|OPR\//.test(navigator.userAgent);
-			
-			var detectChrome = function() {
-			  var isChromium = window.chrome,
-			    vendorName = navigator.vendor,
-			    isIOSChrome = navigator.userAgent.match("CriOS");
-			  if (isIOSChrome) {
-			    return true;
-			  } else if (
-			    isChromium !== null &&
-			    typeof isChromium !== "undefined" &&
-			    vendorName === "Google Inc." &&
-			    isOpera === false &&
-			    isEdge === false
-			  ) {
-			    return true;
-			  } else { 
-			    return false;
-			  }
-			};
-			var isChrome = detectChrome();*/
-			
 			this.isSupportedPlatform = function() {
 				try {
 					return navigator.mediaDevices && navigator.mediaDevices.getUserMedia && RTCPeerConnection;					
@@ -153,13 +128,14 @@
 				var button = $.Deferred();
 				if (self.isSupportedPlatform()) {
 					if (settings && context && context.currentUser) {
-						// TODO do WebRTC call here
+						// XXX Currently we support only P2P calls
 						if (!context.isGroup) {
 							context.details().done(function(target) { // users, convName, convTitle
 								var rndText = Math.floor((Math.random() * 1000000) + 1);
 								var linkId = "WebrtcCall-" + clientId;
 								var callId = "p/" + context.currentUser.id + "@" + target.id;
 								var link = settings.callUri + "/" + callId;
+								// TODO Disable call button if call already running
 								//var disabledClass = hasJoinedCall(targetId) ? "callDisabled" : "";
 								// TODO i18n for title
 								var $button = $("<a id='" + linkId + "' title='" + target.title + "'"
@@ -189,7 +165,7 @@
 										// Tell the window to start the call  
 										$(callWindow).on("load", function() {
 											callWindow.document.title = longTitle + ": " + target.title;
-											// Timeout used for debug only - can be removed in production
+											// Timeout used for debug only - could be removed in production
 											setTimeout(function() {
 												callWindow.eXo.videoCalls.startCall(call).fail(function(err) {
 													videoCalls.showError("Error starting call", videoCalls.errorText(err));
@@ -263,24 +239,11 @@
 					}
 				});
 				process.notify($call);
-				// Start ringing 
-				// TODO use original WebRTC ringtone
-				// https://latest-swx.cdn.skype.com/assets/v/0.0.300/audio/m4a/call-outgoing-p1.m4a
+				// Start ringing incoming sound
 				var $ring = $("<audio loop autoplay style='display: none;'>" // controls 
 							+ "<source src='/webrtc/audio/line.mp3' type='audio/mpeg'>"  
 							+ "Your browser does not support the audio element.</audio>");
 				$(document.body).append($ring);
-				var player = $ring.get(0);
-				//player.pause();
-				//player.currentTime = 0;
-				// TODO this doesn't work on mobile - requires user gesture
-				/*setTimeout(function () {  
-					try {
-						player.play();
-					} catch(e) {
-						log(">> ERROR playing ringtone: ", e);
-					}
-				}, 0);*/
 				process.fail(function() {
 					var $cancel = $("<audio autoplay style='display: none;'>" // controls 
 								+ "<source src='/webrtc/audio/manner_cancel.mp3' type='audio/mpeg'>"  
@@ -291,7 +254,7 @@
 					}, 3000);
 				});
 				process.always(function() {
-					//player.pause();
+					// Stop incoming ringing on dialog completion
 					$ring.remove();
 				});
 				return process.promise();
@@ -306,6 +269,7 @@
 					var closeCallPopup = function(callId, state) {
 						if ($callPopup && $callPopup.callId && $callPopup.callId == callId) {
 							if ($callPopup.is(":visible")) {
+								// Set state before closing the dialog, it will be used by promise failure handler
 								if (typeof state != "undefined") {
 									$callPopup.callState = state;	
 								}
@@ -419,7 +383,7 @@
 													}
 												});
 											} else if (update.callState == "stopped") {
-												// Hide accept popover for this call
+												// Hide accept popover for this call, if any
 												closeCallPopup(callId, update.callState);
 												// Unclock the call button
 												var callerId = update.callerId; // callerRoom is the same as callerId for P2P

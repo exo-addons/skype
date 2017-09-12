@@ -206,129 +206,6 @@ public class RESTVideoCallsService implements ResourceContainer {
   }
 
   /**
-   * Add the user calls with possibility to filter by call state.
-   *
-   * @param uriInfo the uri info
-   * @param userName the id
-   * @param type the type
-   * @param id the id
-   * @return the user calls response
-   */
-  @POST
-  @RolesAllowed("users")
-  @Path("/user/{name}/call/{type}/{id}")
-  @Deprecated
-  public Response postUserCall(@Context UriInfo uriInfo,
-                               @PathParam("name") String userName,
-                               @PathParam("type") String type,
-                               @PathParam("id") String id
-  /* @FormParam("state") String callState */ /* TODO not used */) {
-    ConversationState convo = ConversationState.getCurrent();
-    if (convo != null) {
-      String currentUserName = convo.getIdentity().getUserId();
-      if (userName != null) {
-        if (ME.equals(userName)) {
-          userName = currentUserName;
-        }
-        if (userName.equals(currentUserName)) {
-          String callId = callId(type, id);
-          /*
-           * if (callState != null && callState.length() == 0) {
-           * callState = null;
-           * }
-           */
-          try {
-            videoCalls.addUserCall(userName, callId);
-            return Response.ok().cacheControl(cacheControl).build();
-          } catch (Throwable e) {
-            LOG.error("Error adding user call by '" + currentUserName + "'", e);
-            return Response.serverError()
-                           .cacheControl(cacheControl)
-                           .entity(ErrorInfo.serverError("Error adding user call for " + userName))
-                           .build();
-          }
-        } else {
-          return Response.status(Status.BAD_REQUEST)
-                         .cacheControl(cacheControl)
-                         .entity(ErrorInfo.clientError("Wrong request parameters: name (does not match)"))
-                         .build();
-        }
-      } else {
-        return Response.status(Status.BAD_REQUEST)
-                       .cacheControl(cacheControl)
-                       .entity(ErrorInfo.clientError("Wrong request parameters: name"))
-                       .build();
-      }
-    } else {
-      return Response.status(Status.UNAUTHORIZED)
-                     .cacheControl(cacheControl)
-                     .entity(ErrorInfo.accessError("Unauthorized user"))
-                     .build();
-    }
-  }
-
-  /**
-   * Delete user call with possibility to filter by call state.
-   *
-   * @param uriInfo the uri info
-   * @param userName the user name
-   * @param type the type
-   * @param id the id
-   * @param callState the call state
-   * @return the response
-   */
-  @DELETE
-  @RolesAllowed("users")
-  @Path("/user/{name}/call/{type}/{id}")
-  @Deprecated // TODO not used
-  public Response deleteUserCall(@Context UriInfo uriInfo,
-                                 @PathParam("name") String userName,
-                                 @PathParam("type") String type,
-                                 @PathParam("id") String id,
-                                 @FormParam("state") String callState /* TODO not used */) {
-    ConversationState convo = ConversationState.getCurrent();
-    if (convo != null) {
-      String currentUserName = convo.getIdentity().getUserId();
-      if (userName != null) {
-        if (ME.equals(userName)) {
-          userName = currentUserName;
-        }
-        if (userName.equals(currentUserName)) {
-          String callId = callId(type, id);
-          if (callState != null && callState.length() == 0) {
-            callState = null;
-          }
-          try {
-            videoCalls.removeUserCall(userName, callId);
-            return Response.ok().cacheControl(cacheControl).build();
-          } catch (Throwable e) {
-            LOG.error("Error deleteing user call by '" + currentUserName + "'", e);
-            return Response.serverError()
-                           .cacheControl(cacheControl)
-                           .entity(ErrorInfo.serverError("Error deleteing user call for " + userName))
-                           .build();
-          }
-        } else {
-          return Response.status(Status.BAD_REQUEST)
-                         .cacheControl(cacheControl)
-                         .entity(ErrorInfo.clientError("Wrong request parameters: name (does not match)"))
-                         .build();
-        }
-      } else {
-        return Response.status(Status.BAD_REQUEST)
-                       .cacheControl(cacheControl)
-                       .entity(ErrorInfo.clientError("Wrong request parameters: name"))
-                       .build();
-      }
-    } else {
-      return Response.status(Status.UNAUTHORIZED)
-                     .cacheControl(cacheControl)
-                     .entity(ErrorInfo.accessError("Unauthorized user"))
-                     .build();
-    }
-  }
-
-  /**
    * Update the user call with given state.
    *
    * @param uriInfo the uri info
@@ -366,7 +243,8 @@ public class RESTVideoCallsService implements ResourceContainer {
               if (call != null) {
                 return Response.ok().cacheControl(cacheControl).entity(call).build();
               } else {
-                return Response.status(Status.NOT_FOUND).cacheControl(cacheControl)
+                return Response.status(Status.NOT_FOUND)
+                               .cacheControl(cacheControl)
                                .entity(ErrorInfo.notFoundError("Call not found"))
                                .build();
               }
@@ -375,14 +253,18 @@ public class RESTVideoCallsService implements ResourceContainer {
               if (call != null) {
                 return Response.ok().cacheControl(cacheControl).entity(call).build();
               } else {
-                return Response.status(Status.NOT_FOUND).cacheControl(cacheControl)
+                return Response.status(Status.NOT_FOUND)
+                               .cacheControl(cacheControl)
                                .entity(ErrorInfo.notFoundError("Call not found"))
                                .build();
               }
             }
             return Response.ok().build();
           } catch (InvalidCallStateException e) {
-            return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl).entity(ErrorInfo.clientError(e.getMessage())).build();
+            return Response.status(Status.BAD_REQUEST)
+                           .cacheControl(cacheControl)
+                           .entity(ErrorInfo.clientError(e.getMessage()))
+                           .build();
           } catch (Throwable e) {
             LOG.error("Error adding user call by '" + currentUserName + "'", e);
             return Response.serverError()
@@ -390,17 +272,22 @@ public class RESTVideoCallsService implements ResourceContainer {
                            .build();
           }
         } else {
-          return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+          return Response.status(Status.BAD_REQUEST)
+                         .cacheControl(cacheControl)
                          .entity(ErrorInfo.clientError("Wrong request parameters: name (does not match)"))
                          .build();
         }
       } else {
-        return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+        return Response.status(Status.BAD_REQUEST)
+                       .cacheControl(cacheControl)
                        .entity(ErrorInfo.clientError("Wrong request parameters: name"))
                        .build();
       }
     } else {
-      return Response.status(Status.UNAUTHORIZED).cacheControl(cacheControl).entity(ErrorInfo.accessError("Unauthorized user")).build();
+      return Response.status(Status.UNAUTHORIZED)
+                     .cacheControl(cacheControl)
+                     .entity(ErrorInfo.accessError("Unauthorized user"))
+                     .build();
     }
   }
 
@@ -435,7 +322,8 @@ public class RESTVideoCallsService implements ResourceContainer {
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Skipped not found user: " + userName);
               }
-              return Response.status(Status.NOT_FOUND).cacheControl(cacheControl)
+              return Response.status(Status.NOT_FOUND)
+                             .cacheControl(cacheControl)
                              .entity(ErrorInfo.notFoundError("User " + userName
                                  + " not found or not accessible"))
                              .build();
@@ -444,15 +332,22 @@ public class RESTVideoCallsService implements ResourceContainer {
           return Response.ok().cacheControl(cacheControl).entity(users.toArray()).build();
         } catch (Throwable e) {
           LOG.error("Error reading users info of '" + names + "' by '" + currentUserName + "'", e);
-          return Response.serverError().cacheControl(cacheControl).entity(ErrorInfo.serverError("Error reading users " + names)).build();
+          return Response.serverError()
+                         .cacheControl(cacheControl)
+                         .entity(ErrorInfo.serverError("Error reading users " + names))
+                         .build();
         }
       } else {
-        return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+        return Response.status(Status.BAD_REQUEST)
+                       .cacheControl(cacheControl)
                        .entity(ErrorInfo.clientError("Wrong request parameters: names"))
                        .build();
       }
     } else {
-      return Response.status(Status.UNAUTHORIZED).cacheControl(cacheControl).entity(ErrorInfo.accessError("Unauthorized user")).build();
+      return Response.status(Status.UNAUTHORIZED)
+                     .cacheControl(cacheControl)
+                     .entity(ErrorInfo.accessError("Unauthorized user"))
+                     .build();
     }
   }
 
@@ -479,28 +374,35 @@ public class RESTVideoCallsService implements ResourceContainer {
             if (space.getMembers().containsKey(currentUserName)) {
               return Response.ok().cacheControl(cacheControl).entity(space).build();
             } else {
-              return Response.status(Status.FORBIDDEN).cacheControl(cacheControl)
+              return Response.status(Status.FORBIDDEN)
+                             .cacheControl(cacheControl)
                              .entity(ErrorInfo.accessError("Not space member"))
                              .build();
             }
           } else {
-            return Response.status(Status.NOT_FOUND).cacheControl(cacheControl)
+            return Response.status(Status.NOT_FOUND)
+                           .cacheControl(cacheControl)
                            .entity(ErrorInfo.notFoundError("Space not found or not accessible"))
                            .build();
           }
         } catch (Throwable e) {
           LOG.error("Error reading space info of '" + spaceName + "' by '" + currentUserName + "'", e);
-          return Response.serverError().cacheControl(cacheControl)
+          return Response.serverError()
+                         .cacheControl(cacheControl)
                          .entity(ErrorInfo.serverError("Error reading space " + spaceName))
                          .build();
         }
       } else {
-        return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+        return Response.status(Status.BAD_REQUEST)
+                       .cacheControl(cacheControl)
                        .entity(ErrorInfo.clientError("Wrong request parameters: name"))
                        .build();
       }
     } else {
-      return Response.status(Status.UNAUTHORIZED).cacheControl(cacheControl).entity(ErrorInfo.accessError("Unauthorized user")).build();
+      return Response.status(Status.UNAUTHORIZED)
+                     .cacheControl(cacheControl)
+                     .entity(ErrorInfo.accessError("Unauthorized user"))
+                     .build();
     }
   }
 
@@ -540,13 +442,15 @@ public class RESTVideoCallsService implements ResourceContainer {
                 if (room.getMembers().containsKey(currentUserName)) {
                   return Response.ok().cacheControl(cacheControl).entity(room).build();
                 } else {
-                  return Response.status(Status.FORBIDDEN).cacheControl(cacheControl)
+                  return Response.status(Status.FORBIDDEN)
+                                 .cacheControl(cacheControl)
                                  .entity(ErrorInfo.accessError("Not room member"))
                                  .build();
                 }
               } else {
                 // FYI this will not happen until we don't request chat server database
-                return Response.status(Status.NOT_FOUND).cacheControl(cacheControl)
+                return Response.status(Status.NOT_FOUND)
+                               .cacheControl(cacheControl)
                                .entity(ErrorInfo.notFoundError("Room not found or not accessible"))
                                .build();
               }
@@ -554,32 +458,40 @@ public class RESTVideoCallsService implements ResourceContainer {
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Room member not found", e);
               }
-              return Response.status(Status.NOT_FOUND).cacheControl(cacheControl)
+              return Response.status(Status.NOT_FOUND)
+                             .cacheControl(cacheControl)
                              .entity(ErrorInfo.notFoundError(e.getMessage()))
                              .build();
             } catch (Throwable e) {
               LOG.error("Error reading room info of '" + roomName + "' by '" + currentUserName + "'", e);
-              return Response.serverError().cacheControl(cacheControl)
+              return Response.serverError()
+                             .cacheControl(cacheControl)
                              .entity(ErrorInfo.serverError("Error reading room " + roomName))
                              .build();
             }
           } else {
-            return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+            return Response.status(Status.BAD_REQUEST)
+                           .cacheControl(cacheControl)
                            .entity(ErrorInfo.clientError("Wrong request parameters: members"))
                            .build();
           }
         } else {
-          return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+          return Response.status(Status.BAD_REQUEST)
+                         .cacheControl(cacheControl)
                          .entity(ErrorInfo.clientError("Wrong request parameters: name"))
                          .build();
         }
       } else {
-        return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+        return Response.status(Status.BAD_REQUEST)
+                       .cacheControl(cacheControl)
                        .entity(ErrorInfo.clientError("Wrong request parameters: id"))
                        .build();
       }
     } else {
-      return Response.status(Status.UNAUTHORIZED).cacheControl(cacheControl).entity(ErrorInfo.accessError("Unauthorized user")).build();
+      return Response.status(Status.UNAUTHORIZED)
+                     .cacheControl(cacheControl)
+                     .entity(ErrorInfo.accessError("Unauthorized user"))
+                     .build();
     }
   }
 
@@ -606,14 +518,23 @@ public class RESTVideoCallsService implements ResourceContainer {
         if (call != null) {
           return Response.ok().cacheControl(cacheControl).entity(call).build();
         } else {
-          return Response.status(Status.NOT_FOUND).cacheControl(cacheControl).entity(ErrorInfo.notFoundError("Call not found")).build();
+          return Response.status(Status.NOT_FOUND)
+                         .cacheControl(cacheControl)
+                         .entity(ErrorInfo.notFoundError("Call not found"))
+                         .build();
         }
       } catch (Throwable e) {
         LOG.error("Error reading call info for '" + callId + "' by '" + currentUserName + "'", e);
-        return Response.serverError().cacheControl(cacheControl).entity(ErrorInfo.serverError("Error reading call information")).build();
+        return Response.serverError()
+                       .cacheControl(cacheControl)
+                       .entity(ErrorInfo.serverError("Error reading call information"))
+                       .build();
       }
     } else {
-      return Response.status(Status.UNAUTHORIZED).cacheControl(cacheControl).entity(ErrorInfo.accessError("Unauthorized user")).build();
+      return Response.status(Status.UNAUTHORIZED)
+                     .cacheControl(cacheControl)
+                     .entity(ErrorInfo.accessError("Unauthorized user"))
+                     .build();
     }
   }
 
@@ -640,16 +561,23 @@ public class RESTVideoCallsService implements ResourceContainer {
         if (call != null) {
           return Response.ok().cacheControl(cacheControl).entity(call).build();
         } else {
-          return Response.status(Status.NOT_FOUND).cacheControl(cacheControl).entity(ErrorInfo.notFoundError("Call not found")).build();
+          return Response.status(Status.NOT_FOUND)
+                         .cacheControl(cacheControl)
+                         .entity(ErrorInfo.notFoundError("Call not found"))
+                         .build();
         }
       } catch (Throwable e) {
         LOG.error("Error removing call info for '" + callId + "' by '" + currentUserName + "'", e);
-        return Response.serverError().cacheControl(cacheControl)
+        return Response.serverError()
+                       .cacheControl(cacheControl)
                        .entity(ErrorInfo.serverError("Error removing call information"))
                        .build();
       }
     } else {
-      return Response.status(Status.UNAUTHORIZED).cacheControl(cacheControl).entity(ErrorInfo.accessError("Unauthorized user")).build();
+      return Response.status(Status.UNAUTHORIZED)
+                     .cacheControl(cacheControl)
+                     .entity(ErrorInfo.accessError("Unauthorized user"))
+                     .build();
     }
   }
 
@@ -679,7 +607,8 @@ public class RESTVideoCallsService implements ResourceContainer {
           if (call != null) {
             return Response.ok().cacheControl(cacheControl).entity(call).build();
           } else {
-            return Response.status(Status.NOT_FOUND).cacheControl(cacheControl)
+            return Response.status(Status.NOT_FOUND)
+                           .cacheControl(cacheControl)
                            .entity(ErrorInfo.notFoundError("Call not found"))
                            .build();
           }
@@ -688,21 +617,29 @@ public class RESTVideoCallsService implements ResourceContainer {
           if (call != null) {
             return Response.ok().cacheControl(cacheControl).entity(call).build();
           } else {
-            return Response.status(Status.NOT_FOUND).cacheControl(cacheControl)
+            return Response.status(Status.NOT_FOUND)
+                           .cacheControl(cacheControl)
                            .entity(ErrorInfo.notFoundError("Call not found"))
                            .build();
           }
         } else {
-          return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+          return Response.status(Status.BAD_REQUEST)
+                         .cacheControl(cacheControl)
                          .entity(ErrorInfo.clientError("Wrong request parameters: state"))
                          .build();
         }
       } catch (Throwable e) {
         LOG.error("Error updating call info for '" + callId + "' by '" + currentUserName + "'", e);
-        return Response.serverError().cacheControl(cacheControl).entity(ErrorInfo.serverError("Error updating the call")).build();
+        return Response.serverError()
+                       .cacheControl(cacheControl)
+                       .entity(ErrorInfo.serverError("Error updating the call"))
+                       .build();
       }
     } else {
-      return Response.status(Status.UNAUTHORIZED).cacheControl(cacheControl).entity(ErrorInfo.accessError("Unauthorized user")).build();
+      return Response.status(Status.UNAUTHORIZED)
+                     .cacheControl(cacheControl)
+                     .entity(ErrorInfo.accessError("Unauthorized user"))
+                     .build();
     }
   }
 
@@ -748,42 +685,52 @@ public class RESTVideoCallsService implements ResourceContainer {
                                                      Arrays.asList(participants.split(";")));
                   return Response.ok().cacheControl(cacheControl).entity(call).build();
                 } catch (CallInfoException e) {
-                  return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+                  return Response.status(Status.BAD_REQUEST)
+                                 .cacheControl(cacheControl)
                                  .entity(ErrorInfo.clientError(e.getMessage()))
                                  .build();
                 } catch (Throwable e) {
                   LOG.error("Error creating call info for '" + callId + "' by '" + currentUserName + "'", e);
-                  return Response.serverError().cacheControl(cacheControl)
+                  return Response.serverError()
+                                 .cacheControl(cacheControl)
                                  .entity(ErrorInfo.serverError("Error creating call record"))
                                  .build();
                 }
               } else {
-                return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+                return Response.status(Status.BAD_REQUEST)
+                               .cacheControl(cacheControl)
                                .entity(ErrorInfo.clientError("Wrong request parameters: participants"))
                                .build();
               }
             } else {
-              return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+              return Response.status(Status.BAD_REQUEST)
+                             .cacheControl(cacheControl)
                              .entity(ErrorInfo.clientError("Wrong request parameters: ownerType"))
                              .build();
             }
           } else {
-            return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+            return Response.status(Status.BAD_REQUEST)
+                           .cacheControl(cacheControl)
                            .entity(ErrorInfo.clientError("Wrong request parameters: owner"))
                            .build();
           }
         } else {
-          return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+          return Response.status(Status.BAD_REQUEST)
+                         .cacheControl(cacheControl)
                          .entity(ErrorInfo.clientError("Wrong request parameters: provider"))
                          .build();
         }
       } else {
-        return Response.status(Status.BAD_REQUEST).cacheControl(cacheControl)
+        return Response.status(Status.BAD_REQUEST)
+                       .cacheControl(cacheControl)
                        .entity(ErrorInfo.clientError("Wrong request parameters: title"))
                        .build();
       }
     } else {
-      return Response.status(Status.UNAUTHORIZED).cacheControl(cacheControl).entity(ErrorInfo.accessError("Unauthorized user")).build();
+      return Response.status(Status.UNAUTHORIZED)
+                     .cacheControl(cacheControl)
+                     .entity(ErrorInfo.accessError("Unauthorized user"))
+                     .build();
     }
   }
 

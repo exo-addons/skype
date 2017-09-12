@@ -65,19 +65,6 @@ if (eXo.videoCalls) {
 				$error = $("<div id='webrtc-call-error'></div>");
 				addToContainer($error);
 			}
-			// TODO cleanup
-//			var $title = $error.find(".error-title");
-//			if ($title.length == 0) {
-//				$title = $("<h1 class='error-title'></h1>");
-//				$error.append($title);
-//			}
-//			$title.text(title);
-//			var $description = $error.find(".error-description");
-//			if ($description.length == 0) {
-//				$description = $("<div class='error-description'></div>");
-//				$error.append($description);
-//			}
-//			$description.text(message);
 
 			// Append errors (for history)
 			var $title = $("<h1 class='error-title'></h1>");
@@ -157,6 +144,7 @@ if (eXo.videoCalls) {
 							
 							// WebRTC connection to establish a call connection
 							log("Creating RTC peer connection for " + callId);
+							// TODO use configurable stun/turn server (from server-side)
 							var pc = new RTCPeerConnection({
 								iceServers: [
 									{ 
@@ -192,13 +180,7 @@ if (eXo.videoCalls) {
 							
 							var handleError = function(title, message) {
 								showError(title, message);
-								/*if (!(pc.signalingState == "closed" || pc.connectionState == "closed")) {
-									try {
-										//pc.close();
-									} catch(e) {
-										log("WARN Failed to close peer connection: ", e);
-									}								
-								}*/
+								// TODO get rid of this wrapper, or do something vakuable here.
 							}
 							connection.fail(function(err) {
 								log("ERROR starting connection for " + callId + ": " + JSON.stringify(err));
@@ -387,6 +369,7 @@ if (eXo.videoCalls) {
 						  	}
 						  };			  	
 						  // once remote stream arrives, show it in the remote video element
+						  // TODO it's modern way of WebRTC stream addition, but it doesn't work in Chrome
 						  /*pc.ontrack = function(event) {
 						  	log(">>> onTrack for " + callId + " > " + new Date().toLocaleString());
 						  	$remoteVideo.get(0).srcObject = event.streams[0];
@@ -401,18 +384,12 @@ if (eXo.videoCalls) {
 								
 								// Show remote
 								remoteVideo.srcObject = event.stream;
-								/*remoteVideo.onloadedmetadata = function(event1) {
-									remoteVideo.play();
-								};*/
 								$remoteVideo.addClass("active");
 								$remoteVideo.show();
 								
 								// Show local in mini
 								miniVideo.srcObject = localVideo.srcObject;
 								localVideo.srcObject = null;
-								/*miniVideo.onloadedmetadata = function(event1) {
-									miniVideo.play();
-								};*/
 								$miniVideo.addClass("active");
 								$miniVideo.show();
 								
@@ -569,7 +546,7 @@ if (eXo.videoCalls) {
 							});
 							
 							// Show current user camera in the video,
-							// TODO if camera not found then show something for audio presence
+							// TODO Handle cases when video/audio not available: if camera not found then show something for audio presence.
 							
 							// When using shim adapter.js don't need do the selection like below
 							// var userMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
@@ -579,8 +556,6 @@ if (eXo.videoCalls) {
 							  	optional: [{ minWidth: 640}, { minHeight: 480}]
 							  }
 							};
-							//mediaConstraints: {"audio": true, "video": {"optional": [{"minWidth": "1280"}, {"minHeight": "720"}], "mandatory": {}}}
-							// TODO handle cases when video/audio not available
 							navigator.mediaDevices.getUserMedia(constraints).then(function(localStream) {
 								// successCallback
 								// show local camera output
@@ -616,7 +591,8 @@ if (eXo.videoCalls) {
 							  log("Starting call " + callId + " > " + new Date().toLocaleString());
 							  // add local stream for owner right now
 							  if (isOwner) {
-								  pc.addStream(localStream); // XXX It's deprecated way but Chrome works using it
+								  pc.addStream(localStream); 
+								  // XXX It's deprecated way but Chrome works using it
 								  //localStream.getTracks().forEach(function(track) {
 								  //  pc.addTrack(track, localStream);
 								  //});

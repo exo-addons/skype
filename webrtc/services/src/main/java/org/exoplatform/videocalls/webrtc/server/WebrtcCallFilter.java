@@ -90,7 +90,7 @@ public class WebrtcCallFilter extends AbstractFilter implements Filter {
       } else if (scheme.equals("http")) {
         LOG.warn(new StringBuilder("WebRTC call page request with not secure shceme ").append(httpReq.getRequestURL())
                                                                                       .append(". Redirecting to secure page."));
-        // Redirect to HTTPS
+        // Redirect to HTTPS: it seems doesn't work?
         String secure;
         try {
           URI secureURI = new URI(SCHEME_HTTPS,

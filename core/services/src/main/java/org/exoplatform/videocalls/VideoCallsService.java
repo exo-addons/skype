@@ -197,25 +197,8 @@ public class VideoCallsService implements Startable {
   /** The space service. */
   protected SpaceService                             spaceService;
 
-  /** The active calls. */
-  // protected final Map<String, CallInfo> calls = new ConcurrentHashMap<>();
-
   /** The user listeners. */
   protected final Map<String, Set<UserCallListener>> userListeners       = new ConcurrentHashMap<>();
-
-  /**
-   * The group calls.
-   *
-   * @param jcrService the jcr service
-   * @param sessionProviders the session providers
-   * @param hierarchyCreator the hierarchy creator
-   * @param organization the organization
-   * @param socialIdentityManager the social identity manager
-   * @param driveService the drive service
-   * @param listenerService the listener service
-   * @param settingService the setting service
-   */
-  // protected final Map<String, String> groupCalls = new ConcurrentHashMap<>();
 
   /**
    * Instantiates a new VideoCalls service.
@@ -402,13 +385,6 @@ public class VideoCallsService implements Startable {
     }
 
     // Save the call
-    /*
-     * CallInfo call = calls.computeIfAbsent(id, k -> {
-     * CallInfo callInfo = new CallInfo(id, title, owner, ownerType, ownerUri, ownerAvatar, providerType);
-     * callInfo.addParticipants(participants);
-     * return callInfo;
-     * });
-     */
     CallInfo call = new CallInfo(id, title, owner, ownerType, ownerUri, ownerAvatar, providerType);
     call.addParticipants(participants);
     call.setState(CallState.STARTED);
@@ -435,6 +411,7 @@ public class VideoCallsService implements Startable {
         }
       }
     } else if (isUser) {
+      // It's P2P call
       notifyUserCallState(call, userId, CallState.STARTED);
     }
 
@@ -449,7 +426,6 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo getCall(String id) throws Exception {
-    // return calls.get(id);
     return readCallById(id);
   }
 
@@ -476,7 +452,7 @@ public class VideoCallsService implements Startable {
   }
 
   protected CallInfo stopCall(CallInfo call, String userId, boolean remove) throws Exception {
-    // TODO exception if user not a participant
+    // TODO exception if user not a participant?
     if (remove) {
       deleteCall(call);
     } else {
@@ -488,8 +464,8 @@ public class VideoCallsService implements Startable {
       for (UserInfo part : call.getParticipants()) {
         if (part.getType() == UserInfo.TYPE_NAME) {
           // It's eXo user: fire user listener for stopped call,
-          // but, in case if stopped with removal (deleted call), not to the initiator (of deletion) 
-          // - a given  user.
+          // but, in case if stopped with removal (deleted call), not to the initiator (of deletion)
+          // - a given user.
           // A given user also can be null when not possible to define it (e.g. on CometD channel removal, or
           // other server side action) - then we notify to all participants.
           if (userId == null || !(remove && userId.equals(part.getId()))) {
@@ -520,7 +496,7 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo startCall(String id) throws Exception {
-    // TODO exception if user not a participant
+    // TODO exception if user not a participant?
     CallInfo call = readCallById(id);
     if (call != null) {
       call.setState(CallState.STARTED);
@@ -556,7 +532,7 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo joinCall(String id, String userId) throws Exception {
-    // TODO exception if user not a participant
+    // TODO exception if user not a participant?
     CallInfo call = readCallById(id);
     if (call != null) {
       if (CallState.STARTED.equals(call.getState())) {
@@ -566,7 +542,6 @@ public class VideoCallsService implements Startable {
             if (userId.equals(part.getId())) {
               part.setState(UserState.JOINED);
               saveCall(call);
-              // break;
             }
             // Fire user joined to all parts, including the user itself
             fireUserCallJoined(id, call.getProviderType(), userId, part.getId());
@@ -574,7 +549,6 @@ public class VideoCallsService implements Startable {
         }
         // }
       } else {
-        // TODO throw new InvalidCallStateException("Call not started");
         startCall(id);
       }
     }
@@ -591,14 +565,12 @@ public class VideoCallsService implements Startable {
    * @throws Exception the exception
    */
   public CallInfo leaveCall(String id, String userId) throws Exception {
-    // TODO exception if user not a participant
+    // TODO exception if user not a participant?
     CallInfo call = readCallById(id);
     if (call != null) {
       if (CallState.STARTED.equals(call.getState())) {
-        // if (info.getOwner().isGroup()) {
         int leaved = 0;
         boolean userLeaved = false;
-        // Set<UserInfo> toNotify = new LinkedHashSet<>();
         for (UserInfo part : call.getParticipants()) {
           if (part.getType() == UserInfo.TYPE_NAME) {
             if (userId.equals(part.getId())) {
@@ -610,7 +582,6 @@ public class VideoCallsService implements Startable {
               if (part.getState() == null || part.getState().equals(UserState.LEAVED)) {
                 leaved++;
               }
-              // toNotify.add(part);
             }
             // Fire user leaved to all parts, including the user itself
             fireUserCallLeaved(id, call.getProviderType(), userId, part.getId());
@@ -623,44 +594,12 @@ public class VideoCallsService implements Startable {
             saveCall(call);
           }
         }
-        // }
       } else {
         // It seems has no big sense to return error for already stopped call
         // XXX throw new InvalidCallStateException("Call not started");
       }
     }
     return call;
-  }
-
-  /**
-   * Adds the user call.
-   *
-   * @param userId the user id
-   * @param callId the call id
-   */
-  @Deprecated // TODO not used, see startCall()
-  public void addUserCall(String userId, String callId) {
-    // add to user's list of saved calls (group calls)
-    if (callId.startsWith("g/")) {
-      saveUserGroupCallId(userId, callId);
-    } // else, we don't save p2p calls
-  }
-
-  /**
-   * Removes the user call.
-   *
-   * @param userId the user id
-   * @param callId the call id
-   * @throws Exception the exception
-   */
-  @Deprecated // TODO not used, see stopCall()
-  public void removeUserCall(String userId, String callId) throws Exception {
-    if (callId.startsWith("g/")) {
-      removeUserGroupCallId(userId, callId);
-      // XXX We don't need notify user itself about just removed call by him
-      // CallInfo call = readCallById(callId);
-      // fireUserCallState(userId, callId, CallState.STOPPED, call != null ? call.getOwner().getId() : null);
-    } // else, we don't save p2p calls
   }
 
   /**
@@ -895,7 +834,6 @@ public class VideoCallsService implements Startable {
     // Owner
     JSONObject jsonOwner = new JSONObject();
     jsonOwner.put("id", call.getOwner().getId());
-    // jsonOwner.put("title", call.getOwner().getTitle());
     String ownerType = call.getOwner().getType();
     jsonOwner.put("type", ownerType);
     if (OWNER_TYPE_CHATROOM.equals(ownerType)) {
@@ -903,9 +841,7 @@ public class VideoCallsService implements Startable {
       jsonOwner.put("name", room.getName());
       jsonOwner.put("title", room.getTitle());
       // XXX room/space members not interesting in this context
-      // jsonOwner.put("members", ((RoomInfo) call.getOwner()).getMembers().keySet());
     }
-    // jsonOwner.put("group", call.getOwner().isGroup());
     json.put("owner", jsonOwner);
 
     // Participants
@@ -943,16 +879,9 @@ public class VideoCallsService implements Startable {
 
     // Owner
     JSONObject jsonOwner = json.getJSONObject("owner");
-    // String ownerType = jsonOwner.getString("type");
     String ownerId = jsonOwner.getString("id");
     IdentityInfo owner;
     if (OWNER_TYPE_CHATROOM.equals(ownerType)) {
-      // JSONArray jsonMembers = jsonOwner.getJSONArray("members");
-      // String[] members = new String[jsonMembers.length()];
-      // for (int i = 0; i < members.length; i++) {
-      // String mid = jsonMembers.getString(i);
-      // members[i] = mid;
-      // }
       // XXX room/space members not interesting in this context
       owner = roomInfo(ownerId, jsonOwner.getString("name"), jsonOwner.getString("title"), new String[0], id);
     } else if (OWNER_TYPE_SPACE.equals(ownerType)) {
@@ -1185,8 +1114,6 @@ public class VideoCallsService implements Startable {
         String oldVal = String.valueOf(val.getValue());
         // XXX it may happen that user will list already deleted call IDs (if client failed to call delete but
         // started
-        // for (String ucid : oldVal.split("\n")) {
-        // }
         if (oldVal.indexOf(callId) >= 0) {
           return; // already contains this call ID
         } else {
