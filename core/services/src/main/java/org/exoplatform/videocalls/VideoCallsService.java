@@ -271,7 +271,7 @@ public class VideoCallsService implements Startable {
             String imType = m.get("key");
             String imId = m.get("value");
             if (imId != null && imId.length() > 0) {
-              VideoCallsProvider provider = providers.get(imType);
+              VideoCallsProvider provider = getProvider(imType);
               if (provider != null && provider.isSupportedType(imType)) {
                 try {
                   info.addImAccount(provider.getIMInfo(imId));
@@ -487,9 +487,12 @@ public class VideoCallsService implements Startable {
       String callId = call.getId();
       for (UserInfo part : call.getParticipants()) {
         if (part.getType() == UserInfo.TYPE_NAME) {
-          // it's eXo user: fire user listener for stopped call,
-          // but not to the initiator (given user, which also can be null when not possible to define it)
-          if (userId == null || !userId.equals(part.getId())) {
+          // It's eXo user: fire user listener for stopped call,
+          // but, in case if stopped with removal (deleted call), not to the initiator (of deletion) 
+          // - a given  user.
+          // A given user also can be null when not possible to define it (e.g. on CometD channel removal, or
+          // other server side action) - then we notify to all participants.
+          if (userId == null || !(remove && userId.equals(part.getId()))) {
             fireUserCallState(part.getId(),
                               call.getId(),
                               call.getProviderType(),
@@ -554,29 +557,28 @@ public class VideoCallsService implements Startable {
    */
   public CallInfo joinCall(String id, String userId) throws Exception {
     // TODO exception if user not a participant
-    CallInfo info = readCallById(id);
-    if (info != null) {
-      if (CallState.STARTED.equals(info.getState())) {
-        if (info.getOwner().isGroup()) {
-          for (UserInfo part : info.getParticipants()) {
-            if (part.getType() == UserInfo.TYPE_NAME) {
-              if (userId.equals(part.getId())) {
-                part.setState(UserState.JOINED);
-                saveCall(info);
-                break;
-              } else {
-                // TODO no actual need to fire this event
-                // fireUserCallJoined(part.getId(), id, userId);
-              }
+    CallInfo call = readCallById(id);
+    if (call != null) {
+      if (CallState.STARTED.equals(call.getState())) {
+        // if (info.getOwner().isGroup()) {
+        for (UserInfo part : call.getParticipants()) {
+          if (part.getType() == UserInfo.TYPE_NAME) {
+            if (userId.equals(part.getId())) {
+              part.setState(UserState.JOINED);
+              saveCall(call);
+              // break;
             }
+            // Fire user joined to all parts, including the user itself
+            fireUserCallJoined(id, call.getProviderType(), userId, part.getId());
           }
         }
+        // }
       } else {
         // TODO throw new InvalidCallStateException("Call not started");
         startCall(id);
       }
     }
-    return info;
+    return call;
   }
 
   /**
@@ -590,46 +592,44 @@ public class VideoCallsService implements Startable {
    */
   public CallInfo leaveCall(String id, String userId) throws Exception {
     // TODO exception if user not a participant
-    CallInfo info = readCallById(id);
-    if (info != null) {
-      if (CallState.STARTED.equals(info.getState())) {
-        if (info.getOwner().isGroup()) {
-          int leaved = 0;
-          boolean userLeaved = false;
-          // Set<UserInfo> toNotify = new LinkedHashSet<>();
-          for (UserInfo part : info.getParticipants()) {
-            if (part.getType() == UserInfo.TYPE_NAME) {
-              if (userId.equals(part.getId())) {
-                part.setState(UserState.LEAVED);
-                userLeaved = true;
+    CallInfo call = readCallById(id);
+    if (call != null) {
+      if (CallState.STARTED.equals(call.getState())) {
+        // if (info.getOwner().isGroup()) {
+        int leaved = 0;
+        boolean userLeaved = false;
+        // Set<UserInfo> toNotify = new LinkedHashSet<>();
+        for (UserInfo part : call.getParticipants()) {
+          if (part.getType() == UserInfo.TYPE_NAME) {
+            if (userId.equals(part.getId())) {
+              part.setState(UserState.LEAVED);
+              userLeaved = true;
+              leaved++;
+            } else {
+              // if null - user hasn't joined
+              if (part.getState() == null || part.getState().equals(UserState.LEAVED)) {
                 leaved++;
-              } else {
-                // if null - user hasn't joined
-                if (part.getState() == null || part.getState().equals(UserState.LEAVED)) {
-                  leaved++;
-                }
-                // toNotify.add(part);
               }
+              // toNotify.add(part);
             }
-          }
-          if (leaved == info.getParticipants().size()) {
-            stopCall(info, userId, false);
-          } else {
-            if (userLeaved) {
-              saveCall(info);
-            }
-            // TODO no actual need to fire this event
-            // for (UserInfo part : toNotify) {
-            // fireUserCallLeaved(part.getId(), id, userId);
-            // }
+            // Fire user leaved to all parts, including the user itself
+            fireUserCallLeaved(id, call.getProviderType(), userId, part.getId());
           }
         }
+        if (leaved == call.getParticipants().size()) {
+          stopCall(call, userId, false);
+        } else {
+          if (userLeaved) {
+            saveCall(call);
+          }
+        }
+        // }
       } else {
         // It seems has no big sense to return error for already stopped call
         // XXX throw new InvalidCallStateException("Call not started");
       }
     }
-    return info;
+    return call;
   }
 
   /**
@@ -750,17 +750,18 @@ public class VideoCallsService implements Startable {
 
   /**
    * Fire user call joined a new part.
-   *
-   * @param userId the user id
+   * 
    * @param callId the call id
+   * @param providerType the provider type
    * @param partId the part id
+   * @param userId the user id
    */
-  protected void fireUserCallJoined(String userId, String callId, String partId) {
+  protected void fireUserCallJoined(String callId, String providerType, String partId, String userId) {
     Set<UserCallListener> listeners = userListeners.get(userId);
     if (listeners != null) {
       for (UserCallListener listener : listeners) {
         if (listener.isListening()) {
-          listener.onPartJoined(callId, partId);
+          listener.onPartJoined(callId, providerType, partId);
         }
       }
     }
@@ -768,17 +769,18 @@ public class VideoCallsService implements Startable {
 
   /**
    * Fire user call part leaved.
-   *
-   * @param userId the user id
+   * 
    * @param callId the call id
+   * @param providerType the provider type
    * @param partId the part id
+   * @param userId the user id
    */
-  protected void fireUserCallLeaved(String userId, String callId, String partId) {
+  protected void fireUserCallLeaved(String callId, String providerType, String partId, String userId) {
     Set<UserCallListener> listeners = userListeners.get(userId);
     if (listeners != null) {
       for (UserCallListener listener : listeners) {
         if (listener.isListening()) {
-          listener.onPartLeaved(callId, partId);
+          listener.onPartLeaved(callId, providerType, partId);
         }
       }
     }

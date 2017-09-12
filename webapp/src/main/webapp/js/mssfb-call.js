@@ -205,80 +205,96 @@ if (eXo.videoCalls) {
 						var ciIndex = location.pathname.indexOf("call/") + 5;
 						if (ciIndex > 5 && location.pathname.length > ciIndex) {
 							pageCallId = decodeURIComponent(location.pathname.substring(ciIndex));
-						} else {
-							pageCallId = "???" + location.pathname;
-						}
-						// it's call window, user may be already authenticated, but may be not
-						if (hasToken) {
-							var redirectUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
-							var uiInitializer = mssfb.uiApplication(redirectUri);
-							uiInitializer.done(function(api, app) {
-								try {
-									log(">>> SDK app created OK, user: " + app.personsAndGroupsManager.mePerson.displayName());
-									var currentUserSip = app.personsAndGroupsManager.mePerson.id();
-									
-									$("#mssfb-call-starting").hide();
-									var $convo = $("#mssfb-call-conversation");
-									if ($convo.length == 0) {
-										$convo = $("<div id='mssfb-call-conversation'></div>");
-										addToContainer($convo);
+							// We have call ID: it's call window, user may be already authenticated, but may be not
+							if (hasToken) {
+								// XXX Subscribe to the user call updates,
+								// we don't need this, but do to connect CometD prior using addCall() in mssfb.startOutgoingCall()
+								// See also https://jira.exoplatform.org/browse/PLF-7481
+								var currentUserId = videoCalls.getUser().id;
+								videoCalls.onUserUpdate(currentUserId, function(update, status) {
+									if (update.eventType == "call_state") {
+										if (update.callState == "stopped" && update.callId == pageCallId) {
+											log("<<< Call stopped remotelly: " + JSON.stringify(update) + " [" + status + "]");
+											//stopCallWaitClose(true);
+										}							
 									}
-									var container = mssfb.newCallContainer($convo);
-									
-									log(">>> Conversation is creating in " + $convo.get(0) + " " + pageCallId);
-									
-									// It's a call request, call ID format for it: 'target_type'/'target_id', e.g. space/product_team
-									var tdelim = pageCallId.indexOf("/");
-									if (tdelim > 0 && tdelim < pageCallId.length - 1) {
-										var startOutgoingCall = function(details) {
-											mssfb.startOutgoingCall(api, app, container, details);
-										};
-										var targetType = pageCallId.substring(0, tdelim);
-										var targetId = pageCallId.substring(tdelim + 1);
-										if (targetType == "space") {
-											videoCalls.getSpaceInfo(targetId).done(function(space) {
-												var details = mssfb.readTargetDetails(currentUserSip, space);
-												startOutgoingCall(details);
-											}).fail(function(err, status) {
-												log("ERROR: Space info request failure [" + status + "] " + err.code + " " + err.message, err);
-												showError("Space error", err.message);
-											});
-										} else if (targetType == "chat_room") {
-											videoCalls.getRoomInfo(targetId).done(function(room) {
-												var details = mssfb.readTargetDetails(currentUserSip, room);
-												startOutgoingCall(details);
-											}).fail(function(err, status) {
-												log("ERROR: Room info request failure [" + status + "] " + err.code + " " + err.message, err);
-												showError("Chat room error", err.message);
-											});
-										} else if (targetType == "user") {
-											videoCalls.getUserInfo(targetId).done(function(user) {
-												var details = mssfb.readTargetDetails(currentUserSip, user);
-												startOutgoingCall(details);
-											}).fail(function(err, status) {
-												log("ERROR: User info request failure [" + status + "] " + err.code + " " + err.message, err);
-												showError("User error", err.message);
-											});
-										} else {
-											log("ERROR: unsupported target type in call ID: " + pageCallId);
+								}, function(err) {
+									log("ERROR User calls subscription failure: " + err, err);
+								});
+								
+								var redirectUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
+								var uiInitializer = mssfb.uiApplication(redirectUri);
+								uiInitializer.done(function(api, app) {
+									try {
+										log(">>> SDK app created OK, user: " + app.personsAndGroupsManager.mePerson.displayName());
+										var currentUserSip = app.personsAndGroupsManager.mePerson.id();
+										
+										$("#mssfb-call-starting").hide();
+										var $convo = $("#mssfb-call-conversation");
+										if ($convo.length == 0) {
+											$convo = $("<div id='mssfb-call-conversation'></div>");
+											addToContainer($convo);
 										}
-									} else {
-										log("ERROR: wrong call ID: " + pageCallId);
+										var container = mssfb.newCallContainer($convo);
+										
+										log(">>> Conversation is creating in " + $convo.get(0) + " " + pageCallId);
+										
+										// It's a call request, call ID format for it: 'target_type'/'target_id', e.g. space/product_team
+										var tdelim = pageCallId.indexOf("/");
+										if (tdelim > 0 && tdelim < pageCallId.length - 1) {
+											var startOutgoingCall = function(details) {
+												mssfb.startOutgoingCall(api, app, container, details);
+											};
+											var targetType = pageCallId.substring(0, tdelim);
+											var targetId = pageCallId.substring(tdelim + 1);
+											if (targetType == "space") {
+												videoCalls.getSpaceInfo(targetId).done(function(space) {
+													var details = mssfb.readTargetDetails(currentUserSip, space);
+													startOutgoingCall(details);
+												}).fail(function(err, status) {
+													log("ERROR: Space info request failure [" + status + "] " + err.code + " " + err.message, err);
+													showError("Space error", err.message);
+												});
+											} else if (targetType == "chat_room") {
+												videoCalls.getRoomInfo(targetId).done(function(room) {
+													var details = mssfb.readTargetDetails(currentUserSip, room);
+													startOutgoingCall(details);
+												}).fail(function(err, status) {
+													log("ERROR: Room info request failure [" + status + "] " + err.code + " " + err.message, err);
+													showError("Chat room error", err.message);
+												});
+											} else if (targetType == "user") {
+												videoCalls.getUserInfo(targetId).done(function(user) {
+													var details = mssfb.readTargetDetails(currentUserSip, user);
+													startOutgoingCall(details);
+												}).fail(function(err, status) {
+													log("ERROR: User info request failure [" + status + "] " + err.code + " " + err.message, err);
+													showError("User error", err.message);
+												});
+											} else {
+												log("ERROR: unsupported target type in call ID: " + pageCallId);
+											}
+										} else {
+											log("ERROR: wrong call ID: " + pageCallId);
+										}
+									} catch (err) {
+										log(">>> MSSFB call error:", err);
+										showError("Call Error", err);
 									}
-								} catch (err) {
-									log(">>> MSSFB call error:", err);
-									showError("Call Error", err);
-								}
-							});
-							uiInitializer.fail(function(err) {
-								// TODO we have an error, check if it's auth problem, then force to login
-								log(">>> MSSFB app error: " + err);
-								showError("Application Error", err);
-							});
-						}
-						if (hasError) {
-							log("<<< MSSFB call error: " + location.hash); // show fill hash, it contains an error
-							handleError();
+								});
+								uiInitializer.fail(function(err) {
+									// TODO we have an error, check if it's auth problem, then force to login
+									log(">>> MSSFB app error: " + err);
+									showError("Application Error", err);
+								});
+							}
+							if (hasError) {
+								log("<<< MSSFB call error: " + location.hash); // show fill hash, it contains an error
+								handleError();
+							}
+						} else {
+							log(">>> Cannot find call ID in the page URL: " + location.pathname);
+							showError("Application Error", "Cannot find call ID. Close the page and try again.");
 						}
 						log("<< MSSFB call");
 					} else {

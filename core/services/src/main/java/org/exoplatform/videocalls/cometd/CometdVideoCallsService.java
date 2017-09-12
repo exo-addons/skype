@@ -21,11 +21,11 @@ package org.exoplatform.videocalls.cometd;
 import static org.exoplatform.videocalls.VideoCallsUtils.asJSON;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -76,7 +76,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.mortbay.cometd.continuation.EXoContinuationBayeux;
 import org.picocontainer.Startable;
-import org.picocontainer.defaults.ObjectReference;
 
 /**
  * Created by The eXo Platform SAS
@@ -139,6 +138,69 @@ public class CometdVideoCallsService implements Startable {
   @Service("videocalls")
   public class CallService {
 
+    class ChannelContext {
+      final Set<String>      clients = ConcurrentHashMap.newKeySet();
+
+      final UserCallListener listener;
+
+      ChannelContext(UserCallListener listener) {
+        super();
+        this.listener = listener;
+      }
+
+      UserCallListener getListener() {
+        return listener;
+      }
+
+      boolean hasNoClients() {
+        return clients.isEmpty();
+      }
+
+      boolean hasClient(String clientId) {
+        return clients.contains(clientId);
+      }
+
+      boolean removeClient(String clientId) {
+        boolean res = clients.remove(clientId);
+        if (clients.size() == 0) {
+          videoCalls.removeUserCallListener(listener);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("<<< Removed user call listener for " + listener.getUserId() + ", client:" + clientId);
+          }
+        } else if (res) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("<<< Removed user call client for " + listener.getUserId() + ", client:" + clientId);
+          }
+        } else {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("<<< User call client was not removed for " + listener.getUserId() + ", client:" + clientId);
+          }
+        }
+        return res;
+      }
+
+      boolean addClient(String clientId) {
+        boolean wasEmpty = clients.size() == 0;
+        boolean res = clients.add(clientId);
+        if (wasEmpty && res) {
+          videoCalls.addUserCallListener(listener);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("<<< Added user call listener for " + listener.getUserId() + ", client:" + clientId);
+          }
+        } else if (res) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("<<< Added user call client for " + listener.getUserId() + ", client:" + clientId);
+          }
+        } else {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("<<< User call client was not added for " + listener.getUserId() + ", client:" + clientId);
+          }
+        }
+        return res;
+      }
+    }
+
+    @Deprecated
     class SessionRemoveListener implements RemoveListener {
       @Override
       public void removed(ServerSession session, boolean timeout) {
@@ -147,11 +209,15 @@ public class CometdVideoCallsService implements Startable {
               + channelsAsString(session.getSubscriptions()));
         }
         // cleanup session stuff, note that disconnected session already unsubscribed and has no channels
-        channelClients.values().remove(session.getId());
-        UserCallListener listener = clientUserListeners.remove(session.getId());
-        if (listener != null) {
-          videoCalls.removeUserCallListener(listener);
-        }
+        // for (ServerChannel channel : session.getSubscriptions()) {
+        // cleanupChannelClient(channel.getId(), session.getId());
+        // }
+        // TODO
+        // channelContext.values().remove(session.getId());
+        // UserCallListener listener = clientUserListeners.remove(session.getId());
+        // if (listener != null) {
+        // videoCalls.removeUserCallListener(listener);
+        // }
       }
     }
 
@@ -189,16 +255,18 @@ public class CometdVideoCallsService implements Startable {
                 // } else {
 
                 //// New code
-                AtomicReference<UserCallListener> newListenerRef = new AtomicReference<UserCallListener>();
-                UserCallListener listener = channelUserListeners.computeIfAbsent(channelId, k -> {
-                  UserCallListener newListener = new UserCallListener(userId) {
+                AtomicBoolean isNewContext = new AtomicBoolean(false);
+                ChannelContext context = channelContext.computeIfAbsent(channelId, k -> {
+                  UserCallListener listener = new UserCallListener(userId) {
                     @Override
-                    public void onPartLeaved(String callId, String partId) {
+                    public void onPartLeaved(String callId, String providerType, String partId) {
                       StringBuilder data = new StringBuilder();
                       data.append('{');
                       data.append("\"eventType\": \"call_leaved\",");
                       data.append("\"callId\": \"");
                       data.append(callId);
+                      data.append("\",\"providerType\": \"");
+                      data.append(providerType);
                       data.append("\",\"part\": {");
                       data.append("\"id\": \"");
                       data.append(partId);
@@ -208,12 +276,14 @@ public class CometdVideoCallsService implements Startable {
                     }
 
                     @Override
-                    public void onPartJoined(String callId, String partId) {
+                    public void onPartJoined(String callId, String providerType, String partId) {
                       StringBuilder data = new StringBuilder();
                       data.append('{');
                       data.append("\"eventType\": \"call_joined\",");
                       data.append("\"callId\": \"");
                       data.append(callId);
+                      data.append("\",\"providerType\": \"");
+                      data.append(providerType);
                       data.append("\",\"part\": {");
                       data.append("\"id\": \"");
                       data.append(partId);
@@ -257,31 +327,29 @@ public class CometdVideoCallsService implements Startable {
                       return true;
                     }
                   };
-                  videoCalls.addUserCallListener(newListener);
+                  // Will be added in addClient()
+                  //videoCalls.addUserCallListener(listener);
                   // clients.add(clientId);
                   // clientUserListeners.put(clientId, listener);
+                  // TODO don't needed
                   // add listener for removed session cleanup
-                  remote.addListener(sessionRemoveListener);
-                  // newListenerRef.set(newListener);
+                  // remote.addListener(sessionRemoveListener);
+                  isNewContext.set(true);
                   if (LOG.isDebugEnabled()) {
-                    LOG.debug("<<< Added user call listener for " + userId + ", client:" + clientId
+                    LOG.debug("<<< Created user call context for " + userId + ", client:" + clientId
                         + ", channel:" + channelId);
                   }
-                  return newListener;
+                  return new ChannelContext(listener);
                 });
+                context.addClient(clientId);
                 // }
-                if (newListenerRef.get() == null) {
-                  // Nothing set means a listener should already to exist
-                  if (listener != null) {
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug("<<< User call listener already registered for " + userId + ", channel:"
-                          + channelId);
-                    }
-                  } else {
-                    LOG.warn("User call listener not registered for " + userId + ", client:" + clientId
-                        + ", channel:" + channelId);
+                /*if (!isNewContext.get()) {
+                  // Nothing set means a listener should already exist
+                  if (LOG.isDebugEnabled()) {
+                    LOG.debug("<<< User call listener already registered for " + userId + ", channel:"
+                        + channelId);
                   }
-                }
+                }*/
               } else {
                 LOG.warn("Subscribing to other user not possible, was user " + currentUserId + ", channel:"
                     + channelId);
@@ -316,27 +384,28 @@ public class CometdVideoCallsService implements Startable {
         if (LOG.isDebugEnabled()) {
           LOG.debug("<< Unsubscribed client:" + clientId + ", channel:" + channelId);
         }
-        if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
-          // cleanup session stuff, note that disconnected session already unsubscribed and has not channels
-          boolean hasClient = channelClients.getOrDefault(channelId, Collections.emptySet()).remove(clientId);
-          if (hasClient) {
-            UserCallListener listener = clientUserListeners.remove(clientId);
-            if (listener != null) {
-              videoCalls.removeUserCallListener(listener);
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("<<< Removed call listener for user " + listener.getUserId() + ", client:"
-                    + clientId + ", channel:" + channelId);
-              }
-            } else {
-              LOG.info("User call listener not found for client:" + clientId + ", channel:" + channelId);
-            }
-          }
-          channelClients.values().remove(session.getId());
-          UserCallListener listener = clientUserListeners.remove(session.getId());
-          if (listener != null) {
-            videoCalls.removeUserCallListener(listener);
-          }
-        }
+        cleanupChannelClient(channelId, clientId);
+
+        //// TODO
+        // boolean hasClient = channelClients.getOrDefault(channelId,
+        // Collections.emptySet()).remove(clientId);
+        // if (hasClient) {
+        // UserCallListener listener = clientUserListeners.remove(clientId);
+        // if (listener != null) {
+        // videoCalls.removeUserCallListener(listener);
+        // if (LOG.isDebugEnabled()) {
+        // LOG.debug("<<< Removed call listener for user " + listener.getUserId() + ", client:"
+        // + clientId + ", channel:" + channelId);
+        // }
+        // } else {
+        // LOG.info("User call listener not found for client:" + clientId + ", channel:" + channelId);
+        // }
+        // }
+        // channelClients.values().remove(session.getId());
+        // UserCallListener listener = clientUserListeners.remove(session.getId());
+        // if (listener != null) {
+        // videoCalls.removeUserCallListener(listener);
+        // }
       }
     }
 
@@ -351,12 +420,12 @@ public class CometdVideoCallsService implements Startable {
         // Add sub/unsub listener to VideoCalls channel
         final String channelId = channel.getId();
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Channel added: " + channelId);
+          LOG.debug("> Channel added: " + channelId);
         }
         if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
           channel.addListener(subscriptionListener);
           if (LOG.isDebugEnabled()) {
-            LOG.debug("Added subscription listener for channel " + channelId);
+            LOG.debug(">> Added subscription listener for channel: " + channelId);
           }
         }
       }
@@ -364,25 +433,37 @@ public class CometdVideoCallsService implements Startable {
       @Override
       public void channelRemoved(String channelId) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Channel removed: " + channelId);
+          LOG.debug("< Channel removed: " + channelId);
         }
         if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
           // Channel already doesn't exist here, ensure all its client listeners were unregistered
-          Set<String> clients = channelClients.remove(channelId);
-          if (clients != null) {
-            for (String clientId : clients) {
-              UserCallListener listener = clientUserListeners.remove(clientId);
-              if (listener != null) {
-                videoCalls.removeUserCallListener(listener);
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("Removed user call listener of client " + clientId + " for channel " + channelId);
-                }
-              } else {
-                LOG.info("Clinet found " + clientId + " but not its user call listener for channel "
-                    + channelId);
-              }
+          ChannelContext context = channelContext.remove(channelId);
+          if (context != null) {
+            videoCalls.removeUserCallListener(context.getListener());
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("<< Removed user call listener for channel: " + channelId);
+            }
+          } else {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("<< User call channel context not found for:" + channelId);
             }
           }
+          // TODO
+          // Set<String> clients = channelClients.remove(channelId);
+          // if (clients != null) {
+          // for (String clientId : clients) {
+          // UserCallListener listener = clientUserListeners.remove(clientId);
+          // if (listener != null) {
+          // videoCalls.removeUserCallListener(listener);
+          // if (LOG.isDebugEnabled()) {
+          // LOG.debug("Removed user call listener of client " + clientId + " for channel " + channelId);
+          // }
+          // } else {
+          // LOG.info("Clinet found " + clientId + " but not its user call listener for channel "
+          // + channelId);
+          // }
+          // }
+          // }
         } else if (channelId.startsWith(CALL_SUBSCRIPTION_CHANNEL_NAME)
             && channelId.length() > CALL_SUBSCRIPTION_CHANNEL_NAME.length()) {
           String callId = channelId.substring(CALL_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
@@ -404,30 +485,31 @@ public class CometdVideoCallsService implements Startable {
     }
 
     @Inject
-    private BayeuxServer                        bayeux;
+    private BayeuxServer                      bayeux;
 
     @Session
-    private LocalSession                        localSession;
+    private LocalSession                      localSession;
 
     @Session
-    private ServerSession                       serverSession;
+    private ServerSession                     serverSession;
 
-    private final Map<String, UserCallListener> channelUserListeners  = new ConcurrentHashMap<>();
+    private final Map<String, ChannelContext> channelContext        = new ConcurrentHashMap<>();
+
+    // @Deprecated
+    // private final Map<String, UserCallListener> clientUserListeners = new ConcurrentHashMap<>();
+
+    // @Deprecated
+    // private final Map<String, Set<String>> channelClients = new ConcurrentHashMap<>();
+
+    // @Deprecated
+    // private final Map<String, Set<String>> callUsers = new ConcurrentHashMap<>();
 
     @Deprecated
-    private final Map<String, UserCallListener> clientUserListeners   = new ConcurrentHashMap<>();
+    private final RemoveListener              sessionRemoveListener = new SessionRemoveListener();
 
-    @Deprecated
-    private final Map<String, Set<String>>      channelClients        = new ConcurrentHashMap<>();
+    private final ChannelSubscriptionListener subscriptionListener  = new ChannelSubscriptionListener();
 
-    @Deprecated
-    private final Map<String, Set<String>>      callUsers             = new ConcurrentHashMap<>();
-
-    private final RemoveListener                sessionRemoveListener = new SessionRemoveListener();
-
-    private final ChannelSubscriptionListener   subscriptionListener  = new ChannelSubscriptionListener();
-
-    private final UserChannelListener           channelListener       = new UserChannelListener();
+    private final UserChannelListener         channelListener       = new UserChannelListener();
 
     @PostConstruct
     public void postConstruct() {
@@ -440,11 +522,10 @@ public class CometdVideoCallsService implements Startable {
       // cleanup listeners
       bayeux.removeListener(channelListener);
       serverSession.removeListener(sessionRemoveListener);
-      for (UserCallListener listener : clientUserListeners.values()) {
-        videoCalls.removeUserCallListener(listener);
+      for (ChannelContext context : channelContext.values()) {
+        videoCalls.removeUserCallListener(context.getListener());
       }
-      channelClients.clear();
-      clientUserListeners.clear();
+      channelContext.clear();
     }
 
     @Subscription(CALL_SUBSCRIPTION_CHANNEL_NAME_PARAMS)
@@ -470,195 +551,193 @@ public class CometdVideoCallsService implements Startable {
     }
 
     // @Listener(Channel.META_SUBSCRIBE)
-    @Deprecated
-    public void processSubscription(ServerSession remote, ServerMessage message) {
-      // User subscribed
-      String clientId = message.getClientId(); // is the same remote.getId() ?
-      String[] channels;
-      Object subscription = message.get(Message.SUBSCRIPTION_FIELD);
-      if (subscription instanceof String[]) {
-        channels = (String[]) subscription;
-      } else {
-        channels = new String[] { (String) subscription };
-      }
-      for (String channelId : channels) {
-        if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
-          // add user listener
-          try {
-            final String userId = channelId.substring(USER_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
-            final String currentUserId = currentUserId(message);
-            if (currentUserId != null) {
-              if (currentUserId.equals(userId)) {
-                // Tracking channel-to-clients mapping looks redundant, at first thought client-to-listener is
-                // enough,
-                // but we keep channel's clients also for understanding consistency during development and
-                // debug
-                Set<String> clients = channelClients.computeIfAbsent(channelId,
-                                                                     k -> ConcurrentHashMap.newKeySet());
-                if (clients.contains(clientId) && clientUserListeners.containsKey(clientId)) {
-                  LOG.warn("Subscribtion already active, user: " + currentUserId + ", client: " + clientId
-                      + ", target: " + channelId);
-                  remote.deliver(serverSession,
-                                 channelId,
-                                 ErrorInfo.clientError("Subscribtion already active").asJSON());
-                } else {
-                  UserCallListener listener = new UserCallListener(userId) {
-                    @Override
-                    public void onPartLeaved(String callId, String partId) {
-                      StringBuilder data = new StringBuilder();
-                      data.append('{');
-                      data.append("\"eventType\": \"call_leaved\",");
-                      data.append("\"callId\": \"");
-                      data.append(callId);
-                      data.append("\",\"part\": {");
-                      data.append("\"id\": \"");
-                      data.append(partId);
-                      data.append("\"}");
-                      data.append('}');
-                      bayeux.getChannel(channelId).publish(serverSession, data.toString());
-                    }
-
-                    @Override
-                    public void onPartJoined(String callId, String partId) {
-                      StringBuilder data = new StringBuilder();
-                      data.append('{');
-                      data.append("\"eventType\": \"call_joined\",");
-                      data.append("\"callId\": \"");
-                      data.append(callId);
-                      data.append("\",\"part\": {");
-                      data.append("\"id\": \"");
-                      data.append(partId);
-                      data.append("\"}");
-                      data.append('}');
-                      bayeux.getChannel(channelId).publish(serverSession, data.toString());
-                    }
-
-                    @Override
-                    public void onCallState(String callId,
-                                            String providerType,
-                                            String callState,
-                                            String callerId,
-                                            String callerType) {
-                      StringBuilder data = new StringBuilder();
-                      data.append('{');
-                      data.append("\"eventType\": \"call_state\",");
-                      data.append("\"callId\": \"");
-                      data.append(callId);
-                      data.append('\"');
-                      data.append(",\"callState\": \"");
-                      data.append(callState);
-                      data.append("\",\"caller\": {");
-                      data.append("\"id\": \"");
-                      data.append(callerId);
-                      data.append("\",\"type\": \"");
-                      data.append(callerType);
-                      data.append("\"}");
-                      data.append('}');
-                      bayeux.getChannel(channelId).publish(serverSession, data.toString());
-                    }
-
-                    @Override
-                    public boolean isListening() {
-                      return true;
-                    }
-                  };
-                  videoCalls.addUserCallListener(listener);
-                  clients.add(clientId);
-                  clientUserListeners.put(clientId, listener);
-                  // add listener for removed session cleanup
-                  remote.addListener(sessionRemoveListener);
-                  ServerChannel channel = bayeux.getChannel(channelId);
-                  if (channel != null) {
-                    channel.addListener(subscriptionListener);
-                  }
-                  if (LOG.isDebugEnabled()) {
-                    LOG.debug("Subscribed user " + userId + " (client:" + clientId + ") to channel "
-                        + channelId);
-                  }
-                }
-              } else {
-                LOG.warn("Subscribing to other user not possible, user: " + currentUserId + ", target: "
-                    + channelId);
-                remote.deliver(serverSession,
-                               channelId,
-                               ErrorInfo.clientError("Subscribing to other user not possible").asJSON());
-                ServerChannel channel = bayeux.getChannel(channelId);
-                if (channel != null && !channel.unsubscribe(remote)) {
-                  LOG.warn("Unable to unsubscribe user " + currentUserId + " from channel " + channelId);
-                }
-              }
-            } else {
-              LOG.warn("Subscribing by unauthorized user not possible, was target: " + channelId);
-              remote.deliver(serverSession, channelId, ErrorInfo.accessError("Unauthorized user").asJSON());
-              ServerChannel channel = bayeux.getChannel(channelId);
-              if (channel != null && !channel.unsubscribe(remote)) {
-                LOG.warn("Unable to unsubscribe unauthorized user from channel " + channelId);
-              }
-            }
-          } catch (IndexOutOfBoundsException e) {
-            // Ignore channel w/o a subpath (userId here) at the end
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Ignore channel w/o userId at the end: " + channelId, e);
-            }
-          }
-        }
-      }
-    }
-
-    // @Listener(Channel.META_UNSUBSCRIBE)
-    @Deprecated
-    public void processUnsubscription(ServerSession remote, ServerMessage message) {
-      // User unsubscribed
-      String clientId = message.getClientId();
-      String[] channels;
-      Object subscription = message.get(Message.SUBSCRIPTION_FIELD);
-      if (subscription instanceof String[]) {
-        channels = (String[]) subscription;
-      } else {
-        channels = new String[] { (String) subscription };
-      }
-      for (String channelId : channels) {
-        if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
-          try {
-            final String userId = channelId.substring(USER_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
-            // remove user listener
-            final String currentUserId = currentUserId(message);
-            if (currentUserId != null) {
-              if (currentUserId.equals(userId)) {
-                boolean hasClient = channelClients.getOrDefault(channelId, Collections.emptySet())
-                                                  .remove(clientId);
-                if (hasClient) {
-                  UserCallListener listener = clientUserListeners.remove(clientId);
-                  if (listener != null) {
-                    videoCalls.removeUserCallListener(listener);
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug("Unsubscribed user " + userId + " (client:" + clientId + ") from channel "
-                          + channelId);
-                    }
-                  } else {
-                    LOG.info("Clinet found " + clientId
-                        + " but not its user listener for unsubscribing channel " + channelId);
-                  }
-                }
-              } else {
-                LOG.warn("Unsubscribing from other user not possible, user: " + currentUserId + ", target: "
-                    + channelId);
-                remote.deliver(serverSession,
-                               channelId,
-                               ErrorInfo.clientError("Unsubscribing from other user not possible").asJSON());
-              }
-            } else {
-              LOG.warn("Unsubscribining by unauthorized user not possible, was target: " + channelId);
-            }
-          } catch (IndexOutOfBoundsException e) {
-            // Ignore channel w/o a subpath (userId here) at the end
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Ignore channel w/o userId at the end: " + channelId, e);
-            }
-          }
-        }
-      }
-    }
+    // @Deprecated
+    /*
+     * public void processSubscription(ServerSession remote, ServerMessage message) {
+     * // User subscribed
+     * String clientId = message.getClientId(); // is the same remote.getId() ?
+     * String[] channels;
+     * Object subscription = message.get(Message.SUBSCRIPTION_FIELD);
+     * if (subscription instanceof String[]) {
+     * channels = (String[]) subscription;
+     * } else {
+     * channels = new String[] { (String) subscription };
+     * }
+     * for (String channelId : channels) {
+     * if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
+     * // add user listener
+     * try {
+     * final String userId = channelId.substring(USER_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
+     * final String currentUserId = currentUserId(message);
+     * if (currentUserId != null) {
+     * if (currentUserId.equals(userId)) {
+     * // Tracking channel-to-clients mapping looks redundant, at first thought client-to-listener is
+     * // enough,
+     * // but we keep channel's clients also for understanding consistency during development and
+     * // debug
+     * Set<String> clients = channelClients.computeIfAbsent(channelId,
+     * k -> ConcurrentHashMap.newKeySet());
+     * if (clients.contains(clientId) && clientUserListeners.containsKey(clientId)) {
+     * LOG.warn("Subscribtion already active, user: " + currentUserId + ", client: " + clientId
+     * + ", target: " + channelId);
+     * remote.deliver(serverSession,
+     * channelId,
+     * ErrorInfo.clientError("Subscribtion already active").asJSON());
+     * } else {
+     * UserCallListener listener = new UserCallListener(userId) {
+     * @Override
+     * public void onPartLeaved(String callId, String partId) {
+     * StringBuilder data = new StringBuilder();
+     * data.append('{');
+     * data.append("\"eventType\": \"call_leaved\",");
+     * data.append("\"callId\": \"");
+     * data.append(callId);
+     * data.append("\",\"part\": {");
+     * data.append("\"id\": \"");
+     * data.append(partId);
+     * data.append("\"}");
+     * data.append('}');
+     * bayeux.getChannel(channelId).publish(serverSession, data.toString());
+     * }
+     * @Override
+     * public void onPartJoined(String callId, String partId) {
+     * StringBuilder data = new StringBuilder();
+     * data.append('{');
+     * data.append("\"eventType\": \"call_joined\",");
+     * data.append("\"callId\": \"");
+     * data.append(callId);
+     * data.append("\",\"part\": {");
+     * data.append("\"id\": \"");
+     * data.append(partId);
+     * data.append("\"}");
+     * data.append('}');
+     * bayeux.getChannel(channelId).publish(serverSession, data.toString());
+     * }
+     * @Override
+     * public void onCallState(String callId,
+     * String providerType,
+     * String callState,
+     * String callerId,
+     * String callerType) {
+     * StringBuilder data = new StringBuilder();
+     * data.append('{');
+     * data.append("\"eventType\": \"call_state\",");
+     * data.append("\"callId\": \"");
+     * data.append(callId);
+     * data.append('\"');
+     * data.append(",\"callState\": \"");
+     * data.append(callState);
+     * data.append("\",\"caller\": {");
+     * data.append("\"id\": \"");
+     * data.append(callerId);
+     * data.append("\",\"type\": \"");
+     * data.append(callerType);
+     * data.append("\"}");
+     * data.append('}');
+     * bayeux.getChannel(channelId).publish(serverSession, data.toString());
+     * }
+     * @Override
+     * public boolean isListening() {
+     * return true;
+     * }
+     * };
+     * videoCalls.addUserCallListener(listener);
+     * clients.add(clientId);
+     * clientUserListeners.put(clientId, listener);
+     * // add listener for removed session cleanup
+     * remote.addListener(sessionRemoveListener);
+     * ServerChannel channel = bayeux.getChannel(channelId);
+     * if (channel != null) {
+     * channel.addListener(subscriptionListener);
+     * }
+     * if (LOG.isDebugEnabled()) {
+     * LOG.debug("Subscribed user " + userId + " (client:" + clientId + ") to channel "
+     * + channelId);
+     * }
+     * }
+     * } else {
+     * LOG.warn("Subscribing to other user not possible, user: " + currentUserId + ", target: "
+     * + channelId);
+     * remote.deliver(serverSession,
+     * channelId,
+     * ErrorInfo.clientError("Subscribing to other user not possible").asJSON());
+     * ServerChannel channel = bayeux.getChannel(channelId);
+     * if (channel != null && !channel.unsubscribe(remote)) {
+     * LOG.warn("Unable to unsubscribe user " + currentUserId + " from channel " + channelId);
+     * }
+     * }
+     * } else {
+     * LOG.warn("Subscribing by unauthorized user not possible, was target: " + channelId);
+     * remote.deliver(serverSession, channelId, ErrorInfo.accessError("Unauthorized user").asJSON());
+     * ServerChannel channel = bayeux.getChannel(channelId);
+     * if (channel != null && !channel.unsubscribe(remote)) {
+     * LOG.warn("Unable to unsubscribe unauthorized user from channel " + channelId);
+     * }
+     * }
+     * } catch (IndexOutOfBoundsException e) {
+     * // Ignore channel w/o a subpath (userId here) at the end
+     * if (LOG.isDebugEnabled()) {
+     * LOG.debug("Ignore channel w/o userId at the end: " + channelId, e);
+     * }
+     * }
+     * }
+     * }
+     * }
+     * // @Listener(Channel.META_UNSUBSCRIBE)
+     * @Deprecated
+     * public void processUnsubscription(ServerSession remote, ServerMessage message) {
+     * // User unsubscribed
+     * String clientId = message.getClientId();
+     * String[] channels;
+     * Object subscription = message.get(Message.SUBSCRIPTION_FIELD);
+     * if (subscription instanceof String[]) {
+     * channels = (String[]) subscription;
+     * } else {
+     * channels = new String[] { (String) subscription };
+     * }
+     * for (String channelId : channels) {
+     * if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
+     * try {
+     * final String userId = channelId.substring(USER_SUBSCRIPTION_CHANNEL_NAME.length() + 1);
+     * // remove user listener
+     * final String currentUserId = currentUserId(message);
+     * if (currentUserId != null) {
+     * if (currentUserId.equals(userId)) {
+     * boolean hasClient = channelClients.getOrDefault(channelId, Collections.emptySet())
+     * .remove(clientId);
+     * if (hasClient) {
+     * UserCallListener listener = clientUserListeners.remove(clientId);
+     * if (listener != null) {
+     * videoCalls.removeUserCallListener(listener);
+     * if (LOG.isDebugEnabled()) {
+     * LOG.debug("Unsubscribed user " + userId + " (client:" + clientId + ") from channel "
+     * + channelId);
+     * }
+     * } else {
+     * LOG.info("Clinet found " + clientId
+     * + " but not its user listener for unsubscribing channel " + channelId);
+     * }
+     * }
+     * } else {
+     * LOG.warn("Unsubscribing from other user not possible, user: " + currentUserId + ", target: "
+     * + channelId);
+     * remote.deliver(serverSession,
+     * channelId,
+     * ErrorInfo.clientError("Unsubscribing from other user not possible").asJSON());
+     * }
+     * } else {
+     * LOG.warn("Unsubscribining by unauthorized user not possible, was target: " + channelId);
+     * }
+     * } catch (IndexOutOfBoundsException e) {
+     * // Ignore channel w/o a subpath (userId here) at the end
+     * if (LOG.isDebugEnabled()) {
+     * LOG.debug("Ignore channel w/o userId at the end: " + channelId, e);
+     * }
+     * }
+     * }
+     * }
+     * }
+     */
 
     @Configure(CALLS_SERVICE_CHANNEL_NAME)
     public void configureCalls(ConfigurableServerChannel channel) {
@@ -1106,6 +1185,39 @@ public class CometdVideoCallsService implements Startable {
       }).start();
     }
 
+    void cleanupChannelClient(String channelId, String clientId) {
+      if (channelId.startsWith(USER_SUBSCRIPTION_CHANNEL_NAME)) {
+        // cleanup session stuff, note that disconnected session already unsubscribed and has not channels
+        ChannelContext context = channelContext.get(channelId);
+        if (context != null) {
+          context.removeClient(clientId);
+          /*if (context.removeClient(clientId)) {
+            if (context.hasNoClients()) {
+              UserCallListener listener = context.getListener();
+              videoCalls.removeUserCallListener(listener);
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("<<< Removed user call listener for " + listener.getUserId() + ", client:"
+                    + clientId + ", channel:" + channelId);
+              }
+            } else {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("<<< Removed user call channel client " + clientId + ", channel:" + channelId);
+              }
+            }
+          } else {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("<<< User call channel client was not registered:" + clientId + ", channel:"
+                  + channelId);
+            }
+          }*/
+        } else {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("<<< User call channel context not found for client: " + clientId + ", channel:"
+                + channelId);
+          }
+        }
+      }
+    }
   }
 
   /**

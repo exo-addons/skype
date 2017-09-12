@@ -198,10 +198,10 @@
 				return loginUri;
 			};
 			
-			var authRedirectWindow = function(title, clientId, redirectUri, resource) {
+			var authRedirectWindow = function(clientId, redirectUri, resource) {
 				var loginUri = authRedirectLink(clientId, redirectUri, resource);
-				log("SfB login/call: " + loginUri);
-				var theWindow = videoCalls.showCallPopup(loginUri, title);
+				log("MSSFB login/call: " + loginUri);
+				var theWindow = videoCalls.showCallPopup(loginUri, "Skype for Business Login");
 				return theWindow;
 			};
 			
@@ -309,39 +309,35 @@
 				return token;
 			};
 			
-			var callUri = function(callId, title, hashLine) {
-				var q;
+			var callUri = function(callId, hashLine) {
 				var currentSpaceId = videoCalls.getCurrentSpaceId();
 				var currentRoomTitle = videoCalls.getCurrentRoomTitle();
+				var q;
 				if (currentSpaceId) {
-					q = "space=" + encodeURIComponent(currentSpaceId);
+					q = "?space=" + encodeURIComponent(currentSpaceId);
 				} else if (currentRoomTitle) {
-					q = "room=" + encodeURIComponent(currentRoomTitle);
+					q = "?room=" + encodeURIComponent(currentRoomTitle);
+				} else {
+					q = "";
 				}
-				if (title) {
-					if (q) {
-						q += "&";
-					}
-					q += "title=" + encodeURIComponent(title);
-				}
-				var uri = videoCalls.getBaseUrl() + "/portal/skype/call/" + callId + "?" + q;
+				var uri = videoCalls.getBaseUrl() + "/portal/skype/call/" + callId + q;
 				if (hashLine) {
 					uri += hashLine;
 				}
 				return uri;
 			};
 			
-			var openCallWindow = function(callId, title) {
+			var openCallWindow = function(callId) {
 				var token = currentToken();
 				// TODO check if such window isn't already open by this app
 				if (token) {
 					// use existing token
-					var uri = callUri(callId, title, token.hash_line);
-					return videoCalls.showCallPopup(uri, title);
+					var uri = callUri(callId, token.hash_line);
+					return videoCalls.showCallPopup(uri, "Skype For Business Call");
 				} else {
 					// open SfB login window with redirect to the call URI
-					var uri = callUri(callId, title);
-					return authRedirectWindow(title, settings.clientId, uri, "https://webdir.online.lync.com");
+					var uri = callUri(callId);
+					return authRedirectWindow(settings.clientId, uri, "https://webdir.online.lync.com");
 				}
 			};
 			
@@ -656,7 +652,7 @@
 			};
 			var loginUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
 			var loginWindow = function() {
-				return authRedirectWindow("Skype for Business Login", settings.clientId, loginUri, "https://webdir.online.lync.com");
+				return authRedirectWindow(settings.clientId, loginUri, "https://webdir.online.lync.com");
 			};
 			var loginIframe;
 			var loginTokenUpdater;
@@ -1008,7 +1004,7 @@
 								}).fail(function(err) {
 									added = false;
 									log(">>> ERROR adding " + callId + ": " + JSON.stringify(err));
-								});
+								});									
 							}
 						};
 						var startedCall = function() {
@@ -1518,7 +1514,7 @@
 										log("ERROR: Unsupported call context " + context);
 									}
 									if (callId) {
-										var callWindow = openCallWindow(callId, fullTitle);
+										var callWindow = openCallWindow(callId);
 										callWindow.document.title = fullTitle + "...";
 									}
 								}								
@@ -2228,9 +2224,14 @@
 										}
 									}
 								} else if (update.eventType == "call_joined") {
-									// TODO not used (not fired)
+									log(">>> User call joined: " + JSON.stringify(update) + " [" + status + "]");
+									if ($callPopup && $callPopup.callId && $callPopup.callId == update.callId && userId == update.part.id) {
+										if ($callPopup.is(":visible")) {
+											$callPopup.dialog("close");
+										}
+									}
 								} else if (update.eventType == "call_leaved") {
-									// TODO not used (not fired)
+									// TODO not used
 								} else if (update.eventType == "retry") {
 									log("<<< Retry for user updates [" + status + "]");
 								} else {

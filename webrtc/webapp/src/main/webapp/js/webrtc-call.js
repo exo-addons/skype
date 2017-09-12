@@ -178,6 +178,18 @@ if (eXo.videoCalls) {
 							});
 							var negotiation = $.Deferred();
 							var connection = $.Deferred();
+							
+							// Play incoming ringtone for the call owner until complete negotiation
+							if (isOwner) {
+								var $ring = $("<audio loop autoplay style='display: none;'>" 
+											+ "<source src='/webrtc/audio/echo.mp3' type='audio/mpeg'>"  
+											+ "Your browser does not support the audio element.</audio>");
+								$(document.body).append($ring);
+								negotiation.done(function() {
+									$ring.remove();
+								});
+							}
+							
 							var handleError = function(title, message) {
 								showError(title, message);
 								/*if (!(pc.signalingState == "closed" || pc.connectionState == "closed")) {
@@ -269,6 +281,11 @@ if (eXo.videoCalls) {
 								// but in case of page close it may not be sent to others, thus we delete the call here.
 								if (!stopping) {
 									stopping = true;
+									// Play complete ringtone
+									var $complete = $("<audio autoplay style='display: none;'>" 
+												+ "<source src='/webrtc/audio/complete.mp3' type='audio/mpeg'>"  
+												+ "Your browser does not support the audio element.</audio>");
+									$(document.body).append($complete);
 									function stopLocal() {
 										try {
 											pc.close();
@@ -281,6 +298,7 @@ if (eXo.videoCalls) {
 									if (localOnly) {
 										stopLocal();
 									} else {
+										//leavedCall(); // No sense to send 'leaved' for P2P, it is already should be stopped
 										webrtc.deleteCall(callId).always(function() {
 											stopLocal();
 										});
@@ -299,7 +317,7 @@ if (eXo.videoCalls) {
 								stopCall(localOnly);
 								setTimeout(function() {
 									window.close();
-								}, 1000);
+								}, 1500);
 							};
 							$hangupButton.click(function() {
 								stopCallWaitClose();
@@ -547,7 +565,7 @@ if (eXo.videoCalls) {
 							}, function(err) {
 								log("ERROR subscribe to " + callId + ": " + JSON.stringify(err));
 								process.reject("Error setting up connection (subscribe call updates): " + err);
-								handleError("Connection error", err.message);
+								handleError("Connection error", videoCalls.errorText(err));
 							});
 							
 							// Show current user camera in the video,
@@ -612,6 +630,11 @@ if (eXo.videoCalls) {
 										});
 					  			});
 							  }
+							  connection.then(function() {
+							  	webrtc.joinedCall(callId).done(function() {
+							  		log("<<< Joined the call " + callId);
+							  	});
+							  });
 							}).catch(function(err) {
 								// errorCallback
 								log(">> User media error: " + err + ", " + JSON.stringify(err));  

@@ -11,12 +11,12 @@
 	var log = function(msg, e) {
 		if (typeof console != "undefined" && typeof console.log != "undefined") {
 			if (e) {
-				console.log(logPrefix + msg + (typeof e == "string" ? (". Error: " + e) : JSON.stringify(e)));
+				console.log(logPrefix + msg + (typeof e == "string" ? (". Error: " + e) : JSON.stringify(e)) + " -- " + new Date().toISOString());
 				if (typeof e.stack != "undefined") {
 					console.log(e.stack);
 				}
 			} else {
-				console.log(logPrefix + msg);
+				console.log(logPrefix + msg + " -- " + new Date().toISOString());
 			}
 		}
 	};
@@ -115,11 +115,25 @@
 				return prefix + "-" + rnd;
 			};
 
+			var joinedCall = function(callId) {
+				return videoCalls.updateUserCall(callId, "joined").fail(function(err, status) {
+					log("<< Error joining call: " + callId + ". " + JSON.stringify(err) + " [" + status + "]");
+				});
+			};
+			this.joinedCall = joinedCall;
+			
+			var leavedCall = function(callId) {
+				return videoCalls.updateUserCall(callId, "leaved").fail(function(err, status) {
+					log("<< Error leaving call: " + callId + ". " + JSON.stringify(err) + " [" + status + "]");
+				});
+			};
+			this.leavedCall = leavedCall;
+			
 			var deleteCall = function(callId) {
 				// For P2P we delete closed call
 				var process = $.Deferred();
 				videoCalls.deleteCall(callId).done(function() {
-					log("<< Deleted " + callId + " > " + new Date().getTime());
+					log("<< Deleted " + callId);
 					process.resolve();
 				}).fail(function(err) {
 					if (err && (err.code == "NOT_FOUND_ERROR" || (typeof(status) == "number" && status == 404))) {
@@ -171,26 +185,26 @@
 										participants : [context.currentUser.id, target.id].join(";") // eXo user ids separated by ';' !
 									};
 									videoCalls.addCall(callId, callInfo).done(function(call) {
-										log(">> Added " + callId + " > " + new Date().getTime());
+										log(">> Added " + callId);
 										// Tell the window to start the call  
-										callWindow.document.title = longTitle + ": " + target.title;
 										$(callWindow).on("load", function() {
-											// XXX Wait 5sec for debug only - remove in production
+											callWindow.document.title = longTitle + ": " + target.title;
+											// Timeout used for debug only - can be removed in production
 											setTimeout(function() {
 												callWindow.eXo.videoCalls.startCall(call).fail(function(err) {
-													videoCalls.showError("Error starting call", err);
+													videoCalls.showError("Error starting call", videoCalls.errorText(err));
 												});											
 											}, 100);
 										});
 									}).fail(function(err) {
 										log("ERROR adding " + callId + ": " + JSON.stringify(err));
-										videoCalls.showError("Call error", err.message);
+										videoCalls.showError("Call error", videoCalls.errorText(err));
 									});
 								});
 								button.resolve($button);
 							}).fail(function(err) {
 								log("Error getting context details for " + self.getTitle() + ": " + err);
-								videoCalls.showWarn("Error starting a call", err.message);
+								videoCalls.showWarn("Error starting a call", videoCalls.errorText(err));
 							});
 						} else {
 							button.reject("Group calls not supported by WebRTC provider");
@@ -251,8 +265,9 @@
 				process.notify($call);
 				// Start ringing 
 				// TODO use original WebRTC ringtone
+				// https://latest-swx.cdn.skype.com/assets/v/0.0.300/audio/m4a/call-outgoing-p1.m4a
 				var $ring = $("<audio loop autoplay style='display: none;'>" // controls 
-							+ "<source src='https://latest-swx.cdn.skype.com/assets/v/0.0.300/audio/m4a/call-outgoing-p1.m4a' type='audio/mpeg'>"  
+							+ "<source src='/webrtc/audio/line.mp3' type='audio/mpeg'>"  
 							+ "Your browser does not support the audio element.</audio>");
 				$(document.body).append($ring);
 				var player = $ring.get(0);
@@ -266,6 +281,15 @@
 						log(">> ERROR playing ringtone: ", e);
 					}
 				}, 0);*/
+				process.fail(function() {
+					var $cancel = $("<audio autoplay style='display: none;'>" // controls 
+								+ "<source src='/webrtc/audio/manner_cancel.mp3' type='audio/mpeg'>"  
+								+ "Your browser does not support the audio element.</audio>");
+					$(document.body).append($cancel);
+					setTimeout(function() {
+						$cancel.remove();
+					}, 3000);
+				});
 				process.always(function() {
 					//player.pause();
 					$ring.remove();
@@ -282,9 +306,11 @@
 					var closeCallPopup = function(callId, state) {
 						if ($callPopup && $callPopup.callId && $callPopup.callId == callId) {
 							if ($callPopup.is(":visible")) {
+								if (typeof state != "undefined") {
+									$callPopup.callState = state;	
+								}
 								$callPopup.dialog("close");
-								$callPopup.callState = state;
-							}
+							}								
 						}
 					};
 					var lockCallButton = function(callId, callerId, callerRoom) {
@@ -349,7 +375,7 @@
 											}, 500);
 											if (update.callState == "started") {
 												videoCalls.getCall(callId).done(function(call) {
-													log(">>> Got registered " + callId + " > " + new Date().getTime());
+													log(">>> Got registered " + callId);
 													var callerId = call.owner.id;
 													var callerLink = call.ownerLink;
 													var callerAvatar = call.avatarLink;
@@ -369,8 +395,8 @@
 														var link = settings.callUri + "/" + callId;
 														var callWindow = videoCalls.showCallPopup(link, longTitle);
 														// Tell the window to start the call  
-														callWindow.document.title = longTitle + ": " + call.owner.title;
 														$(callWindow).on("load", function() {
+															callWindow.document.title = longTitle + ": " + call.owner.title;
 															callWindow.eXo.videoCalls.startCall(call).done(function(state) {
 																lockCallButton(callId, callerId, callerRoom);
 															}).fail(function(err) {
@@ -379,19 +405,15 @@
 														});
 													});
 													popover.fail(function(err) {
-														if ($callPopup.callState != "stopped") {
-															log("<<< User " + err + " call " + callId + ", deleting it.");
-															videoCalls.deleteCall(callId).done(function() {
-																log("<<< Deleted " + callId + " > " + new Date().getLocaleString);
-															}).fail(function(err) {
-																log("ERROR deleting " + callId + ": " + JSON.stringify(err));
-															});
+														if ($callPopup.callState != "stopped" && $callPopup.callState != "joined") {
+															log("<<< User " + err + ($callPopup.callState ? " just " + $callPopup.callState : "") + " call " + callId + ", deleting it.");
+															deleteCall(callId);
 														}
 													});
 												}).fail(function(err, status) {
 													log(">>> Call info error: " + JSON.stringify(err) + " [" + status + "]");
 													if (err) {
-														videoCalls.showError("Incoming call error", err.message);
+														videoCalls.showError("Incoming call error", videoCalls.errorText(err));
 													} else {
 														videoCalls.showError("Incoming call error", "Error read call information from the server");
 													}
@@ -408,9 +430,13 @@
 										log(">>> Group calls not supported: " + JSON.stringify(update) + " [" + status + "]");
 									}
 								} else if (update.eventType == "call_joined") {
-									// TODO not used (not fired)
+									// If user has incoming popup open for this call (several user's windows/clients), then close it
+									log(">>> User call joined: " + JSON.stringify(update) + " [" + status + "]");
+									if (currentUserId == update.part.id) {
+										closeCallPopup(update.callId, "joined");
+									}
 								} else if (update.eventType == "call_leaved") {
-									// TODO not used (not fired)
+									// TODO not used
 								} else if (update.eventType == "retry") {
 									log("<<< Retry for user updates [" + status + "]");
 								} else {
@@ -450,7 +476,7 @@
 			}
 		});
 
-		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
+		log("< Loaded at " + location.origin + location.pathname);
 		
 		return provider;
 	} else {

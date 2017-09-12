@@ -105,13 +105,15 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
             }
 
             @Override
-            public void onPartJoined(String callId, String partId) {
+            public void onPartJoined(String callId, String providerType, String partId) {
               if (polling.compareAndSet(true, false)) {
                 StringBuilder body = new StringBuilder();
                 body.append('{');
                 body.append("\"eventType\": \"call_joined\",");
                 body.append("\"callId\": \"");
                 body.append(callId);
+                body.append("\",\"providerType\": \"");
+                body.append(providerType);
                 body.append("\",\"part\": {");
                 body.append("\"id\": \"");
                 body.append(partId);
@@ -126,13 +128,15 @@ public class UpdatePollingServlet extends AbstractHttpServlet {
             }
 
             @Override
-            public void onPartLeaved(String callId, String partId) {
+            public void onPartLeaved(String callId, String providerType, String partId) {
               if (polling.compareAndSet(true, false)) {
                 StringBuilder body = new StringBuilder();
                 body.append('{');
                 body.append("\"eventType\": \"call_leaved\",");
                 body.append("\"callId\": \"");
                 body.append(callId);
+                body.append("\",\"providerType\": \"");
+                body.append(providerType);
                 body.append("\",\"part\": {");
                 body.append("\"id\": \"");
                 body.append(partId);

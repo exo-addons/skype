@@ -527,6 +527,11 @@
 		// Registered providers
 		var providers = [];
 
+		var errorText = function(err) {
+			return err && err.message ? err.message : err;
+		};
+		this.errorText = errorText;
+		
 		var cometdParams = function(params) {
 			return $.extend(params, cCometD.eXoSecret, cometdContext);
 		};
