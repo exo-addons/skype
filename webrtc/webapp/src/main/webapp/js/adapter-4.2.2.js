@@ -670,7 +670,7 @@ module.exports = function(dependencies, opts) {
     shimChrome: true,
     shimFirefox: true,
     shimEdge: true,
-    shimSafari: true
+    shimSafari: true,
   };
 
   for (var key in opts) {
@@ -865,8 +865,7 @@ var chromeShim = {
         !('getSenders' in window.RTCPeerConnection.prototype) &&
         'createDTMFSender' in window.RTCPeerConnection.prototype) {
       var shimSenderWithDtmf = function(pc, track) {
-      	// XXX Sep 6 2017 [peter] replace getter with defined property as GateIn JS minifier doesn't allow it in PLF 5
-      	/* was: return {
+        return {
           track: track,
           get dtmf() {
             if (this._dtmf === undefined) {
@@ -879,25 +878,7 @@ var chromeShim = {
             return this._dtmf;
           },
           _pc: pc
-        };*/
-      	var shimContext = this; // TODO not required
-      	var shim = {
-          track: track,
-          _pc: pc
         };
-      	Object.defineProperty(shim, 'dtmf', {
-          get: function() {
-          	if (this._dtmf === undefined) {
-              if (track.kind === 'audio') {
-                this._dtmf = pc.createDTMFSender(track);
-              } else {
-                this._dtmf = null;
-              }
-            }
-            return this._dtmf;
-          }
-        });
-        return shim; 
       };
 
       // augment addTrack when getSenders is not available.
