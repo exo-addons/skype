@@ -1170,31 +1170,53 @@
 				
 				var $breadcumbEntry = $navigationPortlet.find(".breadcumbEntry");
 				
-				var initializer = addCallButton($breadcumbEntry, spaceContext(currentSpaceId));
-				initializer.done(function($container) {
-					var $button = $container.find(".startCallButton");
-					$button.addClass("spaceCall");
-					var $first = $button.first();
-					var $dropdown = $first.siblings(".dropdown-toggle");
-					var $hover = $();
-					if ($first.hasClass("transparentButton")) {
-						if ($dropdown.length == 1) {
-							$hover = $hover.add($dropdown);							
+				var addSpaceCallButton = function() {
+					var initializer = addCallButton($breadcumbEntry, spaceContext(currentSpaceId));
+					initializer.done(function($container) {
+						var $button = $container.find(".startCallButton");
+						$button.addClass("spaceCall");
+						var $first = $button.first();
+						var $dropdown = $first.siblings(".dropdown-toggle");
+						var $hover = $();
+						if ($first.hasClass("transparentButton")) {
+							if ($dropdown.length == 1) {
+								$hover = $hover.add($dropdown);							
+							}
+						} else {
+							$first.addClass("transparentButton");
+							$hover = $hover.add($first).add($dropdown);
 						}
-					} else {
-						$first.addClass("transparentButton");
-						$hover = $hover.add($first).add($dropdown);
-					}
-					$hover.hover(function() {
-						$first.removeClass("transparentButton");
-					}, function() {
-						$first.addClass("transparentButton");
-					});						
-					log("<< initSpace DONE " + currentSpaceId + " for " + currentUser.id);
-				});
-				initializer.fail(function(error) {
-					log("<< initSpace ERROR " + currentSpaceId + " for " + currentUser.id + ": " + error);
-				});
+						$hover.hover(function() {
+							$first.removeClass("transparentButton");
+						}, function() {
+							$first.addClass("transparentButton");
+						});						
+						log("<< initSpace DONE " + currentSpaceId + " for " + currentUser.id);
+					});
+					initializer.fail(function(error) {
+						log("<< initSpace ERROR " + currentSpaceId + " for " + currentUser.id + ": " + error);
+					});
+				};
+				
+				// XXX if Chat found, ensure Call button added after it to respect its CSS
+				if (chatBundleData || $("#chat-status").length > 0) {
+					var waitAttempts = 0;
+					var waitAndAdd = function() {
+						waitAttempts++;
+						setTimeout(function() {
+							var $chatButton = $breadcumbEntry.children(".chat-button");
+							if ($chatButton.length == 0 && waitAttempts < 40) { // wait max 2 sec
+								log(">>> Chat button not found in space breadcumb");
+								waitAndAdd();
+							} else {
+								addSpaceCallButton();								
+							}
+						}, 50);						
+					};
+					waitAndAdd();
+				} else {
+					addSpaceCallButton();
+				}
 			}
 		};
 		

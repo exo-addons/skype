@@ -547,76 +547,128 @@ if (eXo.videoCalls) {
 							
 							// Show current user camera in the video,
 							// TODO Handle cases when video/audio not available: if camera not found then show something for audio presence.
-							
-							// When using shim adapter.js don't need do the selection like below
-							// var userMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-							var constraints = {
-							  audio: true,
-							  video: {
-							  	optional: [{ minWidth: 640}, { minHeight: 480}]
-							  }
-							};
-							navigator.mediaDevices.getUserMedia(constraints).then(function(localStream) {
-								// successCallback
-								// show local camera output
-								localVideo.srcObject = localStream;
-								/*localVideo.onloadedmetadata = function(event) {
-									localVideo.play();
-								};*/
-								$localVideo.addClass("active");
-								
-								var $muteAudio = $controls.find("#mute-audio");
-								$muteAudio.click(function() {
-									var audioTracks = localStream.getAudioTracks();
-									if (audioTracks.length > 0) {
-										for (var i = 0; i < audioTracks.length; ++i) {
-											audioTracks[i].enabled = !audioTracks[i].enabled;
-									  }
-										$muteAudio.toggleClass("on");
-										log("Audio " + (audioTracks[0].enabled ? "un" : "") + "muted for " + callId);
-									}
+							var inputsReady = $.Deferred();
+							var minVGAvideo = {
+						  	// Minimal: VGA camera
+						  	width: { min: 640 },
+						  	height: { min: 480 } // 360? it's small mobile like Galaxy S7
+						  };
+							try {
+								navigator.mediaDevices.enumerateDevices().then(function(devices) {
+									// device it's MediaDeviceInfo
+									var cams = devices.filter(function(device) { 
+										return device.kind == "videoinput";
+									});
+									var mics = devices.filter(function(device) { 
+										return device.kind == "audioinput";
+									});
+							    
+									var constraints = {
+									};
+							    if (mics.length > 0) {
+							    	constraints.audio = true;
+							    	if (cams.length > 0) {
+							    		// TODO use optimal camera res and video quality
+								    	constraints.video = {
+										  	// Minimal: VGA camera
+										  	width: { min: 640 },
+										  	height: { min: 480 } // 360? it's small mobile like Galaxy S7
+										  };
+								    	constraints.video.width.ideal = 1280;
+								    	constraints.video.height.ideal = 720;
+								    	//constraints.video.width.max = 1920;
+								    	//constraints.video.height.max = 1080;
+								    }
+							    	try {
+											var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+											if (supportedConstraints.hasOwnProperty("facingMode")) {
+												constraints.video.facingMode = "user"; // or { exact: "user" }
+											}
+										} catch(e) {
+											log("WARN MediaDevices.getSupportedConstraints() failed to execute:", e);
+										}
+							    	inputsReady.resolve(constraints, "Found audio and video");
+							    } else {
+							    	inputsReady.reject("No audio input found." + (cams.length > 0 ? " But video found." : ""));
+							    }
 								});
-								var $muteVideo = $controls.find("#mute-video");
-								$muteVideo.click(function() {
-									var videoTracks = localStream.getVideoTracks();
-									if (videoTracks.length > 0) {
-										for (var i = 0; i < videoTracks.length; ++i) {
-											videoTracks[i].enabled = !videoTracks[i].enabled;
-									  }
-										$muteVideo.toggleClass("on");
-										log("Video " + (videoTracks[0].enabled ? "un" : "") + "muted for " + callId);									
-									}
-								});
+							} catch(e) {
+								log("WARN MediaDevices.enumerateDevices() failed to execute:", e);
+								inputsReady.resolve({
+									audio : true,
+									video : true
+								}, "Unable read devices, go with default audio and video.");
+							}
+							inputsReady.done(function(constraints, comment) {
+								log("Media devices: " + comment);
+								// When using shim adapter.js don't need do the selection like below
+								// var userMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+								navigator.mediaDevices.getUserMedia(constraints).then(function(localStream) {
+									// successCallback
+									// show local camera output
+									localVideo.srcObject = localStream;
+									/*localVideo.onloadedmetadata = function(event) {
+										localVideo.play();
+									};*/
+									$localVideo.addClass("active");
+									
+									var $muteAudio = $controls.find("#mute-audio");
+									$muteAudio.click(function() {
+										var audioTracks = localStream.getAudioTracks();
+										if (audioTracks.length > 0) {
+											for (var i = 0; i < audioTracks.length; ++i) {
+												audioTracks[i].enabled = !audioTracks[i].enabled;
+										  }
+											$muteAudio.toggleClass("on");
+											log("Audio " + (audioTracks[0].enabled ? "un" : "") + "muted for " + callId);
+										}
+									});
+									var $muteVideo = $controls.find("#mute-video");
+									$muteVideo.click(function() {
+										var videoTracks = localStream.getVideoTracks();
+										if (videoTracks.length > 0) {
+											for (var i = 0; i < videoTracks.length; ++i) {
+												videoTracks[i].enabled = !videoTracks[i].enabled;
+										  }
+											$muteVideo.toggleClass("on");
+											log("Video " + (videoTracks[0].enabled ? "un" : "") + "muted for " + callId);									
+										}
+									});
 
-							  log("Starting call " + callId + " > " + new Date().toLocaleString());
-							  // add local stream for owner right now
-							  if (isOwner) {
-								  pc.addStream(localStream); 
-								  // XXX It's deprecated way but Chrome works using it
-								  //localStream.getTracks().forEach(function(track) {
-								  //  pc.addTrack(track, localStream);
-								  //});
-							  } else {
-							  	// Participant sends Hello to the other end to initiate a negotiation there
-							  	sendHello().then(function() {
-					  				log(">>>> Sent Hello by participant to " + callId);
-					  				// Participant on the other end is ready for negotiation and waits for an offer message
-							  		negotiation.resolve(localStream).then(function() {
-											log("<<<< Started exchange media information of " + callId);
-										});
-					  			});
-							  }
-							  connection.then(function() {
-							  	webrtc.joinedCall(callId).done(function() {
-							  		log("<<< Joined the call " + callId);
-							  	});
-							  });
-							}).catch(function(err) {
-								// errorCallback
-								log(">> User media error: " + err + ", " + JSON.stringify(err));  
-								// process.reject("User media error: " + err);
-								handleError("Media error", err);
+								  log("Starting call " + callId + " > " + new Date().toLocaleString());
+								  // add local stream for owner right now
+								  if (isOwner) {
+									  pc.addStream(localStream); 
+									  // XXX It's deprecated way but Chrome works using it
+									  //localStream.getTracks().forEach(function(track) {
+									  //  pc.addTrack(track, localStream);
+									  //});
+								  } else {
+								  	// Participant sends Hello to the other end to initiate a negotiation there
+								  	sendHello().then(function() {
+						  				log(">>>> Sent Hello by participant to " + callId);
+						  				// Participant on the other end is ready for negotiation and waits for an offer message
+								  		negotiation.resolve(localStream).then(function() {
+												log("<<<< Started exchange media information of " + callId);
+											});
+						  			});
+								  }
+								  connection.then(function() {
+								  	webrtc.joinedCall(callId).done(function() {
+								  		log("<<< Joined the call " + callId);
+								  	});
+								  });
+								}).catch(function(err) {
+									// errorCallback
+									log(">> User media error: " + err + ", " + JSON.stringify(err), e);  
+									// process.reject("User media error: " + err);
+									handleError("Media error", err);
+								});
+							}).fail(function(err) {
+								log("Media devices error: " + err);
+								handleError("Media required", err);
 							});
+							// Resolve this in any case of above media devices discovery result
 							process.resolve("Started");
 						}
 					} else {

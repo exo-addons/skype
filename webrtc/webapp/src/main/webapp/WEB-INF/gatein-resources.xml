@@ -82,7 +82,7 @@
     <name>webrtcAdapter</name>
     <!-- load-group>videoCallsWebrtcGRP</load-group -->
     <script>
-      <path>/js/adapter-4.2.2.js</path>
+      <path>/js/adapter-5.0.4.js</path>
     </script>
   </module>
   <module>
