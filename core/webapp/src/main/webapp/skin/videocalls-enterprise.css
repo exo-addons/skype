@@ -2,12 +2,28 @@
 /* 
  * Video Calls style for Enterprise skin (for Platform 5.0) 
  */
-.callButtonContainer {
-	/*font-size: 15px !important;*/
+.btn.chatCall {
+	padding: 6px 20px;
 }
 
-.spaceCall {
-	font-size: 12px !important;
+.btn.chatCall.defaultCallButton ~ .dropdown-toggle {
+	padding: 6px 5px;
+}
+
+.callButtonContainerWrapper {
+	margin-top: 12px;
+    margin-right: 10px;
+}
+
+@media (max-width: 640px) {
+	.btn.chatCall {
+		padding: 4px 10px;
+	}
+	
+	.btn.chatCall.defaultCallButton ~ .dropdown-toggle {
+		padding-top: 4px;
+    	padding-bottom: 4px;
+	}
 }
 
 .transparentButton, .transparentButton + .dropdown-toggle {
@@ -18,29 +34,22 @@
 
 .transparentButton .callTitle {
 	color: #fff;
-} 
-
-#tiptip_content .popoverCall, .user-actions .popoverCall {
-	/* Since PLF 5.0.0-M17 this fix not required */
-	/*padding-top: 5px;*/
-	/*padding-bottom: 6px;*/
 }
 
 /* Call button is more narrow in spaces */
-.spaceCall:last-child {
-	padding-right: 5px !important;
+.btn.spaceCall, .spaceCall, .defaultCallButton.spaceCall + .dropdown-toggle {
+	padding: 1px 5px !important;
+	font-size: 12px;
+	line-height: 24px;
 }
 
-.spaceCall {
-	padding: 1px 4px 2px 5px !important;
-}
-
-.defaultCallButton.spaceCall + .dropdown-toggle {
-	padding: 2px 5px 2px 4px;
+.dropdown-menu .spaceCall {
+	margin-left: 5px;
 }
 
 .defaultCallButton.spaceCall + .dropdown-menu li > a {
     padding: 5px 10px;
+    font-size: 12px;
 }
 
 #UIBreadCrumbsNavigationPortlet .callButtonContainer {

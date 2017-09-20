@@ -13,10 +13,6 @@
 	min-width: 0;
 }
 
-.startCallButton {
-	/*text-align: initial;*/
-}
-
 .startCallButton > i:before {
 	font-size: 1px;
 }
@@ -34,7 +30,7 @@
  * We give class defaultCallButton properties of btn-group for such things as border and font, 
  * but other will be omitted to don't be affected by its CSS from PLF core. 
  */
-.defaultCallButton + .dropdown-toggle {
+.callButtonContainer .dropdown-toggle {
 	-webkit-border-radius: 0 3px 3px 0;
 	-moz-border-radius: 0 3px 3px 0;
 	border-radius: 0 3px 3px 0;
