@@ -569,25 +569,38 @@ if (eXo.videoCalls) {
 							    	constraints.audio = true;
 							    	if (cams.length > 0) {
 							    		// TODO use optimal camera res and video quality
-								    	constraints.video = {
-										  	// Minimal: VGA camera
-										  	width: { min: 640 },
-										  	height: { min: 480 } // 360? it's small mobile like Galaxy S7
+							    		// TODO 720p (1280x720) is an optimal for all cases
+							    		// TODO then 960x720, 640x480 and 320x240, 160x120
+							    		var vw, vh, vwmin, vhmin; 
+							    		var isPortrait = screen.width < screen.height; 
+							    		/*if (screen.width >= 1280) {
+							    			vw = 1280;
+							    			vh = 720;
+							    		} else */if (screen.width >= 640) {
+							    			vw = 640;
+							    			vh = 480;
+							    		} else {
+							    			vw = 320;
+							    			vh = 240;
+							    		}
+							    		var videoSettings = {
+										  	width: { min: isPortrait ? vh : vw, ideal: isPortrait ? 720 : 1280 }
+										  	//height: { min: 480, ideal: vh } // 360? it's small mobile like Galaxy S7
 										  };
-								    	constraints.video.width.ideal = 1280;
-								    	constraints.video.height.ideal = 720;
-								    	//constraints.video.width.max = 1920;
-								    	//constraints.video.height.max = 1080;
+							    		//constraints.video = true;
+								    	constraints.video = videoSettings;
+							    		try {
+												var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+												if (supportedConstraints.hasOwnProperty("facingMode")) {
+													constraints.video.facingMode = "user"; // or { exact: "user" }
+												}
+											} catch(e) {
+												log("WARN MediaDevices.getSupportedConstraints() failed to execute:", e);
+											}							    		
+								    } else {
+								    	constraints.video = false;
 								    }
-							    	try {
-											var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-											if (supportedConstraints.hasOwnProperty("facingMode")) {
-												constraints.video.facingMode = "user"; // or { exact: "user" }
-											}
-										} catch(e) {
-											log("WARN MediaDevices.getSupportedConstraints() failed to execute:", e);
-										}
-							    	inputsReady.resolve(constraints, "Found audio and video");
+							    	inputsReady.resolve(constraints, "Found audio" + (constraints.video ? " and video" : ""));
 							    } else {
 							    	inputsReady.reject("No audio input found." + (cams.length > 0 ? " But video found." : ""));
 							    }
@@ -600,7 +613,7 @@ if (eXo.videoCalls) {
 								}, "Unable read devices, go with default audio and video.");
 							}
 							inputsReady.done(function(constraints, comment) {
-								log("Media devices: " + comment);
+								log("Media constraints: " + JSON.stringify(constraints) + " " + comment);
 								// When using shim adapter.js don't need do the selection like below
 								// var userMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 								navigator.mediaDevices.getUserMedia(constraints).then(function(localStream) {
