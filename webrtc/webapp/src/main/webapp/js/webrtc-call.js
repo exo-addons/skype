@@ -346,7 +346,7 @@ if (eXo.videoCalls) {
 						  		// Owner will send the offer when negotiation will be resolved (received Hello from others)
 				  				negotiation.then(function() {
 				  					log(">>> createOffer for " + callId);
-								    pc.createOffer().then(function(desc) {
+								    pc.createOffer({ offerToReceiveVideo : true }).then(function(desc) {
 								    	log("<<< createOffer for " + callId);
 								    	pc.setLocalDescription(desc).then(function() {
 								    		log(">>>> setLocalDescription for " + callId);
@@ -459,7 +459,7 @@ if (eXo.videoCalls) {
 												      	pc.addStream(localStream); // XXX It's deprecated way but Chrome works using it
 												      	// Will it be better to do this in onnegotiationneeded event?
 												      	log(">>>>> createAnswer for " + callId);
-												      	pc.createAnswer().then(function(desc) {
+												      	pc.createAnswer({ offerToReceiveVideo : true }).then(function(desc) {
 												      		log("<<<<< createAnswer >>>>> setLocalDescription for " + callId);
 												      		pc.setLocalDescription(desc).then(function() {
 												      			log("<<<<<< setLocalDescription for " + callId);
