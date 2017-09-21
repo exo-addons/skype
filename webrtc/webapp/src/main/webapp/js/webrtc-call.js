@@ -449,23 +449,24 @@ if (eXo.videoCalls) {
 													var offer = JSON.parse(message.offer);
 													// was: new RTCSessionDescription(offer)
 													negotiation.then(function(localStream) {
+														log(">>>> setRemoteDescription for " + callId);
 														pc.setRemoteDescription(offer).then(function() {
-															log(">>>> Apllied offer for " + callId);
+															log(">>>>> Apllied offer for " + callId);
 												      // if we received an offer, we need to answer
 												      if (pc.remoteDescription.type == "offer") {
 												      	// Add local stream for participant after media negotiation (as in samples) 
-												      	log(">>>> addStream for " + callId);
+												      	log(">>>>> addStream for " + callId);
 												      	pc.addStream(localStream); // XXX It's deprecated way but Chrome works using it
 												      	// Will it be better to do this in onnegotiationneeded event?
-												      	log(">>>> createAnswer for " + callId);
+												      	log(">>>>> createAnswer for " + callId);
 												      	pc.createAnswer().then(function(desc) {
-												      		log("<<<< createAnswer >>>>> setLocalDescription for " + callId);
+												      		log("<<<<< createAnswer >>>>> setLocalDescription for " + callId);
 												      		pc.setLocalDescription(desc).then(function() {
-												      			log("<<<<< setLocalDescription for " + callId);
+												      			log("<<<<<< setLocalDescription for " + callId);
 												      			sendAnswer(pc.localDescription).then(function() {
 												      				connection.resolve().then(function() {
 												      					// Participant ready to exchange ICE candidates
-																				log("<<<<< Started exchange network information with peers of " + callId);
+																				log("<<<<<< Started exchange network information with peers of " + callId);
 																			});
 												      			});
 												      		}).catch(function(err) {
@@ -546,13 +547,7 @@ if (eXo.videoCalls) {
 							});
 							
 							// Show current user camera in the video,
-							// TODO Handle cases when video/audio not available: if camera not found then show something for audio presence.
 							var inputsReady = $.Deferred();
-							var minVGAvideo = {
-						  	// Minimal: VGA camera
-						  	width: { min: 640 },
-						  	height: { min: 480 } // 360? it's small mobile like Galaxy S7
-						  };
 							try {
 								navigator.mediaDevices.enumerateDevices().then(function(devices) {
 									// device it's MediaDeviceInfo
@@ -684,7 +679,7 @@ if (eXo.videoCalls) {
 								handleError("Media required", err);
 							});
 							// Resolve this in any case of above media devices discovery result
-							process.resolve("Started");
+							process.resolve("started");
 						}
 					} else {
 						process.reject("WebRTC not supported in this browser: " + navigator.userAgent);
