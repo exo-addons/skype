@@ -149,17 +149,17 @@ if (eXo.videoCalls) {
 								iceServers: [
 									{ 
 										"urls": [
-											"stun:stun.l.google.com:19302", 
+											"stun:stun.l.google.com:19302"/*, 
 											"stun:stun1.l.google.com:19302",
 											"stun:stun2.l.google.com:19302",
 											"stun:stun3.l.google.com:19302",
-											"stun:stun4.l.google.com:19302"
+											"stun:stun4.l.google.com:19302"*/
 										]
 									}, {
 										"urls": [
-											"stun:stunserver.org",
+											"stun:stunserver.org"/*,
 											"stun:stun01.sipphone.com",
-											"stun:stun.voiparound.com"
+											"stun:stun.voiparound.com"*/
 										]
 									}
 								]
@@ -587,16 +587,18 @@ if (eXo.videoCalls) {
 										  	width: { min: isPortrait ? vh : vw, ideal: isPortrait ? 720 : 1280 }
 										  	//height: { min: 480, ideal: vh } // 360? it's small mobile like Galaxy S7
 										  };
-							    		//constraints.video = true;
-								    	constraints.video = videoSettings;
-							    		try {
-												var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-												if (supportedConstraints.hasOwnProperty("facingMode")) {
-													constraints.video.facingMode = "user"; // or { exact: "user" }
-												}
-											} catch(e) {
-												log("WARN MediaDevices.getSupportedConstraints() failed to execute:", e);
-											}							    		
+							    		constraints.video = true;
+								    	//constraints.video = videoSettings;
+							    		if (typeof constraints.video == "Object") {
+							    			try {
+													var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+													if (supportedConstraints.hasOwnProperty("facingMode")) {
+														constraints.video.facingMode = "user"; // or { exact: "user" }
+													}
+												} catch(e) {
+													log("WARN MediaDevices.getSupportedConstraints() failed to execute:", e);
+												}							    			
+							    		}
 								    } else {
 								    	constraints.video = false;
 								    }
