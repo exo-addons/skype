@@ -26,6 +26,8 @@ if (eXo.videoCalls) {
 		var isGroupCall = /\/g\//.test(location.pathname); // incoming group call
 		//var isHost = /\?host/.test(location.search); // create new call
 		var isEdge = /Edge/.test(navigator.userAgent);
+		var isFirefox = /Firefox/.test(navigator.userAgent);
+		var isChrome = /Chrom(e|ium)/.test(navigator.userAgent);
 
 		function alignLoader() {
 			var $throber = $("#webrtc-call-starting>.waitThrobber");
@@ -146,25 +148,41 @@ if (eXo.videoCalls) {
 							log("Creating RTC peer connection for " + callId);
 							// TODO use configurable stun/turn server (from server-side)
 							try {
-								var pc = new RTCPeerConnection({
+								/*var pc = new RTCPeerConnection({
 									iceServers: [
 										{ 
 											"urls": [
-												"stun:stun.l.google.com:19302"/*, 
+												"stun:stun.l.google.com:19302", 
 												"stun:stun1.l.google.com:19302",
 												"stun:stun2.l.google.com:19302",
 												"stun:stun3.l.google.com:19302",
-												"stun:stun4.l.google.com:19302"*/
+												"stun:stun4.l.google.com:19302"
 											]
 										}, {
 											"urls": [
-												"stun:stunserver.org"/*,
+												"stun:stunserver.org",
 												"stun:stun01.sipphone.com",
-												"stun:stun.voiparound.com"*/
+												"stun:stun.voiparound.com"
 											]
 										}
 									]
-								});
+								});*/
+								/*{urls: 'turn:stun.l.google.com:19301?transport=udp'},
+          			{urls: 'turn:stun.l.google.com:19302?transport=udp'},*/
+								var rtcConfig;
+								if (isEdge) {
+									// XXX Edge doesn't support STUN yet? Only TURN will work.
+									// https://msdn.microsoft.com/en-us/library/mt502501(v=vs.85).aspx
+									rtcConfig = {
+										iceServers: [] 
+									};
+								} else {
+									rtcConfig = {
+										iceServers: [ { urls: "stun:stun.l.google.com:19302" },
+											{ urls: "stun:stunserver.org" } ]
+									};									
+								}
+								var pc = new RTCPeerConnection(rtcConfig);
 								var negotiation = $.Deferred();
 								var connection = $.Deferred();
 								
@@ -174,7 +192,7 @@ if (eXo.videoCalls) {
 												+ "<source src='/webrtc/audio/echo.mp3' type='audio/mpeg'>"  
 												+ "Your browser does not support the audio element.</audio>");
 									$(document.body).append($ring);
-									negotiation.done(function() {
+									negotiation.then(function() {
 										$ring.remove();
 									});
 								}
@@ -184,7 +202,7 @@ if (eXo.videoCalls) {
 									// TODO get rid of this wrapper, or do something vakuable here.
 								}
 								connection.fail(function(err) {
-									log("ERROR starting connection for " + callId + ": " + JSON.stringify(err));
+									log("ERROR starting connection for " + callId + ": " + JSON.stringify(err), err);
 									handleError("Error of starting connection", err);
 								});
 								var sendMessage = function(message) {
@@ -208,7 +226,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published Hello to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing Hello to " + callId + ": " + JSON.stringify(err));
+										log("ERROR publishing Hello to " + callId + ": " + JSON.stringify(err), err);
 									});
 								};
 								var sendBye = function() {
@@ -220,7 +238,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published Bye to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing Bye to " + callId + ": " + JSON.stringify(err));
+										log("ERROR publishing Bye to " + callId + ": " + JSON.stringify(err), err);
 									});
 								};
 								var sendOffer = function(localDescription) {
@@ -229,7 +247,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published offer to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing offer to " + callId + ": " + JSON.stringify(err));
+										log("ERROR publishing offer to " + callId + ": " + JSON.stringify(err), err);
 										// TODO May retry?
 										handleError("Error of sharing media offer", err);
 									});
@@ -240,7 +258,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published answer to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing answer to " + callId + ": " + JSON.stringify(err));
+										log("ERROR publishing answer to " + callId + ": " + JSON.stringify(err), err);
 										handleError("Error of sharing media answer", err);
 									});
 								};
@@ -252,7 +270,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published candidate to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing candidate to " + callId + ": " + JSON.stringify(err));
+										log("ERROR publishing candidate to " + callId + ": " + JSON.stringify(err), err);
 										handleError("Error of sharing connection", err);
 									});
 								};
@@ -335,6 +353,17 @@ if (eXo.videoCalls) {
 							    	log("<< All ICE candidates have been sent");
 							    }
 							  };
+							  var sdpConstraints = {
+					  			"offerToReceiveAudio": true, 
+				  				"offerToReceiveVideo": false/*,
+					  			"mandatory": { 
+					  				"OfferToReceiveAudio": true, 
+					  				"OfferToReceiveVideo": true
+					  			}*/
+							  };
+							  if (isEdge) {
+							  	sdpConstraints = {};
+							  }
 						  	// let the 'negotiationneeded' event trigger offer generation
 							  pc.onnegotiationneeded = function () {
 							  	// This will be fired after adding a local media stream and browser readiness
@@ -347,7 +376,7 @@ if (eXo.videoCalls) {
 							  		// Owner will send the offer when negotiation will be resolved (received Hello from others)
 					  				negotiation.then(function() {
 					  					log(">>> createOffer for " + callId);
-									    pc.createOffer({ offerToReceiveVideo : true }).then(function(desc) {
+									    pc.createOffer().then(function(desc) { // sdpConstraints
 									    	log("<<< createOffer for " + callId);
 									    	pc.setLocalDescription(desc).then(function() {
 									    		log(">>>> setLocalDescription for " + callId);
@@ -359,11 +388,11 @@ if (eXo.videoCalls) {
 														});
 									    		});
 									      }).catch(function(err) {
-									      	log("ERROR settings local offer for " + callId);
+									      	log("ERROR settings local offer for " + callId, err);
 									      	handleError("Error of preparing connection", err);
 										    });
 									    }).catch(function(err) {
-									    	log("ERROR creating offer for " + callId);
+									    	log("ERROR creating offer for " + callId, err);
 									    	handleError("Error of starting connection", err);
 									    });
 					  				});
@@ -436,7 +465,7 @@ if (eXo.videoCalls) {
 													pc.addIceCandidate(new RTCIceCandidate(message.candidate)).then(function() {
 											      log("<<<< Apllied candidate for " + callId);
 											    }).catch(function(err) {
-											    	log("ERROR adding candidate for " + callId + ": " + JSON.stringify(err));
+											    	log("ERROR adding candidate for " + callId + ": " + JSON.stringify(err), err);
 											    	handleError("Error establishing call", err);
 											    });											
 												});
@@ -448,7 +477,9 @@ if (eXo.videoCalls) {
 												} else {
 													try {
 														var offer = JSON.parse(message.offer);
-														// was: new RTCSessionDescription(offer)
+														if (isEdge) {
+															offer = new RTCSessionDescription(offer);
+														}
 														negotiation.then(function(localStream) {
 															log(">>>> setRemoteDescription for " + callId);
 															pc.setRemoteDescription(offer).then(function() {
@@ -460,7 +491,7 @@ if (eXo.videoCalls) {
 													      	pc.addStream(localStream); // XXX It's deprecated way but Chrome works using it
 													      	// Will it be better to do this in onnegotiationneeded event?
 													      	log(">>>>> createAnswer for " + callId);
-													      	pc.createAnswer({ offerToReceiveVideo : true }).then(function(desc) {
+													      	pc.createAnswer().then(function(desc) { // sdpConstraints
 													      		log("<<<<< createAnswer >>>>> setLocalDescription for " + callId);
 													      		pc.setLocalDescription(desc).then(function() {
 													      			log("<<<<<< setLocalDescription for " + callId);
@@ -471,16 +502,18 @@ if (eXo.videoCalls) {
 																				});
 													      			});
 													      		}).catch(function(err) {
-													      			log("ERROR setting local answer for " + callId + ": " + JSON.stringify(err));
+													      			log("ERROR setting local answer for " + callId + ": " + JSON.stringify(err), err);
 														      		handleError("Error accepting call", err);
 													      		});
 													      	}).catch(function(err) {
-													      		log("ERROR answering offer for " + callId + ": " + JSON.stringify(err));
+													      		log("ERROR answering offer for " + callId + ": " + JSON.stringify(err), err);
 													      		handleError("Error answering call", err);
 													      	});
+													      } else {
+													      	log("<<<<< remoteDescription type IS NOT 'offer' BUT " + pc.remoteDescription.type);
 													      }
 													    }).catch(function(err) {
-													    	log("ERROR setting remote offer for " + callId + ": " + JSON.stringify(err));
+													    	log("ERROR setting remote offer for " + callId + ": " + JSON.stringify(err), err);
 													    	handleError("Error applying call", err);
 													    });
 														});
@@ -500,7 +533,7 @@ if (eXo.videoCalls) {
 													      log("<<<< Apllied answer for " + callId);
 													      // TODO anything else here?
 													    }).catch(function(err) {
-													    	log("ERROR setting remote answer for " + callId + ": " + JSON.stringify(err));
+													    	log("ERROR setting remote answer for " + callId + ": " + JSON.stringify(err), err);
 													    	handleError("Error answering call", err);
 													    });
 														});
@@ -542,7 +575,7 @@ if (eXo.videoCalls) {
 										}
 									}
 								}, function(err) {
-									log("ERROR subscribe to " + callId + ": " + JSON.stringify(err));
+									log("ERROR subscribe to " + callId + ": " + JSON.stringify(err), err);
 									process.reject("Error setting up connection (subscribe call updates): " + err);
 									handleError("Connection error", videoCalls.errorText(err));
 								});
@@ -671,12 +704,12 @@ if (eXo.videoCalls) {
 									  });
 									}).catch(function(err) {
 										// errorCallback
-										log(">> User media error: " + err + ", " + JSON.stringify(err), e);  
+										log(">> User media error: " + err + ", " + JSON.stringify(err), err);  
 										// process.reject("User media error: " + err);
 										handleError("Media error", err);
 									});
 								}).fail(function(err) {
-									log("Media devices error: " + err);
+									log("Media devices error: " + err, err);
 									handleError("Media required", err);
 								});
 								// Resolve this in any case of above media devices discovery result

@@ -124,6 +124,35 @@
 			};
 			this.deleteCall = deleteCall;
 			
+			var onCallWindowReady = function(theWindow) {
+				var process = $.Deferred();
+				if (typeof theWindow == "undefined" && theWindow == null) {
+					process.reject("Call window required");
+				} else {
+					var resolve = function() {
+						if (process.state() == "pending") {
+							if (theWindow.eXo && theWindow.eXo.videoCalls && typeof theWindow.eXo.videoCalls.startCall == "function") {
+								process.resolve(theWindow);
+								return true;
+							} else {
+								return false;
+							}
+						} else {
+							return true;
+						}
+					};
+					$(theWindow).on("load", function() {
+						resolve();
+					});
+					var checker = setInterval(function() {
+						if (resolve()) {
+							clearInterval(checker);
+						}
+					}, 250);
+				}
+				return process.promise();
+			};
+			
 			this.callButton = function(context) {
 				var button = $.Deferred();
 				if (self.isSupportedPlatform()) {
@@ -163,7 +192,8 @@
 									videoCalls.addCall(callId, callInfo).done(function(call) {
 										log(">> Added " + callId);
 										// Tell the window to start the call  
-										$(callWindow).on("load", function() {
+										//$(callWindow).on("load", function() {
+										onCallWindowReady(callWindow).done(function() {
 											log(">>> Call page loaded for " + callId);
 											callWindow.document.title = longTitle + ": " + target.title;
 											// Timeout used for debug only - could be removed in production
@@ -172,7 +202,7 @@
 												log("<<<< Call " + state + " " + callId);
 											}).fail(function(err) {
 												videoCalls.showError("Error starting call", videoCalls.errorText(err));
-											});											
+											});
 											//}, 100);
 										});
 									}).fail(function(err) {
@@ -362,15 +392,19 @@
 														var link = settings.callUri + "/" + callId;
 														var callWindow = videoCalls.showCallPopup(link, longTitle);
 														// Tell the window to start the call  
-														$(callWindow).on("load", function() {
+														//$(callWindow).on("load", function() {
+														onCallWindowReady(callWindow).done(function() {
 															log(">>>> Call page loaded " + callId);
 															callWindow.document.title = longTitle + ": " + call.owner.title;
+															// Timeout used for debug only - could be removed in production
+															setTimeout(function() {
 															callWindow.eXo.videoCalls.startCall(call).done(function(state) {
 																log("<<<< Call " + state + " " + callId);
 																lockCallButton(callId, callerId, callerRoom);
 															}).fail(function(err) {
 																videoCalls.showError("Error starting call", err);
 															});
+															}, 10000);
 														});
 													});
 													popover.fail(function(err) {
