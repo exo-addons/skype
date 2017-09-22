@@ -397,14 +397,14 @@
 															log(">>>> Call page loaded " + callId);
 															callWindow.document.title = longTitle + ": " + call.owner.title;
 															// Timeout used for debug only - could be removed in production
-															setTimeout(function() {
+															//setTimeout(function() {
 															callWindow.eXo.videoCalls.startCall(call).done(function(state) {
 																log("<<<< Call " + state + " " + callId);
 																lockCallButton(callId, callerId, callerRoom);
 															}).fail(function(err) {
 																videoCalls.showError("Error starting call", err);
 															});
-															}, 10000);
+															//}, 10000);
 														});
 													});
 													popover.fail(function(err) {
