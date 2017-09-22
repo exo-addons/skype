@@ -203,7 +203,7 @@
 												}).fail(function(err) {
 													videoCalls.showError("Error starting call", videoCalls.errorText(err));
 												});
-											}, 2500);
+											}, 1000); // XXX Experimental value guessed from logs
 										});
 									}).fail(function(err) {
 										log("ERROR adding " + callId + ": " + JSON.stringify(err));
@@ -404,7 +404,7 @@
 																}).fail(function(err) {
 																	videoCalls.showError("Error starting call", err);
 																});
-															}, 2500);
+															}, 5000); // XXX Experimental value guessed from logs
 														});
 													});
 													popover.fail(function(err) {
