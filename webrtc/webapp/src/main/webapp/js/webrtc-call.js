@@ -12,13 +12,17 @@ if (eXo.videoCalls) {
 			if (typeof console != "undefined" && typeof console.log != "undefined") {
 				var isoTime = " -- " + new Date().toISOString();
 				if (e) {
+					var logText = logPrefix + msg;
 					if (e instanceof Error) {
-						console.log(logPrefix + msg + ". " + (e.name && e.message ? e.name + ": " + e.message : e.toString()) + isoTime);
+						logText += ". " + (e.name && e.message ? e.name + ": " + e.message : e.toString());
 					} if (e.name && e.message) {
-						console.log(logPrefix + msg + ". " + e.name + ": " + e.message + isoTime);
+						logText += ". " + e.name + ": " + e.message;
+					} else if (typeof e.toString == "function") {
+						logText += ". Error: " + e.toString();
 					} else {
-						console.log(logPrefix + msg + ". Cause: " + (typeof e == "string" ? e : JSON.stringify(e)) + isoTime);
+						logText += ". Cause: " + (typeof e == "string" ? e : JSON.stringify(e));
 					}
+					console.log(logText + isoTime);
 					if (typeof e.stack != "undefined") {
 						console.log(e.stack);
 					}
