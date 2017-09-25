@@ -352,15 +352,16 @@ if (eXo.videoCalls) {
 								pc.onicecandidate = function (event) {
 									// This will happen when browser will be ready to exchange peers setup
 									log(">> onIceCandidate for " + callId + ": " + JSON.stringify(event));
-							    if (event.candidate) {
-							    	connection.then(function() {
-							    		sendCandidate(event.candidate);
-							    	});
-							    } else {
-							      // else All ICE candidates have been sent. ICE gathering has finished.
-							    	// TODO any action is expected here?
-							    	log("<< All ICE candidates have been sent");
-							    }
+									connection.then(function() {
+								    if (event.candidate) {
+								    	sendCandidate(event.candidate);
+								    } else {
+								      // else All ICE candidates have been sent. ICE gathering has finished.
+								    	// TODO any action is expected here?
+								    	sendCandidate({});
+								    	log("<< All ICE candidates have been sent");
+								    }
+									});
 							  };
 							  var sdpConstraints = {
 					  			"offerToReceiveAudio": true, 
@@ -371,7 +372,7 @@ if (eXo.videoCalls) {
 					  			}*/
 							  };
 							  if (isEdge) {
-							  	sdpConstraints = {};
+							  	sdpConstraints = {}; // TODO in fact even undefined doesn't fit, need call without a parameter
 							  }
 						  	// let the 'negotiationneeded' event trigger offer generation
 							  pc.onnegotiationneeded = function () {
@@ -391,10 +392,11 @@ if (eXo.videoCalls) {
 									    		log(">>>> setLocalDescription for " + callId);
 									    		sendOffer(pc.localDescription).then(function() {
 									    			log("<<<< setLocalDescription for " + callId);
-										    		connection.resolve().then(function() {
+									    			// TODO moved to after-answer code
+										    		/* connection.resolve().then(function() {
 											      	// Owner ready to exchange ICE candidates
 															log("<<<<< Started exchange network information with peers of " + callId);
-														});
+														});*/
 									    		});
 									      }).catch(function(err) {
 									      	log("ERROR settings local offer for " + callId, err);
@@ -470,14 +472,18 @@ if (eXo.videoCalls) {
 												// ICE candidate of remote party (can happen several times)
 												log(">>> Received candidate for " + callId);
 												connection.then(function() {
-													log(">>>> Apply candidate for " + callId);
-													var candidate = new RTCIceCandidate(message.candidate);
-													pc.addIceCandidate(candidate).then(function() {
-													  log("<<<< Apllied candidate for " + callId);
-													}).catch(function(err) {
-														log("ERROR adding candidate for " + callId + ": " + err, err);
-														handleError("Error establishing call", err);
-													});											
+													if (Object.getOwnPropertyNames(message.candidate).length > 0 || isEdge) {
+														log(">>>> Apply candidate for " + callId);
+														var candidate = new RTCIceCandidate(message.candidate);
+														pc.addIceCandidate(candidate).then(function() {
+														  log("<<<< Apllied candidate for " + callId);
+														}).catch(function(err) {
+															log("ERROR adding candidate for " + callId + ": " + err, err);
+															handleError("Error establishing call", err);
+														});														
+													} else {
+														log("<<<< Skipped candidate for " + callId);
+													}
 												});
 											} else if (message.offer) {
 												log(">>> Received offer for " + callId);
@@ -537,11 +543,19 @@ if (eXo.videoCalls) {
 													log(">>> Received answer for " + callId);
 													try {
 														var answer = JSON.parse(message.answer);
+														if (isEdge) {
+															answer = new RTCSessionDescription(answer);
+														}
 														negotiation.then(function() {
 															log(">>>> setRemoteDescription for " + callId);
 															pc.setRemoteDescription(answer).then(function() {
 													      log("<<<< Apllied answer for " + callId);
 													      // TODO anything else here?
+													      // TODO resolve connection (network) exchange only from here
+													      connection.resolve().then(function() {
+													      	// Owner ready to exchange ICE candidates
+																	log("<<<<< Started exchange network information with peers of " + callId);
+																});
 													    }).catch(function(err) {
 													    	log("ERROR setting remote answer for " + callId + ": " + err, err);
 													    	handleError("Error answering call", err);
