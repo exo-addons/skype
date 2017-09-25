@@ -10,13 +10,20 @@ if (eXo.videoCalls) {
 		var logPrefix = "[mssfbcall_" + objId + "] ";
 		var log = function(msg, e) {
 			if (typeof console != "undefined" && typeof console.log != "undefined") {
+				var isoTime = " -- " + new Date().toISOString();
 				if (e) {
-					console.log(logPrefix + msg + (typeof e == "string" ? (". Error: " + e) : JSON.stringify(e)));
+					if (e instanceof Error) {
+						console.log(logPrefix + msg + ". " + (e.name && e.message ? e.name + ": " + e.message : e.toString()) + isoTime);
+					} if (e.name && e.message) {
+						console.log(logPrefix + msg + ". " + e.name + ": " + e.message + isoTime);
+					} else {
+						console.log(logPrefix + msg + ". Cause: " + (typeof e == "string" ? e : JSON.stringify(e)) + isoTime);
+					}
 					if (typeof e.stack != "undefined") {
 						console.log(e.stack);
 					}
 				} else {
-					console.log(logPrefix + msg);
+					console.log(logPrefix + msg + isoTime);
 				}
 			}
 		};

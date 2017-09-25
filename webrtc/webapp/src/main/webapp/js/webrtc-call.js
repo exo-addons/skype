@@ -10,13 +10,20 @@ if (eXo.videoCalls) {
 		var logPrefix = "[webrtccall_" + objId + "] ";
 		var log = function(msg, e) {
 			if (typeof console != "undefined" && typeof console.log != "undefined") {
+				var isoTime = " -- " + new Date().toISOString();
 				if (e) {
-					console.log(logPrefix + msg + (typeof e == "string" ? (". Error: " + e) : JSON.stringify(e)) + " -- " + new Date().toISOString());
+					if (e instanceof Error) {
+						console.log(logPrefix + msg + ". " + (e.name && e.message ? e.name + ": " + e.message : e.toString()) + isoTime);
+					} if (e.name && e.message) {
+						console.log(logPrefix + msg + ". " + e.name + ": " + e.message + isoTime);
+					} else {
+						console.log(logPrefix + msg + ". Cause: " + (typeof e == "string" ? e : JSON.stringify(e)) + isoTime);
+					}
 					if (typeof e.stack != "undefined") {
 						console.log(e.stack);
 					}
 				} else {
-					console.log(logPrefix + msg + " -- " + new Date().toISOString());
+					console.log(logPrefix + msg + isoTime);
 				}
 			}
 		};
@@ -202,7 +209,7 @@ if (eXo.videoCalls) {
 									// TODO get rid of this wrapper, or do something vakuable here.
 								}
 								connection.fail(function(err) {
-									log("ERROR starting connection for " + callId + ": " + JSON.stringify(err), err);
+									log("ERROR starting connection for " + callId + ": " + err, err);
 									handleError("Error of starting connection", err);
 								});
 								var sendMessage = function(message) {
@@ -226,7 +233,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published Hello to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing Hello to " + callId + ": " + JSON.stringify(err), err);
+										log("ERROR publishing Hello to " + callId + ": " + err, err);
 									});
 								};
 								var sendBye = function() {
@@ -238,7 +245,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published Bye to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing Bye to " + callId + ": " + JSON.stringify(err), err);
+										log("ERROR publishing Bye to " + callId + ": " + err, err);
 									});
 								};
 								var sendOffer = function(localDescription) {
@@ -247,7 +254,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published offer to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing offer to " + callId + ": " + JSON.stringify(err), err);
+										log("ERROR publishing offer to " + callId + ": " + err, err);
 										// TODO May retry?
 										handleError("Error of sharing media offer", err);
 									});
@@ -258,7 +265,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published answer to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing answer to " + callId + ": " + JSON.stringify(err), err);
+										log("ERROR publishing answer to " + callId + ": " + err, err);
 										handleError("Error of sharing media answer", err);
 									});
 								};
@@ -270,7 +277,7 @@ if (eXo.videoCalls) {
 						      }).done(function() {
 						      	log("<< Published candidate to " + callId);
 									}).fail(function(err) {
-										log("ERROR publishing candidate to " + callId + ": " + JSON.stringify(err), err);
+										log("ERROR publishing candidate to " + callId + ": " + err, err);
 										handleError("Error of sharing connection", err);
 									});
 								};
@@ -465,7 +472,7 @@ if (eXo.videoCalls) {
 													pc.addIceCandidate(new RTCIceCandidate(message.candidate)).then(function() {
 											      log("<<<< Apllied candidate for " + callId);
 											    }).catch(function(err) {
-											    	log("ERROR adding candidate for " + callId + ": " + JSON.stringify(err), err);
+											    	log("ERROR adding candidate for " + callId + ": " + err, err);
 											    	handleError("Error establishing call", err);
 											    });											
 												});
@@ -502,18 +509,18 @@ if (eXo.videoCalls) {
 																				});
 													      			});
 													      		}).catch(function(err) {
-													      			log("ERROR setting local answer for " + callId + ": " + JSON.stringify(err), err);
+													      			log("ERROR setting local answer for " + callId + ": " + err, err);
 														      		handleError("Error accepting call", err);
 													      		});
 													      	}).catch(function(err) {
-													      		log("ERROR answering offer for " + callId + ": " + JSON.stringify(err), err);
+													      		log("ERROR answering offer for " + callId + ": " + err, err);
 													      		handleError("Error answering call", err);
 													      	});
 													      } else {
 													      	log("<<<<< remoteDescription type IS NOT 'offer' BUT " + pc.remoteDescription.type);
 													      }
 													    }).catch(function(err) {
-													    	log("ERROR setting remote offer for " + callId + ": " + JSON.stringify(err), err);
+													    	log("ERROR setting remote offer for " + callId + ": " + err, err);
 													    	handleError("Error applying call", err);
 													    });
 														});
@@ -533,7 +540,7 @@ if (eXo.videoCalls) {
 													      log("<<<< Apllied answer for " + callId);
 													      // TODO anything else here?
 													    }).catch(function(err) {
-													    	log("ERROR setting remote answer for " + callId + ": " + JSON.stringify(err), err);
+													    	log("ERROR setting remote answer for " + callId + ": " + err, err);
 													    	handleError("Error answering call", err);
 													    });
 														});
@@ -575,7 +582,7 @@ if (eXo.videoCalls) {
 										}
 									}
 								}, function(err) {
-									log("ERROR subscribe to " + callId + ": " + JSON.stringify(err), err);
+									log("ERROR subscribe to " + callId + ": " + err, err);
 									process.reject("Error setting up connection (subscribe call updates): " + err);
 									handleError("Connection error", videoCalls.errorText(err));
 								});
