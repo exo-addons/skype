@@ -13,12 +13,10 @@ if (eXo.videoCalls) {
 				var isoTime = " -- " + new Date().toISOString();
 				if (e) {
 					var logText = logPrefix + msg;
-					if (e instanceof Error) {
-						logText += ". " + (e.name && e.message ? e.name + ": " + e.message : e.toString());
-					} if (e.name && e.message) {
-						logText += ". " + e.name + ": " + e.message;
-					} else if (typeof e.toString == "function") {
+					if (typeof e.toString == "function") {
 						logText += ". Error: " + e.toString();
+					} else if (e.name && e.message) {
+						logText += ". " + e.name + ": " + e.message;
 					} else {
 						logText += ". Cause: " + (typeof e == "string" ? e : JSON.stringify(e));
 					}
@@ -353,7 +351,7 @@ if (eXo.videoCalls) {
 								// Add peer listeners for connection flow
 								pc.onicecandidate = function (event) {
 									// This will happen when browser will be ready to exchange peers setup
-									log(">> onIceCandidate for " + callId + ": " + JSON.stringify(event) + " > " + new Date().toLocaleString());
+									log(">> onIceCandidate for " + callId + ": " + JSON.stringify(event));
 							    if (event.candidate) {
 							    	connection.then(function() {
 							    		sendCandidate(event.candidate);
@@ -473,12 +471,13 @@ if (eXo.videoCalls) {
 												log(">>> Received candidate for " + callId);
 												connection.then(function() {
 													log(">>>> Apply candidate for " + callId);
-													pc.addIceCandidate(new RTCIceCandidate(message.candidate)).then(function() {
-											      log("<<<< Apllied candidate for " + callId);
-											    }).catch(function(err) {
-											    	log("ERROR adding candidate for " + callId + ": " + err, err);
-											    	handleError("Error establishing call", err);
-											    });											
+													var candidate = new RTCIceCandidate(message.candidate);
+													pc.addIceCandidate(candidate).then(function() {
+													  log("<<<< Apllied candidate for " + callId);
+													}).catch(function(err) {
+														log("ERROR adding candidate for " + callId + ": " + err, err);
+														handleError("Error establishing call", err);
+													});											
 												});
 											} else if (message.offer) {
 												log(">>> Received offer for " + callId);
