@@ -203,13 +203,13 @@
 											log(">>> Call page loaded for " + callId);
 											callWindow.document.title = longTitle + ": " + target.title;
 											// Timeout used for debug only - could be removed in production
-											setTimeout(function() {
-												callWindow.eXo.videoCalls.startCall(call).done(function(state) {
-													log("<<<< Call " + state + " " + callId);
-												}).fail(function(err) {
-													videoCalls.showError("Error starting call", videoCalls.errorText(err));
-												});
-											}, 1000); // XXX Experimental value guessed from logs
+											//setTimeout(function() {
+											callWindow.eXo.videoCalls.startCall(call).done(function(state) {
+												log("<<<< Call " + state + " " + callId);
+											}).fail(function(err) {
+												videoCalls.showError("Error starting call", videoCalls.errorText(err));
+											});
+											//}, 1000); // XXX Experimental value guessed from logs
 										});
 									}).fail(function(err) {
 										log("ERROR adding " + callId + ": " + JSON.stringify(err));
@@ -401,15 +401,14 @@
 														onCallWindowReady(callWindow).done(function() {
 															log(">>>> Call page loaded " + callId);
 															callWindow.document.title = longTitle + ": " + call.owner.title;
-															// Timeout used for debug only - could be removed in production
-															setTimeout(function() {
-																callWindow.eXo.videoCalls.startCall(call).done(function(state) {
-																	log("<<<< Call " + state + " " + callId);
-																	lockCallButton(callId, callerId, callerRoom);
-																}).fail(function(err) {
-																	videoCalls.showError("Error starting call", err);
-																});
-															}, 5000); // XXX Experimental value guessed from logs
+															//setTimeout(function() {
+															callWindow.eXo.videoCalls.startCall(call).done(function(state) {
+																log("<<<< Call " + state + " " + callId);
+																lockCallButton(callId, callerId, callerRoom);
+															}).fail(function(err) {
+																videoCalls.showError("Error starting call", err);
+															});
+															//}, 5000); // XXX 5sec Experimental value guessed from logs
 														});
 													});
 													popover.fail(function(err) {
