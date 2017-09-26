@@ -199,7 +199,6 @@
 									videoCalls.addCall(callId, callInfo).done(function(call) {
 										log(">> Added " + callId);
 										// Tell the window to start the call  
-										//$(callWindow).on("load", function() {
 										onCallWindowReady(callWindow).done(function() {
 											log(">>> Call page loaded for " + callId);
 											callWindow.document.title = longTitle + ": " + target.title;
@@ -399,7 +398,6 @@
 														var link = settings.callUri + "/" + callId;
 														var callWindow = videoCalls.showCallPopup(link, longTitle);
 														// Tell the window to start the call  
-														//$(callWindow).on("load", function() {
 														onCallWindowReady(callWindow).done(function() {
 															log(">>>> Call page loaded " + callId);
 															callWindow.document.title = longTitle + ": " + call.owner.title;

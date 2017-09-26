@@ -357,7 +357,7 @@ if (eXo.videoCalls) {
 								    	sendCandidate(event.candidate);
 								    } else {
 								      // else All ICE candidates have been sent. ICE gathering has finished.
-								    	// TODO any action is expected here?
+								    	// Send empty candidate as a sign of finished ICE gathering.
 								    	sendCandidate({});
 								    	log("<< All ICE candidates have been sent");
 								    }
@@ -392,11 +392,7 @@ if (eXo.videoCalls) {
 									    		log(">>>> setLocalDescription for " + callId);
 									    		sendOffer(pc.localDescription).then(function() {
 									    			log("<<<< setLocalDescription for " + callId);
-									    			// TODO moved to after-answer code
-										    		/* connection.resolve().then(function() {
-											      	// Owner ready to exchange ICE candidates
-															log("<<<<< Started exchange network information with peers of " + callId);
-														});*/
+									    			// TODO Something else here?
 									    		});
 									      }).catch(function(err) {
 									      	log("ERROR settings local offer for " + callId, err);
@@ -448,9 +444,6 @@ if (eXo.videoCalls) {
 									
 									// Show local
 									localVideo.srcObject = miniVideo.srcObject;
-									/*localVideo.onloadedmetadata = function(event1) {
-										localVideo.play();
-									};*/
 									$localVideo.addClass("active");
 									
 									// Hide mini
@@ -550,8 +543,7 @@ if (eXo.videoCalls) {
 															log(">>>> setRemoteDescription for " + callId);
 															pc.setRemoteDescription(answer).then(function() {
 													      log("<<<< Apllied answer for " + callId);
-													      // TODO anything else here?
-													      // TODO resolve connection (network) exchange only from here
+													      // Resolve connection (network) exchange only from here
 													      connection.resolve().then(function() {
 													      	// Owner ready to exchange ICE candidates
 																	log("<<<<< Started exchange network information with peers of " + callId);
@@ -622,8 +614,8 @@ if (eXo.videoCalls) {
 								    	constraints.audio = true;
 								    	if (cams.length > 0) {
 								    		// TODO use optimal camera res and video quality
-								    		// TODO 720p (1280x720) is an optimal for all cases
-								    		// TODO then 960x720, 640x480 and 320x240, 160x120
+								    		// 720p (1280x720) is an optimal for all cases
+								    		// then 960x720, 640x480 and 320x240, 160x120
 								    		var vw, vh, vwmin, vhmin; 
 								    		var isPortrait = screen.width < screen.height; 
 								    		/*if (screen.width >= 1280) {
@@ -669,15 +661,10 @@ if (eXo.videoCalls) {
 								}
 								inputsReady.done(function(constraints, comment) {
 									log("Media constraints: " + JSON.stringify(constraints) + " " + comment);
-									// When using shim adapter.js don't need do the selection like below
-									// var userMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 									navigator.mediaDevices.getUserMedia(constraints).then(function(localStream) {
 										// successCallback
 										// show local camera output
 										localVideo.srcObject = localStream;
-										/*localVideo.onloadedmetadata = function(event) {
-											localVideo.play();
-										};*/
 										$localVideo.addClass("active");
 										
 										var $muteAudio = $controls.find("#mute-audio");
