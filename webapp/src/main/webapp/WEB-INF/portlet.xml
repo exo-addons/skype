@@ -7,7 +7,7 @@
   <portlet>
     <portlet-name>SkypeProviderPortlet</portlet-name>
     <display-name xml:lang="EN">Skype Provider for Video Calls</display-name>
-    <portlet-class>org.exoplatform.videocalls.skype.portlet.SkypeProviderPortlet</portlet-class>
+    <portlet-class>org.exoplatform.webconferencing.skype.portlet.SkypeProviderPortlet</portlet-class>
     <supports>
       <mime-type>text/html</mime-type>
     </supports>
@@ -21,7 +21,7 @@
   <portlet>
     <portlet-name>SkypeBusinessProviderPortlet</portlet-name>
     <display-name xml:lang="EN">Skype for Business Provider for Video Calls</display-name>
-    <portlet-class>org.exoplatform.videocalls.skype.portlet.SkypeBusinessProviderPortlet</portlet-class>
+    <portlet-class>org.exoplatform.webconferencing.skype.portlet.SkypeBusinessProviderPortlet</portlet-class>
     <supports>
       <mime-type>text/html</mime-type>
     </supports>

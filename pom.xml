@@ -22,28 +22,33 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>addons-parent-pom</artifactId>
     <groupId>org.exoplatform.addons</groupId>
+    <artifactId>addons-parent-pom</artifactId>
     <version>8-M01</version>
   </parent>
-  <artifactId>exo-skype-parent</artifactId>
+  
+  <groupId>org.exoplatform.addons.skype</groupId>
+  <artifactId>skype-connector</artifactId>
   <version>1.0.x-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>eXo Skype :: Parent</name>
-  <description>eXo Skype extension</description>
+  <name>eXo Skype</name>
+  <description>eXo Skype portal extension (connector for Web Conferencing)</description>
+  
   <modules>
-    <module>core</module>
+    <!-- module>core</module -->
     <module>services</module>
     <module>webapp</module>
     <module>packaging</module>
-    <module>webrtc</module>
+    <!-- module>webrtc</module -->
   </modules>
+  
   <scm>
     <connection>scm:git:git://github.com/exo-addons/skype.git</connection>
     <developerConnection>scm:git:git@github.com:exo-addons/skype.git</developerConnection>
     <tag>HEAD</tag>
     <url>https://github.com/exo-addons/skype</url>
   </scm>
+  
   <properties>
     <!-- Defaut compiler settings -->
     <maven.compiler.optimize>true</maven.compiler.optimize>
@@ -53,12 +58,14 @@
     <!-- **************************************** -->
     <!-- Dependencies versions                    -->
     <!-- **************************************** -->
-    <org.exoplatform.depmgt.version>13-M06</org.exoplatform.depmgt.version>
-    <org.exoplatform.platform.version>5.0.0-M06</org.exoplatform.platform.version>
+    <org.exoplatform.depmgt.version>13-M29</org.exoplatform.depmgt.version>
+    <org.exoplatform.platform.version>5.0.0-M29</org.exoplatform.platform.version>
+    <web-conferencing.version>1.1.x-SNAPSHOT</web-conferencing.version>
     <!-- for tests -->
     <junit.version>4.12</junit.version>
     <httpclient-test.version>4.3.6</httpclient-test.version>
   </properties>
+  
   <dependencyManagement>
     <dependencies>
       <!-- Import versions of external dependencies to use -->
@@ -77,42 +84,23 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <!-- Video Calls extension -->
+      <!-- Web Conferencing extension -->
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-videocalls-services</artifactId>
-        <version>${project.version}</version>
+        <groupId>org.exoplatform.addons.web-conferencing</groupId>
+        <artifactId>web-conferencing-services</artifactId>
+        <version>${web-conferencing.version}</version>
         <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-videocalls-webapp</artifactId>
-        <version>${project.version}</version>
-        <type>war</type>
       </dependency>
       <!-- Skype extension -->
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-skype-services</artifactId>
+        <groupId>org.exoplatform.addons.skype</groupId>
+        <artifactId>web-conferencing-skype-services</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-skype-webapp</artifactId>
-        <version>${project.version}</version>
-        <type>war</type>
-      </dependency>
-      <!-- WebRTC extension -->
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-webrtc-services</artifactId>
-        <version>${project.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-webrtc-webapp</artifactId>
+        <groupId>org.exoplatform.addons.skype</groupId>
+        <artifactId>web-conferencing-skype-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
       </dependency>

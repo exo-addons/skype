@@ -1,17 +1,17 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
     </script>
-    <script type="text/javascript" src="/videocalls/js/videocalls.js"></script>
-    <script type="text/javascript" src="/skype/js/videocalls-mssfb.js"></script>
+    <script type="text/javascript" src="/webconferencing/js/webconferencing.js"></script>
+    <script type="text/javascript" src="/skype/js/webconferencing-mssfb.js"></script>
     <script type="text/javascript">
-	   	if (eXo.videoCalls) {
-			(function(videoCalls) {
+	   	if (eXo.webConferencing) {
+			(function(webConferencing) {
 			  "use strict";
-			  videoCalls.init(${userInfo}, ${contextInfo});
-			  videoCalls.mssfb.configure(${settings}); 
-			  videoCalls.addProvider(videoCalls.mssfb);
-			})(eXo.videoCalls);
+			  webConferencing.init(${userInfo}, ${contextInfo});
+			  webConferencing.mssfb.configure(${settings}); 
+			  webConferencing.addProvider(webConferencing.mssfb);
+			})(eXo.webConferencing);
 	   	} else {
-	   		console.log("eXo.videoCalls not defined for Skype for Business Call page");
+	   		console.log("eXo.webConferencing not defined for Skype for Business Call page");
 	   	}
 	</script>
 </head>

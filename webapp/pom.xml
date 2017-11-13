@@ -22,32 +22,27 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>exo-skype-parent</artifactId>
-    <groupId>org.exoplatform.addons</groupId>
+    <groupId>org.exoplatform.addons.skype</groupId>
+    <artifactId>skype-connector</artifactId>
     <version>1.0.x-SNAPSHOT</version>
   </parent>
-  <artifactId>exo-skype-webapp</artifactId>
+  
+  <artifactId>web-conferencing-skype-webapp</artifactId>
   <packaging>war</packaging>
   <name>eXo Skype :: Extension Webapp</name>
   <description>eXo Skype web application of portal extension</description>
+
   <dependencies>
     <!-- Skype services -->
     <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-skype-services</artifactId>
+      <groupId>org.exoplatform.addons.skype</groupId>
+      <artifactId>web-conferencing-skype-services</artifactId>
       <scope>provided</scope>
     </dependency>
-    <!-- Video Calls -->
+    <!-- Web Conferencing -->
     <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-videocalls-services</artifactId>
-      <type>jar</type>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-videocalls-webapp</artifactId>
-      <type>war</type>
+      <groupId>org.exoplatform.addons.web-conferencing</groupId>
+      <artifactId>web-conferencing-services</artifactId>
       <scope>provided</scope>
     </dependency>
     <!-- Application dependencies-->

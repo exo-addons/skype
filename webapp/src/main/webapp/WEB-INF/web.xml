@@ -49,7 +49,7 @@
   </servlet>
   <servlet>
     <servlet-name>SkypeCallServlet</servlet-name>
-    <servlet-class>org.exoplatform.videocalls.skype.server.SkypeCallServlet</servlet-class>
+    <servlet-class>org.exoplatform.webconferencing.skype.server.SkypeCallServlet</servlet-class>
     <load-on-startup>0</load-on-startup>
   </servlet>
   

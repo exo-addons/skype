@@ -22,19 +22,21 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>exo-skype-parent</artifactId>
-    <groupId>org.exoplatform.addons</groupId>
+    <groupId>org.exoplatform.addons.skype</groupId>
+    <artifactId>skype-connector</artifactId>
     <version>1.0.x-SNAPSHOT</version>
   </parent>
-  <artifactId>exo-skype-services</artifactId>
+  
+  <artifactId>web-conferencing-skype-services</artifactId>
   <packaging>jar</packaging>
   <name>eXo Skype :: Extension Services</name>
   <description>eXo Skype services of portal extension</description>
+  
   <dependencies>
-    <!-- Video Calls core -->
+    <!-- Web Conferencing extension -->
     <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-videocalls-services</artifactId>
+      <groupId>org.exoplatform.addons.web-conferencing</groupId>
+      <artifactId>web-conferencing-services</artifactId>
       <type>jar</type>
       <scope>provided</scope>
     </dependency>

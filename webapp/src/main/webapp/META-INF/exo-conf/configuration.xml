@@ -46,7 +46,7 @@
               </collection>
             </field>
             <field name="target">
-              <string>videocalls</string>
+              <string>webconferencing</string>
             </field>
           </object>
         </object-param>

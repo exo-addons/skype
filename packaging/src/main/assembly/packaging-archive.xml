@@ -9,27 +9,9 @@
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
        <includes>
-         <include>org.exoplatform.addons:exo-videocalls-webapp:war</include>
-       </includes>
-       <outputFileNameMapping>videocalls.war</outputFileNameMapping>
-       <scope>provided</scope>
-       <fileMode>0644</fileMode>
-     </dependencySet>
-     <dependencySet>
-       <outputDirectory>webapps</outputDirectory>
-       <includes>
-         <include>org.exoplatform.addons:exo-skype-webapp:war</include>
+         <include>org.exoplatform.addons.skype:web-conferencing-skype-webapp:war</include>
        </includes>
        <outputFileNameMapping>skype.war</outputFileNameMapping>
-       <scope>provided</scope>
-       <fileMode>0644</fileMode>
-     </dependencySet>
-     <dependencySet>
-       <outputDirectory>webapps</outputDirectory>
-       <includes>
-         <include>org.exoplatform.addons:exo-webrtc-webapp:war</include>
-       </includes>
-       <outputFileNameMapping>webrtc.war</outputFileNameMapping>
        <scope>provided</scope>
        <fileMode>0644</fileMode>
      </dependencySet>
@@ -38,9 +20,7 @@
        <outputDirectory>lib</outputDirectory>
        <useTransitiveDependencies>true</useTransitiveDependencies>
        <includes>
-         <include>org.exoplatform.addons:exo-videocalls-*:jar</include>
-         <include>org.exoplatform.addons:exo-skype-*:jar</include>
-         <include>org.exoplatform.addons:exo-webrtc-*:jar</include>
+         <include>org.exoplatform.addons.skype:web-conferencing-skype-*:jar</include>
        </includes>
        <scope>provided</scope>
        <fileMode>0644</fileMode>

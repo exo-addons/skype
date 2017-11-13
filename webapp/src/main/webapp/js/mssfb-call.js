@@ -1,8 +1,8 @@
 /**
  * Microsoft Skype for Business call application (web page). This script initializes an UI of a page that will handle a particular call.
  */
-if (eXo.videoCalls) {
-	(function(videoCalls) {
+if (eXo.webConferencing) {
+	(function(webConferencing) {
 		"use strict";
 		
 		/** For debug logging. */
@@ -29,7 +29,7 @@ if (eXo.videoCalls) {
 		};
 		//log("> Loading at " + location.origin + location.pathname);
 		
-		var mssfb = videoCalls.getProvider("mssfb");
+		var mssfb = webConferencing.getProvider("mssfb");
 		if (mssfb) {
 			var hashLine = location.hash;
 			var hasToken = /#access_token=/.test(hashLine);
@@ -161,9 +161,9 @@ if (eXo.videoCalls) {
 						"expires_in" : expiresIn,
 						"created" : Math.floor(new Date().getTime()/1000)
 					};
-					// FYI window.opener.eXo.videoCalls.mssfb.loginToken will exist only within provider.init() execution and short time
+					// FYI window.opener.eXo.webConferencing.mssfb.loginToken will exist only within provider.init() execution and short time
 					// thus this if-block should not execute for call authentication
-					if (parent && parent.eXo && parent.eXo.videoCalls && parent.eXo.videoCalls.mssfb) {
+					if (parent && parent.eXo && parent.eXo.webConferencing && parent.eXo.webConferencing.mssfb) {
 						//var parentUri = parent.location.href;
 						//log(">>>> MSSFB login opener: " + parentUri);
 						// **** TODO experiments with ADSL to obtain auth token for SDK calls later
@@ -182,16 +182,16 @@ if (eXo.videoCalls) {
 		        });*/
 						//
 						
-						if (parent.eXo.videoCalls.mssfb.loginToken) {
-							log(">>> use parent.eXo.videoCalls.mssfb.loginToken()");
-							parent.eXo.videoCalls.mssfb.loginToken(token).always(function() {
+						if (parent.eXo.webConferencing.mssfb.loginToken) {
+							log(">>> use parent.eXo.webConferencing.mssfb.loginToken()");
+							parent.eXo.webConferencing.mssfb.loginToken(token).always(function() {
 								showStarted("Successfully authorized in " + mssfb.getTitle() + " account."); // TODO is it correct sentense?
 								setTimeout(function() {
 									window.close();
 								}, 2500);
 							});	
 						} else {
-							log("<<< WARN: parent.eXo.videoCalls.mssfb.loginToken() not found");
+							log("<<< WARN: parent.eXo.webConferencing.mssfb.loginToken() not found");
 						}
 					} else {
 						log("<<< ERROR: login has no opener or not initialized for callback token");
@@ -217,8 +217,8 @@ if (eXo.videoCalls) {
 								// XXX Subscribe to the user call updates,
 								// we don't need this, but do to connect CometD prior using addCall() in mssfb.startOutgoingCall()
 								// See also https://jira.exoplatform.org/browse/PLF-7481
-								var currentUserId = videoCalls.getUser().id;
-								videoCalls.onUserUpdate(currentUserId, function(update, status) {
+								var currentUserId = webConferencing.getUser().id;
+								webConferencing.onUserUpdate(currentUserId, function(update, status) {
 									if (update.eventType == "call_state") {
 										if (update.callState == "stopped" && update.callId == pageCallId) {
 											log("<<< Call stopped remotelly: " + JSON.stringify(update) + " [" + status + "]");
@@ -229,7 +229,7 @@ if (eXo.videoCalls) {
 									log("ERROR User calls subscription failure: " + err, err);
 								});
 								
-								var redirectUri = videoCalls.getBaseUrl() + "/portal/skype/call/login";
+								var redirectUri = webConferencing.getBaseUrl() + "/portal/skype/call/login";
 								var uiInitializer = mssfb.uiApplication(redirectUri);
 								uiInitializer.done(function(api, app) {
 									try {
@@ -255,7 +255,7 @@ if (eXo.videoCalls) {
 											var targetType = pageCallId.substring(0, tdelim);
 											var targetId = pageCallId.substring(tdelim + 1);
 											if (targetType == "space") {
-												videoCalls.getSpaceInfo(targetId).done(function(space) {
+												webConferencing.getSpaceInfo(targetId).done(function(space) {
 													var details = mssfb.readTargetDetails(currentUserSip, space);
 													startOutgoingCall(details);
 												}).fail(function(err, status) {
@@ -263,7 +263,7 @@ if (eXo.videoCalls) {
 													showError("Space error", err.message);
 												});
 											} else if (targetType == "chat_room") {
-												videoCalls.getRoomInfo(targetId).done(function(room) {
+												webConferencing.getRoomInfo(targetId).done(function(room) {
 													var details = mssfb.readTargetDetails(currentUserSip, room);
 													startOutgoingCall(details);
 												}).fail(function(err, status) {
@@ -271,7 +271,7 @@ if (eXo.videoCalls) {
 													showError("Chat room error", err.message);
 												});
 											} else if (targetType == "user") {
-												videoCalls.getUserInfo(targetId).done(function(user) {
+												webConferencing.getUserInfo(targetId).done(function(user) {
 													var details = mssfb.readTargetDetails(currentUserSip, user);
 													startOutgoingCall(details);
 												}).fail(function(err, status) {
@@ -351,7 +351,7 @@ if (eXo.videoCalls) {
 			console.log("MSSFB provider not found for mssfb-call.js");
 		}
 		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
-	})(eXo.videoCalls);
+	})(eXo.webConferencing);
 } else {
-	console.log("eXo.videoCalls not defined for mssfb-call.js");
+	console.log("eXo.webConferencing not defined for mssfb-call.js");
 }

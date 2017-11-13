@@ -83,41 +83,40 @@
     <url>https://swx.cdn.skype.com/shared/v/1.2.15/SkypeBootstrap.min.js</url>
   </module>
   <module>
-    <name>videoCalls_skype</name>
+    <name>webConferencing_skype</name>
+    <load-group>webConferencingSkypeGRP</load-group>
     <script>
-      <path>/js/videocalls-skype.js</path>
+      <path>/js/webconferencing-skype.js</path>
     </script>
     <depends>
-      <module>videoCallsJquery</module>
+      <module>jquery</module>
     </depends>
     <depends>
-      <module>videoCalls</module>
+      <module>webConferencing</module>
     </depends>
   </module>
   <module>
-    <name>videoCalls_mssfb</name>
+    <name>webConferencing_mssfb</name>
+    <load-group>webConferencingSkypeGRP</load-group>
     <script>
-      <path>/js/videocalls-mssfb.js</path>
+      <path>/js/webconferencing-mssfb.js</path>
     </script>
     <depends>
-      <module>videoCallsJquery</module>
+      <module>jquery</module>
     </depends>
     <depends>
-      <module>videoCalls</module>
+      <module>webConferencing</module>
     </depends>
     <depends>
       <module>skypeWeb</module>
     </depends>
   </module>
   
-  <portlet>
+  <!-- portlet>
     <name>SkypeProviderPortlet</name>
     <module>
       <depends>
-        <module>videoCallsJquery</module>
-      </depends>
-      <depends>
-        <module>videoCalls_skype</module>
+        <module>webConferencing_skype</module>
       </depends>
     </module>
   </portlet>
@@ -125,8 +124,8 @@
     <name>SkypeBusinessProviderPortlet</name>
     <module>
       <depends>
-        <module>videoCallsJquery</module>
+        <module>webConferencing_mssfb</module>
       </depends>
     </module>
-  </portlet>
+  </portlet -->
 </gatein-resources>

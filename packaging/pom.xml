@@ -22,49 +22,26 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>exo-skype-parent</artifactId>
-    <groupId>org.exoplatform.addons</groupId>
+    <groupId>org.exoplatform.addons.skype</groupId>
+    <artifactId>skype-connector</artifactId>
     <version>1.0.x-SNAPSHOT</version>
   </parent>
-  <artifactId>exo-skype-packaging</artifactId>
+  
+  <artifactId>web-conferencing-skype-packaging</artifactId>
   <packaging>pom</packaging>
   <name>eXo Skype :: Extension Packaging</name>
   <description>eXo Skype packaging for installation</description>
+  
   <dependencies>
     <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-videocalls-services</artifactId>
+      <groupId>org.exoplatform.addons.skype</groupId>
+      <artifactId>web-conferencing-skype-services</artifactId>
       <type>jar</type>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-videocalls-webapp</artifactId>
-      <type>war</type>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-skype-services</artifactId>
-      <type>jar</type>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-skype-webapp</artifactId>
-      <type>war</type>
-      <scope>provided</scope>
-    </dependency>
-    <!-- Temporal: WebRTC here-->
-    <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-webrtc-services</artifactId>
-      <type>jar</type>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-webrtc-webapp</artifactId>
+      <groupId>org.exoplatform.addons.skype</groupId>
+      <artifactId>web-conferencing-skype-webapp</artifactId>
       <type>war</type>
       <scope>provided</scope>
     </dependency>
@@ -81,7 +58,7 @@
         </includes>
       </resource>
     </resources>
-    <finalName>exo-skype</finalName>
+    <finalName>web-conferencing-skype</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
@@ -93,6 +70,7 @@
               <goal>single</goal>
             </goals>
             <configuration>
+              <appendAssemblyId>false</appendAssemblyId>
               <descriptors>
                 <descriptor>src/main/assembly/packaging-archive.xml</descriptor>
               </descriptors>

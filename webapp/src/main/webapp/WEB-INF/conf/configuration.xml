@@ -26,15 +26,15 @@
   
   <!-- Skype provider plugin -->
   <external-component-plugins>
-    <target-component>org.exoplatform.videocalls.VideoCallsService</target-component>
+    <target-component>org.exoplatform.webconferencing.WebConferencingService</target-component>
     <component-plugin>
-      <name>add.clouddriveprovider</name>
+      <name>add.callprovider</name>
       <set-method>addPlugin</set-method>
-      <type>org.exoplatform.videocalls.skype.SkypeProvider</type>
+      <type>org.exoplatform.webconferencing.skype.SkypeProvider</type>
       <init-params>
         <properties-param>
           <name>provider-configuration</name>
-          <property name="disable" value="${videocalls.skype.disable:false}" />
+          <property name="disable" value="${webconferencing.skype.disable:false}" />
         </properties-param>
       </init-params>
     </component-plugin>
@@ -42,11 +42,11 @@
   
   <!-- Skype for Business provider plugin -->
   <external-component-plugins>
-    <target-component>org.exoplatform.videocalls.VideoCallsService</target-component>
+    <target-component>org.exoplatform.webconferencing.WebConferencingService</target-component>
     <component-plugin>
-      <name>add.clouddriveprovider</name>
+      <name>add.callprovider</name>
       <set-method>addPlugin</set-method>
-      <type>org.exoplatform.videocalls.skype.SkypeBusinessProvider</type>
+      <type>org.exoplatform.webconferencing.skype.SkypeBusinessProvider</type>
       <init-params>
         <values-param>
           <name>autodiscover-origins</name>
@@ -55,12 +55,12 @@
         </values-param>
         <properties-param>
           <name>provider-configuration</name>
-          <property name="web-oauth2-appVersion" value="${videocalls.mssfb.web.appVersion:eXoWebSkype/1.0.0}" />
-          <property name="web-oauth2-loginUri" value="${videocalls.mssfb.web.oauth2.loginUri:}" />
-          <property name="web-oauth2-clientId" value="${videocalls.mssfb.web.oauth2.clientId:}" />
-          <property name="web-apiKey" value="${videocalls.mssfb.web.apiKey:}" />
-          <property name="web-apiKeyCC" value="${videocalls.mssfb.web.apiKeyCC:}" />
-          <property name="disable" value="${videocalls.mssfb.disable:false}" />
+          <property name="web-oauth2-appVersion" value="${webconferencing.mssfb.web.appVersion:eXoWebSkype/1.0.0}" />
+          <property name="web-oauth2-loginUri" value="${webconferencing.mssfb.web.oauth2.loginUri:}" />
+          <property name="web-oauth2-clientId" value="${webconferencing.mssfb.web.oauth2.clientId:}" />
+          <property name="web-apiKey" value="${webconferencing.mssfb.web.apiKey:}" />
+          <property name="web-apiKeyCC" value="${webconferencing.mssfb.web.apiKeyCC:}" />
+          <property name="disable" value="${webconferencing.mssfb.disable:false}" />
         </properties-param>
       </init-params>
     </component-plugin>
@@ -71,7 +71,7 @@
     <component-plugin>
       <name>profile-im-control-mssfb</name>
       <set-method>addIMControl</set-method>
-      <type>org.exoplatform.videocalls.skype.profile.webui.SkypeBusinessIMRenderer</type>
+      <type>org.exoplatform.webconferencing.skype.profile.webui.SkypeBusinessIMRenderer</type>
     </component-plugin>
   </external-component-plugins>
   
@@ -135,7 +135,7 @@
           <name>Skype Call Resource Filter</name>
           <object type="org.exoplatform.web.filter.FilterDefinition">
             <field name="filter">
-              <object type="org.exoplatform.videocalls.server.filter.VideoCallsResourceFilter" />
+              <object type="org.exoplatform.webconferencing.server.filter.ResourceFilter" />
             </field>
             <field name="patterns">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
@@ -153,7 +153,7 @@
           <name>Skype Call page filter</name>
           <object type="org.exoplatform.web.filter.FilterDefinition">
             <field name="filter">
-              <object type="org.exoplatform.videocalls.skype.server.SkypeCallFilter" />
+              <object type="org.exoplatform.webconferencing.skype.server.SkypeCallFilter" />
             </field>
             <field name="patterns">
               <collection type="java.util.ArrayList" item-type="java.lang.String">
