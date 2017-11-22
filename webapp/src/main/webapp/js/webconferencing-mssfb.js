@@ -2185,23 +2185,23 @@
 												state : "stopped",
 												callId : update.callId,
 												peer : {
-													id : update.caller.id,
-													type : update.caller.type,
+													id : update.owner.id,
+													type : update.owner.type,
 													chatRoom : callerRoom
 												},
 												saved : true
 											});
 										};
-										if (update.caller.type == "space") {
+										if (update.owner.type == "space") {
 											// Find room ID for space calls in Chat
-											webConferencing.getChat().getRoom(update.caller.id, "space-name").done(function(room) {
+											webConferencing.getChat().getRoom(update.owner.id, "space-name").done(function(room) {
 												callStopped(room.user);
 											}).fail(function(err, status) {
 												log("Error requesting Chat's getRoom() [" + status + "] ", error);
 											});
 										} else {
 											// we assume: else if (callerType == "chat_room" || callerType == "user") 
-											callStopped(update.caller.id);
+											callStopped(update.owner.id);
 										}
 									}
 								} else if (update.eventType == "call_joined") {
