@@ -6,14 +6,14 @@
    http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
   <portlet>
     <portlet-name>SkypeProviderPortlet</portlet-name>
-    <display-name xml:lang="EN">Skype Provider for Video Calls</display-name>
+    <display-name xml:lang="EN">Skype Provider for Web Conferencing</display-name>
     <portlet-class>org.exoplatform.webconferencing.skype.portlet.SkypeProviderPortlet</portlet-class>
     <supports>
       <mime-type>text/html</mime-type>
     </supports>
     <resource-bundle>locale.skype.Skype</resource-bundle>
     <portlet-info>
-      <title>Skype Provider for Video Calls</title>
+      <title>Skype Provider for Web Conferencing</title>
       <short-title>Skype</short-title>
       <keywords>skype</keywords>
     </portlet-info>
@@ -27,7 +27,7 @@
     </supports>
     <resource-bundle>locale.skype.SkypeBusiness</resource-bundle>
     <portlet-info>
-      <title>Skype for Business Provider for Video Calls</title>
+      <title>Skype for Business Provider for Web Conferencing</title>
       <short-title>Skype for Business</short-title>
       <keywords>mssfb lync skype</keywords>
     </portlet-info>

@@ -9,23 +9,7 @@ if (eXo.webConferencing) {
 		var objId = Math.floor((Math.random() * 1000) + 1);
 		var logPrefix = "[mssfbcall_" + objId + "] ";
 		var log = function(msg, e) {
-			if (typeof console != "undefined" && typeof console.log != "undefined") {
-				var isoTime = " -- " + new Date().toISOString();
-				if (e) {
-					if (e instanceof Error) {
-						console.log(logPrefix + msg + ". " + (e.name && e.message ? e.name + ": " + e.message : e.toString()) + isoTime);
-					} if (e.name && e.message) {
-						console.log(logPrefix + msg + ". " + e.name + ": " + e.message + isoTime);
-					} else {
-						console.log(logPrefix + msg + ". Cause: " + (typeof e == "string" ? e : JSON.stringify(e)) + isoTime);
-					}
-					if (typeof e.stack != "undefined") {
-						console.log(e.stack);
-					}
-				} else {
-					console.log(logPrefix + msg + isoTime);
-				}
-			}
+			webConferencing.log(msg, e, logPrefix);
 		};
 		//log("> Loading at " + location.origin + location.pathname);
 		
@@ -353,5 +337,5 @@ if (eXo.webConferencing) {
 		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
 	})(eXo.webConferencing);
 } else {
-	console.log("eXo.webConferencing not defined for mssfb-call.js");
+	window.console && window.console.log("eXo.webConferencing not defined for mssfb-call.js");
 }

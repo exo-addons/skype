@@ -1,6 +1,6 @@
 /* Styles for Skype/SfB provider */
 .uiIconSocMssfb:before {
-    content: url("/skype/skin/icons/sfbicon_14px.png") !important;
+	content: url("/skype/skin/icons/sfbicon_14px.png") !important;
 }
 
 .uiIconMssfbCall {
@@ -8,9 +8,8 @@
 }
 
 .uiIconMssfbCall:before {
-    content: url("/skype/skin/icons/sfbicon_14px.png") !important;
-    position: relative;
-	margin-right: 3px;
+	content: url("/skype/skin/icons/sfbicon_14px.png") !important;
+	position: relative;
 }
 
 .uiMssfbSettings, .uiMssfbSettings>p, .uiMssfbSettings .ui-icon, .uiMssfbSettings .messageText {
@@ -32,56 +31,67 @@
 
 .uiIncomingCall .messageText {
 	position: relative;
-    top: -5px;
-    display: inline-block;
-    margin: 5px;
+	top: -5px;
+	display: inline-block;
+	margin: 5px;
 }
 
 .uiIncomingCall .messageAuthor a>img {
 	max-height: 64px;
-    max-width: 64px;
-    height: 64px;
-    margin: 0;
-    padding: 0;
-    -webkit-border-radius: 6px;
-    -moz-border-radius: 6px;
-    border-radius: 6px;
-    display: block;
+	max-width: 64px;
+	height: 64px;
+	margin: 0;
+	padding: 0;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+	border-radius: 6px;
+	display: block;
 }
 
 /****** Login warning *******/
 .mssfbLoginButton, .mssfbLogoutButton {
-	color: initial;	
+	color: initial;
 }
+
 .mssfbLoginButton .popover.bottom, .mssfbLogoutButton .popover.bottom {
 	width: 200px;
 }
+
 .no-user-selection .mssfbLoginButton {
 	margin: 18px 7px 0px 7px;
 }
+
 .no-user-selection .mssfbLoginButton .popover.bottom {
 	/*left: -93px;
     top: -11px;*/
+	
 }
+
 #room-detail .mssfbLoginButton {
 	margin: 20px 7px 0px 7px;
 }
+
 .mssfbLoginButton .popover.bottom, .mssfbLogoutButton .popover.bottom {
 	left: -94px;
-    top: -6px;
+	top: -6px;
 }
+
 .mssfbLoginButton .popover.bottom .arrow, .mssfbLogoutButton .popover.bottom .arrow {
 	top: -9px;
 }
+
 .mssfbLoginButton .popover-content {
 	background-color: #FFF4C4; /* @warningBackground */
 }
+
 .mssfbLoginButton .arrow:after {
 	border-bottom-color: #FFF4C4 !important; /* @warningBackground */
 }
+
 .mssfbLogoutButton .popover-content {
 	background-color: #D7F8D5; /* @successBackground */
 }
+
 .mssfbLogoutButton .arrow:after {
 	border-bottom-color: #D7F8D5 !important; /* @successBackground */
 }
@@ -95,6 +105,6 @@
 }
 
 .pluginError {
-    padding-top: 25%;
-    font-size: large;
+	padding-top: 25%;
+	font-size: large;
 }

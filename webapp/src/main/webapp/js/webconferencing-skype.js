@@ -5,31 +5,7 @@
 (function($, webConferencing) {
 	"use strict";
 
-	/** For debug logging. */
-	var objId = Math.floor((Math.random() * 1000) + 1);
-	var logPrefix = "[skype_" + objId + "] ";
-	var log = function(msg, e) {
-		if (typeof console != "undefined" && typeof console.log != "undefined") {
-			var isoTime = " -- " + new Date().toISOString();
-			if (e) {
-				if (e instanceof Error) {
-					console.log(logPrefix + msg + ". " + (e.name && e.message ? e.name + ": " + e.message : e.toString()) + isoTime);
-				} if (e.name && e.message) {
-					console.log(logPrefix + msg + ". " + e.name + ": " + e.message + isoTime);
-				} else {
-					console.log(logPrefix + msg + ". Cause: " + (typeof e == "string" ? e : JSON.stringify(e)) + isoTime);
-				}
-				if (typeof e.stack != "undefined") {
-					console.log(e.stack);
-				}
-			} else {
-				console.log(logPrefix + msg + isoTime);
-			}
-		}
-	};
-	//log("> Loading at " + location.origin + location.pathname);
-
-var globalWebConferencing = typeof eXo != "undefined" && eXo && eXo.webConferencing ? eXo.webConferencing : null;
+	var globalWebConferencing = typeof eXo != "undefined" && eXo && eXo.webConferencing ? eXo.webConferencing : null;
 	
 	// Use webConferencing from global eXo namespace (for non AMD uses)
 	if (!webConferencing && globalWebConferencing) {
@@ -37,6 +13,14 @@ var globalWebConferencing = typeof eXo != "undefined" && eXo && eXo.webConferenc
 	}
 
 	if (webConferencing) {
+
+		/** For debug logging. */
+		var objId = Math.floor((Math.random() * 1000) + 1);
+		var logPrefix = "[skype_" + objId + "] ";
+		var log = function(msg, e) {
+			webConferencing.log(msg, e, logPrefix);
+		};
+		//log("> Loading at " + location.origin + location.pathname);
 
 		function SkypeProvider() {
 			var NON_WHITESPACE_PATTERN = /\s+/;
@@ -199,6 +183,6 @@ var globalWebConferencing = typeof eXo != "undefined" && eXo && eXo.webConferenc
 		
 		return provider;
 	} else {
-		log("WARN: webConferencing not given and eXo.webConferencing not defined. Skype provider registration skipped.");
+		window.console && window.console.log("WARN: webConferencing not given and eXo.webConferencing not defined. Skype provider registration skipped.");
 	}
 })($, typeof webConferencing != "undefined" ? webConferencing : null );

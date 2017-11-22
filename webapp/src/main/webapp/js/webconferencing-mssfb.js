@@ -5,40 +5,6 @@
 (function($, webConferencing) {
 	"use strict";
 	
-	/** For debug logging. */
-	var objId = Math.floor((Math.random() * 1000) + 1);
-	var logPrefix = "[mssfb_" + objId + "] ";
-	var log = function(msg, e) {
-		if (typeof console != "undefined" && typeof console.log != "undefined") {
-			var isoTime = " -- " + new Date().toISOString();
-			if (e) {
-				if (e instanceof Error) {
-					console.log(logPrefix + msg + ". " + (e.name && e.message ? e.name + ": " + e.message : e.toString()) + isoTime);
-				} if (e.name && e.message) {
-					console.log(logPrefix + msg + ". " + e.name + ": " + e.message + isoTime);
-				} else {
-					console.log(logPrefix + msg + ". Cause: " + (typeof e == "string" ? e : JSON.stringify(e)) + isoTime);
-				}
-				if (typeof e.stack != "undefined") {
-					console.log(e.stack);
-				}
-			} else {
-				console.log(logPrefix + msg + isoTime);
-			}
-		}
-	};
-	//log("> Loading at " + location.origin + location.pathname);
-	
-	/** 
-	 * Polyfill ECMAScript 2015's String.startsWith().
-	 * */
-	if (!String.prototype.startsWith) {
-    String.prototype.startsWith = function(searchString, position){
-      position = position || 0;
-      return this.substr(position, searchString.length) === searchString;
-	  };
-	}
-	
 	var globalWebConferencing = typeof eXo != "undefined" && eXo && eXo.webConferencing ? eXo.webConferencing : null;
 	
 	// Use webConferencing from global eXo namespace (for non AMD uses)
@@ -47,7 +13,15 @@
 	}
 
 	if (webConferencing) {
-				
+
+		/** For debug logging. */
+		var objId = Math.floor((Math.random() * 1000) + 1);
+		var logPrefix = "[mssfb_" + objId + "] ";
+		var log = function(msg, e) {
+			webConferencing.log(msg, e, logPrefix);
+		};
+		//log("> Loading at " + location.origin + location.pathname);
+		
 		function CallContainer($container) {
 			var onMssfbCallShow = [];
 			var onMssfbCallHide = [];
@@ -987,7 +961,7 @@
 								peer : {
 									id : peerId,
 									type : peerType,
-									chatRoom : webConferencing.currentChatRoom()
+									chatRoom : webConferencing.getChat().currentRoomId()
 								},
 								conversation : conversation,
 								saved : localCall ? true : false
@@ -1988,8 +1962,8 @@
 									} // otherwise, we already have a right message (see above)
 									if (callerType == "space") {
 										// Find room ID for space calls in Chat
-										webConferencing.spaceChatRoom(callerId).done(function(roomId) {
-											callerRoom = roomId;
+										webConferencing.getChat().getRoom(callerId, "space-name").done(function(room) {
+											callerRoom = room.user;
 											callStateUpdate("incoming");
 										}).fail(function(err, status) {
 											log("Error requesting Chat's getRoom() [" + status + "] ", error);
@@ -2134,11 +2108,11 @@
 								webConferencing.getCall(callState.id).done(function(call) {
 									if (call.owner.type == "space") {
 										// Find room ID for space calls in Chat
-										webConferencing.spaceChatRoom(call.owner.id).done(function(roomId) {
+										webConferencing.getChat().getRoom(call.owner.id, "space-name").done(function(room) {
 											callStarted(call, {
 												id : call.owner.id,
 												type : call.owner.type,
-												chatRoom : roomId
+												chatRoom : room.user
 											});
 										}).fail(function(err, status) {
 											log("Error requesting Chat's getRoom() [" + status + "] ", error);
@@ -2220,8 +2194,8 @@
 										};
 										if (update.caller.type == "space") {
 											// Find room ID for space calls in Chat
-											webConferencing.spaceChatRoom(update.caller.id).done(function(roomId) {
-												callStopped(roomId);
+											webConferencing.getChat().getRoom(update.caller.id, "space-name").done(function(room) {
+												callStopped(room.user);
 											}).fail(function(err, status) {
 												log("Error requesting Chat's getRoom() [" + status + "] ", error);
 											});
@@ -2668,7 +2642,7 @@
 					} else {
 						log("WARN UIEditUserProfileForm not found");
 					}
-				} else if (webConferencing.hasChatApplication()) {
+				} else if (webConferencing.getChat().isApplication()) {
 					// we are in the Chat, chatApplication is a global on chat app page
 					var $chat = $("#chat-application");
 					if ($chat.length > 0) {
@@ -3112,6 +3086,6 @@
 		
 		return provider;
 	} else {
-		log("WARN: webConferencing not given and eXo.webConferencing not defined. Skype provider registration skipped.");
+		window.console && window.console.log("WARN: webConferencing not given and eXo.webConferencing not defined. Skype provider registration skipped.");
 	}
 })($, typeof webConferencing != "undefined" ? webConferencing : null );

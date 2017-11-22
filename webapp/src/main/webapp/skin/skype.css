@@ -1,7 +1,6 @@
 /* Styles for Skype provider */
-
 .uiIconSocSkype:before {
-    content: url("/skype/skin/icons/skypeicon_14px.png") !important;
+	content: url("/skype/skin/icons/skypeicon_14px.png") !important;
 }
 
 .uiIconSkypeCall {
@@ -9,7 +8,6 @@
 }
 
 .uiIconSkypeCall:before {
-    content: url("/skype/skin/icons/skypeicon_14px.png") !important;
-    position: relative;
-	margin-right: 3px;
+	content: url("/skype/skin/icons/skypeicon_14px.png") !important;
+	position: relative;
 }
