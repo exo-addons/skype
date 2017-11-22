@@ -2137,7 +2137,7 @@
 								if (update.eventType == "call_state") {
 									log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
 									// Ignore remote P2P calls start, SDK will fire them via added conversation
-									if (update.callState == "started" && update.caller.type != "user") {
+									if (update.callState == "started" && update.owner.type != "user") {
 										var conversation = app.conversationsManager.getConversationByUri(update.callId.substring(2));
 										if (conversation) {
 											logConversation(conversation);
