@@ -220,7 +220,7 @@
 			
 			var removeLocalToken = function() {
 				log("Remove login token");
-				if (typeof(Storage) !== "undefined") {
+				if (typeof Storage != "undefined") {
 			    // Code for localStorage/sessionStorage.
 					localStorage.removeItem(TOKEN_STORE);
 				} else {
@@ -235,7 +235,7 @@
 			var saveLocalToken = function(token) {
 				//log(">> saveLocalToken: " + tokenHashInfo(token.hash_line));
 				log("Using new login token");
-				if (typeof(Storage) !== "undefined") {
+				if (typeof Storage != "undefined") {
 			    // Code for localStorage/sessionStorage.
 			  	localStorage.setItem(TOKEN_STORE, JSON.stringify(token));
 				} else {
@@ -254,7 +254,7 @@
 			};
 			var currentToken = function() {
 				var token;
-				if (typeof(Storage) !== "undefined") {
+				if (typeof Storage != "undefined") {
 					var savedToken = localStorage.getItem(TOKEN_STORE);
 					if (savedToken) {
 						// TODO in Session Storage we can find "swx-sessionid" it appears when SDK logged in, 
@@ -449,7 +449,7 @@
 								"version" : settings.version
 							// Necessary for troubleshooting requests; identifies your application in our telemetry
 							};
-							if (getOAuthToken && typeof(getOAuthToken) === "function") {
+							if (getOAuthToken && typeof getOAuthToken == "function") {
 								args.get_oauth_token = getOAuthToken;
 							} else {
 								args.redirect_uri = redirectUri;
@@ -1857,7 +1857,7 @@
 														log("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 														if (oldValue === "Connected" || oldValue === "Connecting") {
 															conversation.selfParticipant.video.state.changed.off(listener);
-															if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
+															if (reason && typeof reason === "string" && reason.indexOf("PluginUninited") >= 0) {
 																webConferencing.showError("Skype Plugin Not Initialized", 
 																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
 															}
@@ -1882,7 +1882,7 @@
 														log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 														if (oldValue === "Connected" || oldValue === "Connecting") {
 															conversation.selfParticipant.audio.state.changed.off(listener);
-															if (reason && typeof(reason) === "String" && reason.indexOf("PluginUninited") >= 0) {
+															if (reason && typeof reason === "string" && reason.indexOf("PluginUninited") >= 0) {
 																webConferencing.showError("Skype Plugin Not Initialized", 
 																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
 															}
@@ -1977,7 +1977,7 @@
 								}).fail(function(err, status) {
 									log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
 									if (err) {
-										if (err.code == "NOT_FOUND_ERROR" || (typeof(status) == "number" && status == 404)) {
+										if (err.code == "NOT_FOUND_ERROR" || (typeof status == "number" && status == 404)) {
 											// Call not registered, we treat it as a call started outside Video Calls
 											showCallPopover();	
 										}	else {
@@ -2693,7 +2693,7 @@
 										container.hide();
 									});
 									var chatsZ = $chats.css("z-index");
-									if (typeof(chatsZ) == "Number") {
+									if (typeof chatsZ == "number") {
 										chatsZ++;
 									} else {
 										chatsZ = 99;
@@ -3028,7 +3028,7 @@
 				} else if (false && window.location.pathname.startsWith("/portal/")) {
 					// TODO temporarily not used logic
 					// we somewhere in the portal, try login using saved token
-					if (typeof(Storage) !== "undefined") {
+					if (typeof Storage !== "undefined") {
 						var savedToken = localStorage.getItem("mssfb_login_token");
 						if (savedToken) {
 							try {
