@@ -290,14 +290,14 @@
 				return token;
 			};
 			
-			var callUri = function(callId, hashLine) {
-				var currentSpaceId = webConferencing.getCurrentSpaceId();
-				var currentRoomTitle = webConferencing.getCurrentRoomTitle();
+			var callUri = function(callId, context, hashLine) {
+				//var currentSpaceId = webConferencing.getCurrentSpaceId();
+				//var currentRoomTitle = webConferencing.getCurrentRoomTitle();
 				var q;
-				if (currentSpaceId) {
-					q = "?space=" + encodeURIComponent(currentSpaceId);
-				} else if (currentRoomTitle) {
-					q = "?room=" + encodeURIComponent(currentRoomTitle);
+				if (context.isSpace) {
+					q = "?space=" + encodeURIComponent(context.spaceId);
+				} else if (context.isRoom) {
+					q = "?room=" + encodeURIComponent(context.roomTitle);
 				} else {
 					q = "";
 				}
@@ -308,16 +308,16 @@
 				return uri;
 			};
 			
-			var openCallWindow = function(callId) {
+			var openCallWindow = function(callId, context) {
 				var token = currentToken();
 				// TODO check if such window isn't already open by this app
 				if (token) {
 					// use existing token
-					var uri = callUri(callId, token.hash_line);
+					var uri = callUri(callId, context, token.hash_line);
 					return webConferencing.showCallPopup(uri, "Skype For Business Call");
 				} else {
 					// open SfB login window with redirect to the call URI
-					var uri = callUri(callId);
+					var uri = callUri(callId, context);
 					return authRedirectWindow(settings.clientId, uri, "https://webdir.online.lync.com");
 				}
 			};
@@ -1495,7 +1495,7 @@
 										log("ERROR: Unsupported call context " + context);
 									}
 									if (callId) {
-										var callWindow = openCallWindow(callId);
+										var callWindow = openCallWindow(callId, context);
 										callWindow.document.title = fullTitle + "...";
 									}
 								}								
@@ -1963,7 +1963,12 @@
 									if (callerType == "space") {
 										// Find room ID for space calls in Chat
 										webConferencing.getChat().getRoom(callerId, "space-name").done(function(room) {
-											callerRoom = room.user;
+											if (room) {
+												callerRoom = room.user;
+											} else {
+												log("WARN Chat room not found for space " + callerId);
+												callerRoom = null;
+											}
 											callStateUpdate("incoming");
 										}).fail(function(err, status) {
 											log("Error requesting Chat's getRoom() [" + status + "] ", error);
@@ -2112,7 +2117,7 @@
 											callStarted(call, {
 												id : call.owner.id,
 												type : call.owner.type,
-												chatRoom : room.user
+												chatRoom : room ? room.user : null
 											});
 										}).fail(function(err, status) {
 											log("Error requesting Chat's getRoom() [" + status + "] ", error);
@@ -2179,29 +2184,32 @@
 											localCall.conversation.leave().then(function() {
 												log("<<< Current conversation stopped and leaved " + container.getCallId());
 											});
-										}
-										var callStopped = function(callerRoom) {
-											callUpdate({
-												state : "stopped",
-												callId : update.callId,
-												peer : {
-													id : update.owner.id,
-													type : update.owner.type,
-													chatRoom : callerRoom
-												},
-												saved : true
-											});
-										};
-										if (update.owner.type == "space") {
-											// Find room ID for space calls in Chat
-											webConferencing.getChat().getRoom(update.owner.id, "space-name").done(function(room) {
-												callStopped(room.user);
-											}).fail(function(err, status) {
-												log("Error requesting Chat's getRoom() [" + status + "] ", error);
-											});
-										} else {
-											// we assume: else if (callerType == "chat_room" || callerType == "user") 
-											callStopped(update.owner.id);
+											// And save the call as stopped with firing UI updates
+											// Nov 28 2017, code below moved in this if-block from being after it
+											// thus it will work only for calls not yet stopped locally
+											var callStopped = function(callerRoom) {
+												callUpdate({
+													state : "stopped",
+													callId : update.callId,
+													peer : {
+														id : update.owner.id,
+														type : update.owner.type,
+														chatRoom : callerRoom
+													},
+													saved : true
+												});
+											};
+											if (update.owner.type == "space") {
+												// Find room ID for space calls in Chat
+												webConferencing.getChat().getRoom(update.owner.id, "space-name").done(function(room) {
+													callStopped(room ? room.user : null);
+												}).fail(function(err, status) {
+													log("Error requesting Chat's getRoom() [" + status + "] ", error);
+												});
+											} else {
+												// we assume: else if (callerType == "chat_room" || callerType == "user") 
+												callStopped(update.owner.id);
+											}
 										}
 									}
 								} else if (update.eventType == "call_joined") {
@@ -2780,18 +2788,22 @@
 								var activeRooms = {};
 								// Mark timeout should be longer of used one below in callUpdate() 'accepted' 
 								var markRoom = function(id, markFunc) {
-									activeRooms[id] = markFunc;
-									// XXX Do twice: sooner and after possible refreshes caused by callUpdate() 'accepted' 
-									setTimeout(markFunc, 750);
-									setTimeout(markFunc, 2750);
+									if (id) {
+										activeRooms[id] = markFunc;
+										// XXX Do twice: sooner and after possible refreshes caused by callUpdate() 'accepted' 
+										setTimeout(markFunc, 750);
+										setTimeout(markFunc, 2750);										
+									}
 								};
 								var unmarkRoom = function(roomId) {
-									delete activeRooms[roomId];
-									setTimeout(function() {
-										var $room = $users.find("#users-online-" + roomId);
-										$room.removeClass("activeCall");
-										$room.removeClass("incomingCall");
-									}, 750);
+									if (roomId) {
+										delete activeRooms[roomId];
+										setTimeout(function() {
+											var $room = $users.find("#users-online-" + roomId);
+											$room.removeClass("activeCall");
+											$room.removeClass("incomingCall");
+										}, 750);										
+									}
 								};
 								var markRoomActive = function(roomId) {
 									markRoom(roomId, function() {
