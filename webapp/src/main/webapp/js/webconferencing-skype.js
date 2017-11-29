@@ -46,11 +46,9 @@
 			};
 
 			this.getCallTitle = function() {
-				if (settings) {
-					return settings.callTitle;
-				}
+				return "Call"; // TODO i18n
 			};
-
+			
 			this.getClientId = function() {
 				if (settings) {
 					return settings.clientId;

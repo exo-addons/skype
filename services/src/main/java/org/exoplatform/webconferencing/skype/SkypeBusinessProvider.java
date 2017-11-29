@@ -63,7 +63,8 @@ public class SkypeBusinessProvider extends SkypeProvider {
   public static final String SFB_TITLE                        = "Skype for Business";
 
   /** The Constant SFB_AUTODISCOVER_ORIGINS_DEFAULT. */
-  public static final String SFB_AUTODISCOVER_ORIGINS_DEFAULT = "https://webdir.online.lync.com/AutoDiscover/AutoDiscoverservice.svc/root";
+  public static final String SFB_AUTODISCOVER_ORIGINS_DEFAULT =
+                                                              "https://webdir.online.lync.com/AutoDiscover/AutoDiscoverservice.svc/root";
 
   /**
    * The Class WebSettingsBuilder.
@@ -75,17 +76,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
      */
     @Override
     public SkypeSettings build() {
-      return new SkypeSettings(getType(),
-                               getSupportedTypes(),
-                               getTitle(),
-                               "Call", // TODO in18n
-                               "Join", // TODO in18n
-                               getClientId(),
-                               redirectURI,
-                               getVersion(),
-                               getApiKey(),
-                               getApiKeyCC(),
-                               origins);
+      return new SkypeSettings(getClientId(), redirectURI, getVersion(), getApiKey(), getApiKeyCC(), origins);
     }
   }
 

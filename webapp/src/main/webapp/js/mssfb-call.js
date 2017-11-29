@@ -13,8 +13,7 @@ if (eXo.webConferencing) {
 		};
 		//log("> Loading at " + location.origin + location.pathname);
 		
-		var mssfb = webConferencing.getProvider("mssfb");
-		if (mssfb) {
+		webConferencing.getProvider("mssfb").done(function(mssfb) {
 			var hashLine = location.hash;
 			var hasToken = /#access_token=/.test(hashLine);
 			var hasError = /#error=/.test(hashLine);
@@ -331,9 +330,9 @@ if (eXo.webConferencing) {
 					}
 				});
 			}
-		} else {
-			console.log("MSSFB provider not found for mssfb-call.js");
-		}
+		}).fail(function(err) {
+			log("MSSFB provider not available for mssfb-call.js: " + err);
+		});
 		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
 	})(eXo.webConferencing);
 } else {

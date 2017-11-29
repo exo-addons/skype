@@ -21,7 +21,7 @@ import org.exoplatform.webconferencing.ContextInfo;
 import org.exoplatform.webconferencing.UserInfo;
 import org.exoplatform.webconferencing.WebConferencingService;
 import org.exoplatform.webconferencing.skype.SkypeBusinessProvider;
-import org.exoplatform.webconferencing.skype.SkypeSettings;
+import org.exoplatform.webconferencing.skype.SkypeProvider.SkypeSettings;
 import org.gatein.common.logging.Logger;
 import org.gatein.common.logging.LoggerFactory;
 

@@ -31,10 +31,11 @@
       <name>add.callprovider</name>
       <set-method>addPlugin</set-method>
       <type>org.exoplatform.webconferencing.skype.SkypeProvider</type>
+      <description>Provider for Skype. Let users to place group and 1:1 calls. No plugin required but Skype app must be installed on client.</description>
       <init-params>
         <properties-param>
           <name>provider-configuration</name>
-          <property name="disable" value="${webconferencing.skype.disable:false}" />
+          <property name="active" value="${webconferencing.skype.active:true}" />
         </properties-param>
       </init-params>
     </component-plugin>
@@ -47,6 +48,7 @@
       <name>add.callprovider</name>
       <set-method>addPlugin</set-method>
       <type>org.exoplatform.webconferencing.skype.SkypeBusinessProvider</type>
+      <description>Provider for Microsoft Skype for Business (formely Lync). Let users place group and 1:1 calls. Uses web API.</description>
       <init-params>
         <values-param>
           <name>autodiscover-origins</name>
@@ -60,7 +62,7 @@
           <property name="web-oauth2-clientId" value="${webconferencing.mssfb.web.oauth2.clientId:}" />
           <property name="web-apiKey" value="${webconferencing.mssfb.web.apiKey:}" />
           <property name="web-apiKeyCC" value="${webconferencing.mssfb.web.apiKeyCC:}" />
-          <property name="disable" value="${webconferencing.mssfb.disable:false}" />
+          <property name="active" value="${webconferencing.mssfb.active:true}" />
         </properties-param>
       </init-params>
     </component-plugin>

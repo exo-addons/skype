@@ -34,7 +34,7 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.web.application.JavascriptManager;
 import org.exoplatform.webconferencing.WebConferencingService;
 import org.exoplatform.webconferencing.skype.SkypeProvider;
-import org.exoplatform.webconferencing.skype.SkypeSettings;
+import org.exoplatform.webconferencing.skype.SkypeProvider.SkypeSettings;
 import org.exoplatform.webui.application.WebuiRequestContext;
 
 /**

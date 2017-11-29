@@ -26,6 +26,7 @@ import org.exoplatform.webconferencing.CallProviderSettings;
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: SkypeSettings.java 00000 Mar 30, 2017 pnedonosko $
  */
+@Deprecated
 public class SkypeSettings extends CallProviderSettings {
 
   /** The client id. */

@@ -390,15 +390,11 @@
 			};
 
 			this.getCallTitle = function() {
-				if (settings) {
-					return settings.callTitle;
-				}
+				return "Call"; // TODO i18n
 			};
 			
 			this.getJoinTitle = function() {
-				if (settings) {
-					return settings.joinTitle;
-				}
+				return "Join"; // TODO i18n
 			};
 
 			this.getClientId = function() {

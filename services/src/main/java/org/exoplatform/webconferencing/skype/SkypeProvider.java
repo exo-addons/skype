@@ -23,6 +23,7 @@ import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.social.core.profile.settings.IMType;
 import org.exoplatform.social.core.profile.settings.UserProfileSettingsService;
 import org.exoplatform.webconferencing.CallProvider;
+import org.exoplatform.webconferencing.CallProviderSettings;
 import org.exoplatform.webconferencing.UserInfo.IMInfo;
 
 /**
@@ -49,6 +50,95 @@ public class SkypeProvider extends CallProvider {
   private static final String VERSION       = SKYPE_APPNAME + "/1.0.0";
 
   /**
+   * Skype and Skype for Business settings.
+   */
+  public class SkypeSettings extends Settings {
+
+    /** The client id. */
+    protected final String   clientId;
+
+    /** The redirect uri. */
+    protected final String   redirectUri;
+
+    /** The api key. */
+    protected final String   apiKey;
+
+    /** The api key CC. */
+    protected final String   apiKeyCC;
+
+    /** The origins. */
+    protected final String[] origins;
+
+    /**
+     * Instantiates a new skype settings.
+     *
+     * @param clientId the client id
+     * @param redirectUri the redirect uri
+     * @param version the version
+     * @param apiKey the api key
+     * @param apiKeyCC the api key CC
+     * @param origins the origins
+     */
+    protected SkypeSettings(String clientId,
+                            String redirectUri,
+                            String version,
+                            String apiKey,
+                            String apiKeyCC,
+                            String[] origins) {
+      this.clientId = clientId;
+      this.redirectUri = redirectUri;
+      this.apiKey = apiKey;
+      this.apiKeyCC = apiKeyCC;
+      this.origins = origins;
+    }
+
+    /**
+     * Gets the client id.
+     *
+     * @return the client id
+     */
+    public String getClientId() {
+      return clientId;
+    }
+
+    /**
+     * Gets the redirect uri.
+     *
+     * @return the redirect uri
+     */
+    public String getRedirectUri() {
+      return redirectUri;
+    }
+
+    /**
+     * Gets the api key.
+     *
+     * @return the api key
+     */
+    public String getApiKey() {
+      return apiKey;
+    }
+
+    /**
+     * Gets the api key CC.
+     *
+     * @return the api key CC
+     */
+    public String getApiKeyCC() {
+      return apiKeyCC;
+    }
+
+    /**
+     * Gets the origins.
+     *
+     * @return the origins
+     */
+    public String[] getOrigins() {
+      return origins;
+    }
+  }
+
+  /**
    * The Class SettingsBuilder.
    */
   public class SettingsBuilder {
@@ -73,12 +163,7 @@ public class SkypeProvider extends CallProvider {
      * @return the skype settings
      */
     public SkypeSettings build() {
-      return new SkypeSettings(getType(),
-                               getSupportedTypes(),
-                               getTitle(),
-                               "Call", // TODO in18n
-                               "Join", // TODO in18n
-                               null,
+      return new SkypeSettings(null,
                                redirectURI,
                                getVersion(),
                                null,
