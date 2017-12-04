@@ -106,7 +106,7 @@ public class SkypeCallServlet extends AbstractHttpServlet {
                 if (roomTitle == null) {
                   roomTitle = EMPTY_STRING;
                 }
-                ContextInfo context = getCurrentContext(remoteUser);
+                ContextInfo context = getCurrentContext(remoteUser, req.getLocale());
                 httpReq.setAttribute("contextInfo", asJSON(context));
 
                 URI redirectURI = new URI(httpReq.getScheme(),
