@@ -23,7 +23,6 @@ import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.social.core.profile.settings.IMType;
 import org.exoplatform.social.core.profile.settings.UserProfileSettingsService;
 import org.exoplatform.webconferencing.CallProvider;
-import org.exoplatform.webconferencing.CallProviderSettings;
 import org.exoplatform.webconferencing.UserInfo.IMInfo;
 
 /**
@@ -163,12 +162,7 @@ public class SkypeProvider extends CallProvider {
      * @return the skype settings
      */
     public SkypeSettings build() {
-      return new SkypeSettings(null,
-                               redirectURI,
-                               getVersion(),
-                               null,
-                               null,
-                               new String[0]);
+      return new SkypeSettings(null, redirectURI, getVersion(), null, null, new String[0]);
     }
   }
 
