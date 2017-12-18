@@ -29,7 +29,7 @@
   
   <groupId>org.exoplatform.addons.skype</groupId>
   <artifactId>skype-connector</artifactId>
-  <version>1.0.x-SNAPSHOT</version>
+  <version>1.0.0-RC01</version>
   <packaging>pom</packaging>
   <name>eXo Skype</name>
   <description>eXo Skype portal extension (connector for Web Conferencing)</description>
@@ -45,7 +45,7 @@
   <scm>
     <connection>scm:git:git://github.com/exo-addons/skype.git</connection>
     <developerConnection>scm:git:git@github.com:exo-addons/skype.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>1.0.0-RC01</tag>
     <url>https://github.com/exo-addons/skype</url>
   </scm>
   
