@@ -58,9 +58,9 @@
     <!-- **************************************** -->
     <!-- Dependencies versions                    -->
     <!-- **************************************** -->
-    <org.exoplatform.depmgt.version>13-M34</org.exoplatform.depmgt.version>
-    <org.exoplatform.platform.version>5.0.0-M34</org.exoplatform.platform.version>
-    <web-conferencing.version>1.1.x-SNAPSHOT</web-conferencing.version>
+    <org.exoplatform.depmgt.version>13-RC01</org.exoplatform.depmgt.version>
+    <org.exoplatform.platform.version>5.0.0-RC01</org.exoplatform.platform.version>
+    <web-conferencing.version>1.1.0-RC01</web-conferencing.version>
     <!-- for tests -->
     <junit.version>4.12</junit.version>
     <httpclient-test.version>4.3.6</httpclient-test.version>
