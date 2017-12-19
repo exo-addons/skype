@@ -1381,125 +1381,132 @@
 					//context.currentUserSkype = webConferencing.imAccount(context.currentUser, "skype");
 					var currentUserSFB = webConferencing.imAccount(context.currentUser, "mssfb");
 					if (currentUserSFB) {
-						context.currentUserSFB = currentUserSFB;
-						var fullTitle = self.getTitle() + " " + self.getCallTitle();
-						var targetId = context.roomId ? context.roomId : (context.spaceId ? context.spaceId : (context.userId ? context.userId : null));
-						var localCall = getLocalCall(targetId);
-						var title = localCall && canJoin(localCall) ? self.getJoinTitle() : self.getCallTitle();
-						var disabledClass = hasJoinedCall(targetId) ? "callDisabled" : "";
-						var $button = $("<a title='" + fullTitle + "' href='javascript:void(0);' class='mssfbCallAction "
-									+ disabledClass + "'>"
-									+ "<i class='uiIconMssfbCall uiIconForum uiIconLightGray'></i>"
-									+ "<span class='callTitle'>" + title + "</span></a>");
-						setTimeout(function() {
-							if (!$button.hasClass("btn")) {
-								// in dropdown show longer description
-								$button.find(".callTitle").text(fullTitle);
-							}
-						}, 1000);
-						$button.click(function() {
-							if (!hasJoinedCall(targetId)) {
-								var callDetails = function(callback) {
-									context.details().done(function(target) {
-										var details = targetDetails(currentUserSFB.id, target);
-										if (details.participants.length > 0) {
-											callback(context.currentUser, details.target, details.users, details.wrongUsers, details.participants);
-										} else {
-											webConferencing.showWarn("Cannot start a call", "No " + self.getTitle() + " users found.");
-										}
-									}).fail(function(err) {
-										webConferencing.showWarn("Error starting a call", err.message);
-									});
-								};
-								var token = currentToken();
-								var container = $("#mssfb-call-container").data("callcontainer");
-								if (container) {
-									// Call will run inside current page
-									// We need SDK API/app instance - try reuse saved locally SfB token
-									var embeddedCall = function(api, app) {
-										callDetails(function(currentUser, target, users, wrongUsers, participants) {
-											if (participants.length > 0) {
-												var localCall;
-												if (target.callId) {
-													localCall = getLocalCall(target.callId);
-												}
-												if (container.isVisible()) {
-													var currentConvo = container.getConversation();
-													var message = "Do you want " 
-															+ (currentConvo.isGroupConversation() ? "leave '" + currentConvo.topic() + "' call" : "stop call with " + currentConvo.participants(0).person.displayName())
-															+ " and start " 
-															+ (target.group ? "'" + target.title + "' call" : " call to " + target.title) + "?";
-													stopCallPopover("Start a new " + provider.getTitle() + " call&#63;", message).done(function() {
-														container.getConversation().leave().then(function() {
-															log("<<< Current conversation leaved " + container.getCallId() + " for " + (localCall ? "saved" : "new") + " outgoing");
-														});
-														outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
-														showWrongUsers(wrongUsers);
-													}).fail(function() {
-														log("User don't want stop existing call and call to " + target.title);
-													});
-												} else {
-													outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
-													showWrongUsers(wrongUsers);													
-												}
+						context.details().done(function(target) {
+							var details = targetDetails(currentUserSFB.id, target);
+							if (details.participants.length > 0) {
+								context.currentUserSFB = currentUserSFB;
+								var fullTitle = self.getTitle() + " " + self.getCallTitle();
+								var targetId = webConferencing.contextId(context);
+								var localCall = getLocalCall(targetId);
+								var title = localCall && canJoin(localCall) ? self.getJoinTitle() : self.getCallTitle();
+								var disabledClass = hasJoinedCall(targetId) ? "callDisabled" : "";
+								var $button = $("<a title='" + fullTitle + "' href='javascript:void(0);' class='mssfbCallAction "
+											+ disabledClass + "'>"
+											+ "<i class='uiIconMssfbCall uiIconForum uiIconLightGray'></i>"
+											+ "<span class='callTitle'>" + title + "</span></a>");
+								setTimeout(function() {
+									if (!$button.hasClass("btn")) {
+										// in dropdown show longer description
+										$button.find(".callTitle").text(fullTitle);
+									}
+								}, 1000);
+								$button.click(function() {
+									if (!hasJoinedCall(targetId)) {
+										var token = currentToken();
+										var container = $("#mssfb-call-container").data("callcontainer");
+										if (container) {
+											// Call will run inside current page
+											// We need SDK API/app instance - try reuse saved locally SfB token
+											// TODO get rid of this method
+											var callDetails = function(callback) {
+												callback(context.currentUser, details.target, details.users, details.wrongUsers, details.participants);
+												//
+												/*context.details().done(function(target) {
+													var details = targetDetails(currentUserSFB.id, target);
+													if (details.participants.length > 0) {
+														callback(context.currentUser, details.target, details.users, details.wrongUsers, details.participants);
+													} else {
+														webConferencing.showWarn("Cannot start a call", "No " + self.getTitle() + " users found.");
+													}
+												}).fail(function(err) {
+													webConferencing.showWarn("Error starting a call", err.message);
+												});*/
+											};
+											var embeddedCall = function(api, app) {
+												callDetails(function(currentUser, target, users, wrongUsers, participants) {
+													if (participants.length > 0) {
+														var localCall;
+														if (target.callId) {
+															localCall = getLocalCall(target.callId);
+														}
+														if (container.isVisible()) {
+															var currentConvo = container.getConversation();
+															var message = "Do you want " 
+																	+ (currentConvo.isGroupConversation() ? "leave '" + currentConvo.topic() + "' call" : "stop call with " + currentConvo.participants(0).person.displayName())
+																	+ " and start " 
+																	+ (target.group ? "'" + target.title + "' call" : " call to " + target.title) + "?";
+															stopCallPopover("Start a new " + provider.getTitle() + " call&#63;", message).done(function() {
+																container.getConversation().leave().then(function() {
+																	log("<<< Current conversation leaved " + container.getCallId() + " for " + (localCall ? "saved" : "new") + " outgoing");
+																});
+																outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
+																showWrongUsers(wrongUsers);
+															}).fail(function() {
+																log("User don't want stop existing call and call to " + target.title);
+															});
+														} else {
+															outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
+															showWrongUsers(wrongUsers);													
+														}
+													} else {
+														webConferencing.showWarn("Cannot start a call", "No " + self.getTitle() + " users found.");
+													}										
+												});
+											};
+											if (token && uiApiInstance && uiAppInstance) {
+												log("Automatic login done.");
+												embeddedCall(uiApiInstance, uiAppInstance);
 											} else {
-												webConferencing.showWarn("Cannot start a call", "No " + self.getTitle() + " users found.");
-											}										
-										});
-									};
-									if (token && uiApiInstance && uiAppInstance) {
-										log("Automatic login done.");
-										embeddedCall(uiApiInstance, uiAppInstance);
-									} else {
-										// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
-										// FYI this iframe will fail due to 'X-Frame-Options' to 'deny' set by MS
-										// TODO may be another URL found to do this? - see incoming call handler for code
-										// need login user explicitly (in a popup)
-										log("Automatic login failed: login token not found or expired");
-										var login = loginWindow();
-										provider.loginToken = function(token) {
-											var callback = loginTokenHandler(token);
-											callback.done(function(api, app) {
-												log("User login done.");
-												//makeCallPopover("Make " + provider.getTitle() + " call?", "Do you want make a call?").done(function() {
-												embeddedCall(api, app);
-												//}).fail(function() {
-												//	log("User don't want make a call to " 
-												//				+ (context.roomId ? context.roomTitle : (context.spaceId ? context.spaceId : (context.userId ? context.userId : ""))));
-												//});
-											});
-											callback.fail(function(err) {
-												webConferencing.showError(provider.getTitle() + " error", "Unable sign in your " + provider.getTitle() + " account. " + err);
-											});
-											return callback.promise();
-										};
-										if (!login) {
-											log("ERROR: User login failed due to blocked popup");
-										}
+												// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
+												// FYI this iframe will fail due to 'X-Frame-Options' to 'deny' set by MS
+												// TODO may be another URL found to do this? - see incoming call handler for code
+												// need login user explicitly (in a popup)
+												log("Automatic login failed: login token not found or expired");
+												var login = loginWindow();
+												provider.loginToken = function(token) {
+													var callback = loginTokenHandler(token);
+													callback.done(function(api, app) {
+														log("User login done.");
+														embeddedCall(api, app);
+													});
+													callback.fail(function(err) {
+														webConferencing.showError(provider.getTitle() + " error", "Unable sign in your " + provider.getTitle() + " account. " + err);
+													});
+													return callback.promise();
+												};
+												if (!login) {
+													log("ERROR: User login failed due to blocked popup");
+												}
+											}
+										} else {
+											// Call will run in a new page using call ID and call title,
+											// Call ID format here: 'target_type'/'target_id', the call page will request the target details in REST service
+											var callId;
+											if (context.userId) {
+												callId = "user/" + context.userId;
+											} else if (context.spaceId) {
+												callId = "space/" + context.spaceId;
+											} else if (context.roomName && context.roomId) {
+												callId = "chat_room/" + context.roomName + "/" + context.roomId;
+											} else {
+												log("ERROR: Unsupported call context " + context);
+											}
+											if (callId) {
+												var callWindow = openCallWindow(callId, context);
+												callWindow.document.title = fullTitle + "...";
+											}
+										}								
 									}
-								} else {
-									// Call will run in a new page using call ID and call title,
-									// Call ID format here: 'target_type'/'target_id', the call page will request the target details in REST service
-									var callId;
-									if (context.userId) {
-										callId = "user/" + context.userId;
-									} else if (context.spaceId) {
-										callId = "space/" + context.spaceId;
-									} else if (context.roomName && context.roomId) {
-										callId = "chat_room/" + context.roomName + "/" + context.roomId;
-									} else {
-										log("ERROR: Unsupported call context " + context);
-									}
-									if (callId) {
-										var callWindow = openCallWindow(callId, context);
-										callWindow.document.title = fullTitle + "...";
-									}
-								}								
+								});
+								button.resolve($button);
+							} else {
+								button.reject("No " + self.getTitle() + " users");
 							}
+						}).fail(function(err) {
+							button.reject("Error starting a call: " + err.message);
 						});
-						button.resolve($button);
 					} else {
-						button.reject("Not SfB user");
+						button.reject("Not " + self.getTitle() + " user");
 					}
 				} else {
 					button.reject("Not configured or empty context for " + self.getTitle());

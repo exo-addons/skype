@@ -139,7 +139,7 @@
 										var message = "Following user " + s + " " + have + " wrong Skype account: " + 
 											userNames + ". " + who + " not added to the call.";
 										log(title, message);
-										webConferencing.showWarn(title, message);
+										webConferencing.noticeWarn(title, message);
 									}
 								});
 								button.resolve($button);
