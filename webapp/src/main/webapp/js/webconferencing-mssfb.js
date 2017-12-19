@@ -1409,6 +1409,8 @@
 											// We need SDK API/app instance - try reuse saved locally SfB token
 											// TODO get rid of this method
 											var callDetails = function(callback) {
+												// TODO if we want here get in account users added to a group while page with this button was open, 
+												// then need re-request details from the server
 												callback(context.currentUser, details.target, details.users, details.wrongUsers, details.participants);
 												//
 												/*context.details().done(function(target) {
