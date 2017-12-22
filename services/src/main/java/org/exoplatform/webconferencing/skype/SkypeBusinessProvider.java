@@ -67,6 +67,87 @@ public class SkypeBusinessProvider extends SkypeProvider {
                                                               "https://webdir.online.lync.com/AutoDiscover/AutoDiscoverservice.svc/root";
 
   /**
+   * Skype for Business settings (for Web SDK).
+   */
+  public class WebSettings extends SkypeSettings {
+
+    /** The client id. */
+    protected final String   apiClientId;
+
+    /** The api key. */
+    protected final String   apiKey;
+
+    /** The api key CC. */
+    protected final String   apiKeyCC;
+
+    /** The origins. */
+    protected final String[] origins;
+
+    /**
+     * Instantiates a new skype settings.
+     *
+     * @param clientId the client id
+     * @param redirectUri the redirect uri
+     * @param apiKey the api key
+     * @param apiKeyCC the api key CC
+     * @param origins the origins
+     */
+    protected WebSettings(String clientId, String redirectUri, String apiKey, String apiKeyCC, String[] origins) {
+
+      super(redirectUri);
+      this.apiClientId = clientId;
+      this.apiKey = apiKey;
+      this.apiKeyCC = apiKeyCC;
+      this.origins = origins;
+    }
+
+    /**
+     * Gets the client id.
+     *
+     * @return the client id
+     */
+    public String getApiClientId() {
+      return apiClientId;
+    }
+
+    /**
+     * Gets the redirect uri.
+     *
+     * @return the redirect uri
+     */
+    public String getRedirectUri() {
+      return redirectUri;
+    }
+
+    /**
+     * Gets the api key.
+     *
+     * @return the api key
+     */
+    public String getApiKey() {
+      return apiKey;
+    }
+
+    /**
+     * Gets the api key CC.
+     *
+     * @return the api key CC
+     */
+    public String getApiKeyCC() {
+      return apiKeyCC;
+    }
+
+    /**
+     * Gets the origins.
+     *
+     * @return the origins
+     */
+    public String[] getOrigins() {
+      return origins;
+    }
+  }
+
+  /**
    * The Class WebSettingsBuilder.
    */
   public class WebSettingsBuilder extends SettingsBuilder {
@@ -76,7 +157,7 @@ public class SkypeBusinessProvider extends SkypeProvider {
      */
     @Override
     public SkypeSettings build() {
-      return new SkypeSettings(getClientId(), redirectURI, getVersion(), getApiKey(), getApiKeyCC(), origins);
+      return new WebSettings(getClientId(), redirectURI, getApiKey(), getApiKeyCC(), origins);
     }
   }
 

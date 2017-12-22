@@ -5,13 +5,9 @@ if (eXo.webConferencing) {
 	(function(webConferencing) {
 		"use strict";
 		
-		/** For debug logging. */
-		var objId = Math.floor((Math.random() * 1000) + 1);
-		var logPrefix = "[mssfbcall_" + objId + "] ";
-		var log = function(msg, e) {
-			webConferencing.log(msg, e, logPrefix);
-		};
-		//log("> Loading at " + location.origin + location.pathname);
+	  // Start with default logger, later we'll get it for the provider.
+		var log = webConferencing.getLog("mssfb").prefix("call");
+		//log.trace("> Loading at " + location.origin + location.pathname);
 		
 		webConferencing.getProvider("mssfb").done(function(mssfb) {
 			var hashLine = location.hash;
@@ -122,18 +118,19 @@ if (eXo.webConferencing) {
 
 			if (isLogin) {
 				// FYI it's what WebSDK calls an "empty page"
-				log(">> MSSFB login: " + mssfb.tokenHashInfo(hashLine));
+				log.debug("Login page: " + mssfb.tokenHashInfo(hashLine));
 				$(function() {
 					alignLoader();
 				});
 				var parent = window.opener ? window.opener : (window.parent ? window.parent : null);
 				if (hasToken) {
 					// FYI we assume expiration time in seconds
+					var param = getParameterByName("expires_in", hashLine);
 					var expiresIn;
 					try {
-						expiresIn = parseInt(getParameterByName("expires_in", hashLine));
+						expiresIn = parseInt(param);
 					} catch(e) {
-						log("Error parsing token expiration time: " + e);
+						log.warn("Error parsing token expiration time '" + param + "'", e);
 						expiresIn = 0;
 					}
 					var token = {
@@ -148,49 +145,48 @@ if (eXo.webConferencing) {
 					// thus this if-block should not execute for call authentication
 					if (parent && parent.eXo && parent.eXo.webConferencing && parent.eXo.webConferencing.mssfb) {
 						//var parentUri = parent.location.href;
-						//log(">>>> MSSFB login opener: " + parentUri);
+						//log.trace(">>>> MSSFB login opener: " + parentUri);
 						// **** TODO experiments with ADSL to obtain auth token for SDK calls later
 						/*var settings = {
-									clientId : clientId,
+									clientId : mssfb.getApiClientId(),
 									cacheLocation: "localStorage"
 								};
 						var msOnlineContext = new AuthenticationContext(settings);
 						msOnlineContext.login();
 						msOnlineContext.acquireToken("https://login.microsoftonline.com/common", function(res) {
-		        	log("msOnlineContext.acquireTokenSilentAsync: " + JSON.stringify(res));
+		        	log.trace("msOnlineContext.acquireTokenSilentAsync: " + JSON.stringify(res));
 		        });
 						var winGraphContext = new AuthenticationContext(settings);
 						winGraphContext.acquireToken("https://graph.windows.net", function(res) {
-		        	log("winGraphContext.acquireTokenSilentAsync: " + JSON.stringify(res));
+		        	log.trace("winGraphContext.acquireTokenSilentAsync: " + JSON.stringify(res));
 		        });*/
 						//
 						
 						if (parent.eXo.webConferencing.mssfb.loginToken) {
-							log(">>> use parent.eXo.webConferencing.mssfb.loginToken()");
+							log.trace(">>> use parent.eXo.webConferencing.mssfb.loginToken()");
 							parent.eXo.webConferencing.mssfb.loginToken(token).always(function() {
+								log.info("Successfully authorized");
 								showStarted("Successfully authorized in " + mssfb.getTitle() + " account."); // TODO is it correct sentense?
 								setTimeout(function() {
 									window.close();
 								}, 2500);
 							});	
 						} else {
-							log("<<< WARN: parent.eXo.webConferencing.mssfb.loginToken() not found");
+							log.warn("parent.eXo.webConferencing.mssfb.loginToken() not found");
 						}
 					} else {
-						log("<<< ERROR: login has no opener or not initialized for callback token");
+						log.error("Login page has no opener or not initialized for callback token");
 					}
 				}
 				if (hasError) {
-					log("MSSFB login error: " + location.hash);
+					log.error("MSSFB login error: " + location.hash);
 					handleError();
 				}
-				log("<< MSSFB login");
 			} else {
 				$(function() {
 					alignLoader();
-					var clientId = mssfb.getClientId();
 					if (isCall) {
-						//log(">> MSSFB call: " + location.origin + location.pathname);
+						log.debug("Call page: " + location.origin + location.pathname);
 						var pageCallId;
 						var ciIndex = location.pathname.indexOf("call/") + 5;
 						if (ciIndex > 5 && location.pathname.length > ciIndex) {
@@ -204,19 +200,19 @@ if (eXo.webConferencing) {
 								webConferencing.onUserUpdate(currentUserId, function(update, status) {
 									if (update.eventType == "call_state") {
 										if (update.callState == "stopped" && update.callId == pageCallId) {
-											log("<<< Call stopped remotelly: " + JSON.stringify(update) + " [" + status + "]");
+											log.info("Call stopped remotelly: " + update.callId);
 											//stopCallWaitClose(true);
 										}							
 									}
 								}, function(err) {
-									log("ERROR User calls subscription failure: " + err, err);
+									log.error("User calls subscription failure", err);
 								});
 								
 								var redirectUri = webConferencing.getBaseUrl() + "/portal/skype/call/login";
 								var uiInitializer = mssfb.uiApplication(redirectUri);
 								uiInitializer.done(function(api, app) {
 									try {
-										log(">>> SDK app created OK, user: " + app.personsAndGroupsManager.mePerson.displayName());
+										log.debug("App created OK, user: " + app.personsAndGroupsManager.mePerson.displayName());
 										var currentUserSip = app.personsAndGroupsManager.mePerson.id();
 										
 										$("#mssfb-call-starting").hide();
@@ -227,7 +223,7 @@ if (eXo.webConferencing) {
 										}
 										var container = mssfb.newCallContainer($convo);
 										
-										log(">>> Conversation is creating in " + $convo.get(0) + " " + pageCallId);
+										log.debug("Conversation is creating: " + pageCallId);
 										
 										// It's a call request, call ID format for it: 'target_type'/'target_id', e.g. space/product_team
 										var tdelim = pageCallId.indexOf("/");
@@ -242,7 +238,7 @@ if (eXo.webConferencing) {
 													var details = mssfb.readTargetDetails(currentUserSip, space);
 													startOutgoingCall(details);
 												}).fail(function(err, status) {
-													log("ERROR: Space info request failure [" + status + "] " + err.code + " " + err.message, err);
+													log.error("Space info request failure for " + targetId + ": " + err.code + " " + err.message, err);
 													showError("Space error", err.message);
 												});
 											} else if (targetType == "chat_room") {
@@ -250,7 +246,7 @@ if (eXo.webConferencing) {
 													var details = mssfb.readTargetDetails(currentUserSip, room);
 													startOutgoingCall(details);
 												}).fail(function(err, status) {
-													log("ERROR: Room info request failure [" + status + "] " + err.code + " " + err.message, err);
+													log.error(" Room info request failure for " + targetId + ": " + err.code + " " + err.message, err);
 													showError("Chat room error", err.message);
 												});
 											} else if (targetType == "user") {
@@ -258,40 +254,39 @@ if (eXo.webConferencing) {
 													var details = mssfb.readTargetDetails(currentUserSip, user);
 													startOutgoingCall(details);
 												}).fail(function(err, status) {
-													log("ERROR: User info request failure [" + status + "] " + err.code + " " + err.message, err);
+													log.error("User info request failure for " + targetId + ": " + err.code + " " + err.message, err);
 													showError("User error", err.message);
 												});
 											} else {
-												log("ERROR: unsupported target type in call ID: " + pageCallId);
+												log.error("Unsupported target type in call ID: " + pageCallId);
 											}
 										} else {
-											log("ERROR: wrong call ID: " + pageCallId);
+											log.error("Wrong call ID: " + pageCallId);
 										}
 									} catch (err) {
-										log(">>> MSSFB call error:", err);
+										log.error("Call error", err);
 										showError("Call Error", err);
 									}
 								});
 								uiInitializer.fail(function(err) {
 									// TODO we have an error, check if it's auth problem, then force to login
-									log(">>> MSSFB app error: " + err);
+									log.error("SkypeCC app error", err);
 									showError("Application Error", err);
 								});
 							}
 							if (hasError) {
-								log("<<< MSSFB call error: " + location.hash); // show fill hash, it contains an error
+								log.error("Call error: " + location.hash); // show fill hash, it contains an error
 								handleError();
 							}
 						} else {
-							log(">>> Cannot find call ID in the page URL: " + location.pathname);
+							log.error("Cannot find call ID in the page URL: " + location.pathname);
 							showError("Application Error", "Cannot find call ID. Close the page and try again.");
 						}
-						log("<< MSSFB call");
 					} else {
-						log(">> MSSFB default page " + location.origin + location.pathname);
+						log.debug("Default page " + location.origin + location.pathname);
 						var hasIdToken = /#id_token=/.test(hashLine);
 						if (hasIdToken && location.hash.indexOf("admin_consent=True") >= 0) {
-							log(">>> MSSFB admin consent: " + mssfb.tokenHashInfo(hashLine));
+							log.info("ADMIN CONSENT: " + mssfb.tokenHashInfo(hashLine));
 							var $root = $("#mssfb-call-root");
 							if ($root.length == 0) {
 								$root = $("<div id='mssfb-call-root'></div>");
@@ -313,7 +308,7 @@ if (eXo.webConferencing) {
 							addToContainer($("<p><a href='/portal'>Home</a></p>"));
 						}
 						if (hasToken) {
-							log(">>> MSSFB token: " + mssfb.tokenHashInfo(hashLine));
+							log.debug("Got access token: " + mssfb.tokenHashInfo(hashLine));
 							var $root = $("#mssfb-call-root");
 							if ($root.length == 0) {
 								$root = $("<div id='mssfb-call-root'></div>");
@@ -323,17 +318,16 @@ if (eXo.webConferencing) {
 							addToContainer($("<div><a href='/portal'>Home</a></div>"));
 						}
 						if (hasError) {
-							log("<<< MSSFB error: " + location.hash);
+							log.error("Default page error: " + location.hash);
 							handleError();
 						}
-						log("<< MSSFB default page");
 					}
 				});
 			}
 		}).fail(function(err) {
-			log("MSSFB provider not available for mssfb-call.js: " + err);
+			log.error("MSSFB provider not available for mssfb-call.js", err);
 		});
-		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
+		log.trace("< Loaded at " + location.origin + location.pathname);
 	})(eXo.webConferencing);
 } else {
 	window.console && window.console.log("eXo.webConferencing not defined for mssfb-call.js");

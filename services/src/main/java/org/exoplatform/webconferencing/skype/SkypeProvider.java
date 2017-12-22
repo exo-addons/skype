@@ -53,51 +53,17 @@ public class SkypeProvider extends CallProvider {
    */
   public class SkypeSettings extends Settings {
 
-    /** The client id. */
-    protected final String   clientId;
-
     /** The redirect uri. */
-    protected final String   redirectUri;
-
-    /** The api key. */
-    protected final String   apiKey;
-
-    /** The api key CC. */
-    protected final String   apiKeyCC;
-
-    /** The origins. */
-    protected final String[] origins;
+    protected final String redirectUri;
 
     /**
      * Instantiates a new skype settings.
      *
-     * @param clientId the client id
      * @param redirectUri the redirect uri
      * @param version the version
-     * @param apiKey the api key
-     * @param apiKeyCC the api key CC
-     * @param origins the origins
      */
-    protected SkypeSettings(String clientId,
-                            String redirectUri,
-                            String version,
-                            String apiKey,
-                            String apiKeyCC,
-                            String[] origins) {
-      this.clientId = clientId;
+    protected SkypeSettings(String redirectUri) {
       this.redirectUri = redirectUri;
-      this.apiKey = apiKey;
-      this.apiKeyCC = apiKeyCC;
-      this.origins = origins;
-    }
-
-    /**
-     * Gets the client id.
-     *
-     * @return the client id
-     */
-    public String getClientId() {
-      return clientId;
     }
 
     /**
@@ -107,33 +73,6 @@ public class SkypeProvider extends CallProvider {
      */
     public String getRedirectUri() {
       return redirectUri;
-    }
-
-    /**
-     * Gets the api key.
-     *
-     * @return the api key
-     */
-    public String getApiKey() {
-      return apiKey;
-    }
-
-    /**
-     * Gets the api key CC.
-     *
-     * @return the api key CC
-     */
-    public String getApiKeyCC() {
-      return apiKeyCC;
-    }
-
-    /**
-     * Gets the origins.
-     *
-     * @return the origins
-     */
-    public String[] getOrigins() {
-      return origins;
     }
   }
 
@@ -153,6 +92,7 @@ public class SkypeProvider extends CallProvider {
      */
     public SettingsBuilder redirectURI(String redirectURI) {
       this.redirectURI = redirectURI;
+
       return this;
     }
 
@@ -162,7 +102,7 @@ public class SkypeProvider extends CallProvider {
      * @return the skype settings
      */
     public SkypeSettings build() {
-      return new SkypeSettings(null, redirectURI, getVersion(), null, null, new String[0]);
+      return new SkypeSettings(redirectURI);
     }
   }
 

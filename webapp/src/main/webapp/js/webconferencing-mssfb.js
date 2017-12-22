@@ -14,13 +14,10 @@
 
 	if (webConferencing) {
 
-		/** For debug logging. */
-		var objId = Math.floor((Math.random() * 1000) + 1);
-		var logPrefix = "[mssfb_" + objId + "] ";
-		var log = function(msg, e) {
-			webConferencing.log(msg, e, logPrefix);
-		};
-		//log("> Loading at " + location.origin + location.pathname);
+		// Start with default logger, later in configure() we'll get it for the provider.
+		// We know it's mssfb here, but mark with asterisk as not yet configured.
+		var log = webConferencing.getLog("mssfb");
+		//log.trace("> Loading at " + location.origin + location.pathname);
 		
 		function CallContainer($container) {
 			var onMssfbCallShow = [];
@@ -152,7 +149,7 @@
 					// executed by the browser and call rejected or stopped.
 					conversation.leave().then(function() {
 						isClosed = true;
-						log("<< conversation leaved");
+						log.trace("<< conversation leaved");
 						app.conversationsManager.conversations.remove(conversation);
 					});
 					//conversation.selfParticipant.reset();
@@ -161,17 +158,17 @@
 					// conversation.audioService.stop();
 					// conversation.chatService.stop();
 					// uiApp.signInManager.signOut().then(function() {
-					// log("<<<< Skype signed out");
+					// log.trace("<<<< Skype signed out");
 					// }, function(error) {
-					// log("<<<< Error signing out Skype:" + error);
+					// log.trace("<<<< Error signing out Skype:" + error);
 					// });
 					return "You canceled the call";
 				}
 			}
 			
-			var authRedirectLink = function(clientId, redirectUri, resource) {
+			var authRedirectLink = function(apiClientId, redirectUri, resource) {
 				var loginUri = MSONLINE_LOGIN_PREFIX + "/common/oauth2/authorize?response_type=token&client_id="
-					+ clientId
+					+ apiClientId
 					+ "&redirect_uri="
 					+ encodeURIComponent(redirectUri)
 					+ "&resource="
@@ -179,9 +176,9 @@
 				return loginUri;
 			};
 			
-			var authRedirectWindow = function(clientId, redirectUri, resource) {
-				var loginUri = authRedirectLink(clientId, redirectUri, resource);
-				log("MSSFB login/call: " + loginUri);
+			var authRedirectWindow = function(apiClientId, redirectUri, resource) {
+				var loginUri = authRedirectLink(apiClientId, redirectUri, resource);
+				log.trace("MSSFB login/call: " + loginUri);
 				var theWindow = webConferencing.showCallPopup(loginUri, "Skype for Business Login");
 				return theWindow;
 			};
@@ -211,7 +208,7 @@
 					if (hline.length - start > 0) {
 						return hline.substring(start);
 					} else {
-						log(">> tokenHashInfo: unexpected hash line format: " + hline);
+						log.warn(">> tokenHashInfo: unexpected hash line format: " + hline);
 					}
 				}
 				return hline; 
@@ -219,7 +216,7 @@
 			this.tokenHashInfo = tokenHashInfo;
 			
 			var removeLocalToken = function() {
-				log("Remove login token");
+				log.trace("Remove login token");
 				if (typeof Storage != "undefined") {
 			    // Code for localStorage/sessionStorage.
 					localStorage.removeItem(TOKEN_STORE);
@@ -228,13 +225,12 @@
 					if (eXo && eXo.webConferencing && eXo.webConferencing.mssfb) {
 						delete eXo.webConferencing.mssfb.__localToken;
 					} else {
-						log("WARN removing access token: local storage not supported.");
+						log.warn("Removing access token: local storage not supported.");
 					}
 				}
 			};
 			var saveLocalToken = function(token) {
-				//log(">> saveLocalToken: " + tokenHashInfo(token.hash_line));
-				log("Using new login token");
+				log.trace("Using new login token");
 				if (typeof Storage != "undefined") {
 			    // Code for localStorage/sessionStorage.
 			  	localStorage.setItem(TOKEN_STORE, JSON.stringify(token));
@@ -243,9 +239,9 @@
 					// TODO save it in session storage or server-side?
 					if (eXo && eXo.webConferencing && eXo.webConferencing.mssfb) {
 						eXo.webConferencing.mssfb.__localToken = token;
-						log("WARN access token saved only in this window, not local storage!");
+						log.warn("Access token saved only in this window, not local storage!");
 					} else {
-						log("ERROR saving access token: local storage not supported.");
+						log.warn("Saving access token: local storage not supported.");
 					}
 				}
 			};
@@ -263,11 +259,11 @@
 						try {
 							token = JSON.parse(savedToken);
 						} catch(e) {
-							log("Login (saved) parsing error: " + e, e);
+							log.warn("Login (saved) parsing error: " + e, e);
 							localStorage.removeItem(TOKEN_STORE);
 						}		
 					} else {
-						log("Login (saved) token not found");
+						log.trace("Login (saved) token not found");
 					}
 				} else if (eXo && eXo.webConferencing && eXo.webConferencing.mssfb) {
 					token = eXo.webConferencing.mssfb.__localToken;
@@ -278,13 +274,13 @@
 					var now = new Date().getTime()/1000;
 					if (now >= expiresIn) {
 						// token expired
-						log("Login (saved) token expired");
+						log.debug("Login (saved) token expired");
 						token = null;
 						localStorage.removeItem(TOKEN_STORE);
 					} else {
 						// else, we can use current token
-						//log(">> currentToken: " + tokenHashInfo(token.hash_line));
-						log("Using existing login token");
+						//log.trace(">> currentToken: " + tokenHashInfo(token.hash_line));
+						log.debug("Using existing login token");
 					}
 				}
 				return token;
@@ -318,7 +314,7 @@
 				} else {
 					// open SfB login window with redirect to the call URI
 					var uri = callUri(callId, context);
-					return authRedirectWindow(settings.clientId, uri, "https://webdir.online.lync.com");
+					return authRedirectWindow(settings.apiClientId, uri, "https://webdir.online.lync.com");
 				}
 			};
 			
@@ -328,7 +324,7 @@
 			};
 			
 			var handleErrorData = function(callId, title, errData) {
-				log(">>> call " + callId + " ERROR: " + errData.code + " " + (errData.subcode ? errData.subcode + " " : "") + errData.message);
+				log.error("Call failure: " + callId + ". Error: " + errData.code + " " + (errData.subcode ? errData.subcode + " " : "") + errData.message);
 				if (errData.code == "Gone" && errData.subcode == "TooManyApplications") {
 					webConferencing.showError(title, "Too many applications. " + errData.message);	
 				} else {
@@ -397,16 +393,14 @@
 				return "Join"; // TODO i18n
 			};
 
-			this.getClientId = function() {
+			this.getApiClientId = function() {
 				if (settings) {
-					return settings.clientId;
+					return settings.apiClientId;
 				}
 			};
 
 			this.configure = function(skypeEnv) {
 				settings = skypeEnv;
-				// TODO do some validation of given settings?
-				// Skype Configuration: apiKey for SDK, apiKeyCC for SDK+UI
 			};
 
 			this.isConfigured = function() {
@@ -417,12 +411,12 @@
 				var initializer = $.Deferred();
 				if (settings) {
 					if (apiInstance && appInstance) {
-						log("Use app instance");
+						log.trace("Use existing Skype instance");
 						initializer.resolve(apiInstance, appInstance);
 					} else {
 						var user = webConferencing.getUser();
 						var sessionId = user.id + "_session" + Math.floor((Math.random() * 1000000) + 1);
-						log("app sessionId='" + sessionId + "'");
+						log.debug("Skype sessionId: " + sessionId + " version: " + settings.version + ", API clientId: " + settings.apiClientId);
 						Skype.initialize({
 							"version" : settings.version,
 							"apiKey" : settings.apiKey,
@@ -436,10 +430,8 @@
 							if (!redirectUri) {
 								redirectUri = redirectUri ? redirectUri : settings.redirectUri; 
 							}
-							log("app redirectUri='" + redirectUri + "'");
-							log("app clientId='" + settings.clientId + "'");
 							var args = {
-								"client_id" : settings.clientId,
+								"client_id" : settings.apiClientId,
 								"origins" : settings.origins,
 								"cors" : true,
 								"version" : settings.version
@@ -451,15 +443,16 @@
 								args.redirect_uri = redirectUri;
 							}
 							app.signInManager.signIn(args).then(function(res) {
-								log("Skype signed in as " + app.personsAndGroupsManager.mePerson.displayName());
+								log.debug("Skype signed in as " + app.personsAndGroupsManager.mePerson.displayName());
 								// ensure local and remote users are of the same account in MS
 								var exoUserSFB = webConferencing.imAccount(user, "mssfb");
 								var mssfbUserId = app.personsAndGroupsManager.mePerson.id(); // sip:email...
 								if (exoUserSFB && exoUserSFB.id != mssfbUserId) {
 									// bad, we cannot proceed - need ask local user login with his account in MS
-									log("Skype user and local eXo user have different Microsoft IDs: " + mssfbUserId + " vs " + exoUserSFB.id);
-									initializer.reject("Skype user signed in under different account: " + mssfbUserId +
-											". Please login as " + exoUserSFB.id);
+									log.debug("Skype current user and local eXo user have different Microsoft IDs: " 
+												+ mssfbUserId + " vs " + exoUserSFB.id + ". Need login Skype under " + exoUserSFB.id);
+									// Reject with a message to user
+									initializer.reject("Skype signed in under different account: " + mssfbUserId + ". Please login as " + exoUserSFB.id);
 								} else {
 									// else, we don't care here if it is SfB user on eXo side
 									apiInstance = api;
@@ -467,17 +460,15 @@
 									initializer.resolve(api, app);
 								}
 							}, function(err) {
-								log("Cannot sign in Skype", err);
 								initializer.reject(err);
 							});
 
 							// whenever client.state changes, display its value
 							app.signInManager.state.changed(function(state) {
 								// TODO update user state and UI in PLF page
-								log("State change:" + JSON.stringify(state));
+								log.trace("Skype user state change: " + JSON.stringify(state));
 							});
 						}, function(err) {
-							log("Cannot load Skype SDK.", err);
 							initializer.reject(err);
 						});
 					}
@@ -491,14 +482,14 @@
 				var initializer = $.Deferred();
 				if (settings) {
 					if (uiApiInstance && uiAppInstance) {
-						log("Use uiApp instance");
+						log.trace("Use existing SkypeCC instance");
 						initializer.resolve(uiApiInstance, uiAppInstance);
 					} else {
 						if (!user) {
 							user = webConferencing.getUser();
 						}
 						var sessionId = user.id + "_uisession" + Math.floor((Math.random() * 1000000) + 1);
-						log("uiApp sessionId='" + sessionId + "'");
+						log.debug("SkypeCC sessionId: " + sessionId + " version: " + settings.version + ", API clientId: " + settings.apiClientId);
 						Skype.initialize({
 							"version" : settings.version,
 							"apiKey" : settings.apiKeyCC,
@@ -512,25 +503,24 @@
 							if (!redirectUri) {
 								redirectUri = redirectUri ? redirectUri : settings.redirectUri; 
 							}
-							//log("uiApp redirectUri='" + redirectUri + "'");
-							log("uiApp clientId='" + settings.clientId + "'");
 							app.signInManager.signIn({
-								"client_id" : settings.clientId,
+								"client_id" : settings.apiClientId,
 								"origins" : settings.origins,
 								"cors" : true,
 								"redirect_uri" : redirectUri,
 								"version" : settings.version
 							// Necessary for troubleshooting requests; identifies your application in our telemetry
 							}).then(function() {
-								log("SkypeCC signed in as " + app.personsAndGroupsManager.mePerson.displayName());
+								log.debug("SkypeCC signed in as " + app.personsAndGroupsManager.mePerson.displayName());
 								// ensure local and remote users are of the same account in MS
 								var exoUserSFB = webConferencing.imAccount(user, "mssfb");
 								var mssfbUserId = app.personsAndGroupsManager.mePerson.id(); // sip:email...
 								if (exoUserSFB && exoUserSFB.id != mssfbUserId) {
 									// bad, we cannot proceed - need ask local user login with his account in MS
-									log("Skype user and local eXo user have different Microsoft IDs: " + mssfbUserId + " vs " + exoUserSFB.id);
-									initializer.reject("Skype user signed in under different account: " + mssfbUserId +
-											". Please login as " + exoUserSFB.id);
+									log.debug("SkypeCC current user and local eXo user have different Microsoft IDs: " 
+												+ mssfbUserId + " vs " + exoUserSFB.id + ". Need login SkypeCC under " + exoUserSFB.id);
+									// Reject with a message to user
+									initializer.reject("Skype signed in under different account: " + mssfbUserId + ". Please login as " + exoUserSFB.id);
 								} else {
 									// else, we don't care here if it is SfB user on eXo side
 									uiApiInstance = api;
@@ -538,17 +528,14 @@
 									initializer.resolve(api, app);
 								}
 							}, function(err) {
-								log("Cannot sign in SkypeCC", err);
 								initializer.reject(err);
 							});
 
 							// whenever client.state changes, display its value
 							app.signInManager.state.changed(function(state) {
-								// TODO update user state and UI in PLF page
-								log("StateCC change:" + JSON.stringify(state));
+								log.trace("SkypeCC user state change: " + JSON.stringify(state));
 							});
 						}, function(err) {
-							log("Cannot load SkypeCC SDK.", err);
 							initializer.reject(err);
 						});
 					}
@@ -599,8 +586,10 @@
 						     // tell user which version is detected: cap.installedVersion()
 						     // recommend user to upgrade plugin to latest
 						     // using cap.pluginDownloadLinks('msi') etc.
+								var plink = pluginLink();
+								log.warn("Skype web plugin version can be upgraded to " + plink);
 								webConferencing.showWarn("Skype web plugin upgrade", "You are using obsolete version of Skype plugin. <a " +
-										"href='" + pluginLink() + "' target='_blank' class='pnotifyTextLink'>Latest version</a> can be installed.");	
+										"href='" + plink + "' target='_blank' class='pnotifyTextLink'>Latest version</a> can be installed.");	
 								process.resolve(true); // true - means user action recommended
 						  } else {
 						  	process.resolve(false);
@@ -618,9 +607,10 @@
 							}
 							// recommend user to upgrade plugin to latest
 							// using cap.pluginDownloadLinks('msi') etc.
+							var versionInfo = installedVersion ? ". Current installed version is " + installedVersion + "." : "";
+							log.error("Skype web plugin " + stateText + versionInfo);
 							webConferencing.showWarn("Skype web plugin " + stateText, "You need install supported Skype plugin <a " +
-										"href='" + pluginLink() + "' target='_blank' class='pnotifyTextLink'>version</a>." + 
-										(installedVersion ? " Current installed version is " + installedVersion + "." : ""));
+										"href='" + pluginLink() + "' target='_blank' class='pnotifyTextLink'>version</a>" + versionInfo);
 							process.reject();
 						}
 					});
@@ -629,12 +619,12 @@
 			};
 			var loginUri = webConferencing.getBaseUrl() + "/portal/skype/call/login";
 			var loginWindow = function() {
-				return authRedirectWindow(settings.clientId, loginUri, "https://webdir.online.lync.com");
+				return authRedirectWindow(settings.apiClientId, loginUri, "https://webdir.online.lync.com");
 			};
 			var loginIframe;
 			var loginTokenUpdater;
 			var loginTokenHandler = function(token, user) {
-				delete provider.loginToken;
+				delete self.loginToken;
 				var process = $.Deferred();
 				try {
 					if (loginTokenUpdater) {
@@ -642,13 +632,13 @@
 					}
 					var prevHash = location.hash;
 					if (prevHash && prevHash.indexOf("access_token") >= 0) {
-						log(">> loginTokenHandler WARN loading on page with access_token in the hash: " + prevHash);
+						log.debug(">> loginTokenHandler WARN loading on page with access_token in the hash: " + prevHash);
 					}
 					location.hash = token.hash_line;
-					var appInitializer = provider.uiApplication(loginUri, user);
+					var appInitializer = self.uiApplication(loginUri, user);
 					appInitializer.done(function(api, app) {
 						// TODO save token in the server-side for late use?
-					  log("Login OK, app created OK");
+					  log.debug("Login OK, app created OK");
 					  // Save the token hash in local storage for later use
 					  location.hash = prevHash;
 					  token.userId = app.personsAndGroupsManager.mePerson.id();
@@ -663,16 +653,16 @@
 						loginTokenUpdater = setTimeout(function() {
 							loginTokenUpdater = null;
 							loginIframe().done(function() {
-								log(">>> updated login token to: " + token.created);
+								log.debug("Updated login token to: " + token.created);
 							}).fail(function(err) {
-								log(">>> ERROR updating login token: " + err);
+								log.warn("Failed to update login token", err);
 							});
 						}, updateTime);
 					});
 					appInitializer.fail(function(err) {
-						log("Login error: " + JSON.stringify(err));
+						log.error("Login error", err);
 						location.hash = prevHash;
-						process.reject(err);
+						process.reject("Login error");
 					});
 					// it is possible that MS auth will fail silently and we will not receive any status or callback from their SDK
 					// an usecase, logout from MS account, but keep saved login token in this script and try use it, as a result
@@ -688,7 +678,6 @@
 						}
 					},30000);
 				} catch(e) {
-					log("Error handling login token", e);
 					process.reject(e);
 				}
 				return process.promise();
@@ -697,9 +686,9 @@
 				var process = $.Deferred();
 				// FYI if user not authorized (in cookies etc) this iframe will fail due to 'X-Frame-Options' to 'deny' set by MS
 				// TODO may be another URL found to do this?
-				var iframeUri = authRedirectLink(settings.clientId, loginUri, "https://webdir.online.lync.com");
+				var iframeUri = authRedirectLink(settings.apiClientId, loginUri, "https://webdir.online.lync.com");
 				var $iframe = $("<iframe src='" + iframeUri + "' height='0' width='0' style='display: none;'></iframe>");
-				provider.loginToken = function(token) {
+				self.loginToken = function(token) {
 					var callback = loginTokenHandler(token);
 					callback.done(function(api, app) {
 						process.resolve(api, app);
@@ -725,15 +714,15 @@
 							if (aci > 0) {
 								checkUri = checkUri.substring(0, aci);
 							}
-							log("Login iframe check DONE: " + checkUri);							
+							log.debug("Login iframe check DONE: " + checkUri);							
 						} else {
 							throw "Document not accessible";
 						}
 					} catch (e) {
 						// it's an error, like DOMException for
 						$iframe.remove();
-						delete provider.loginToken;
-						log("Login iframe check FAILED", e);
+						delete self.loginToken;
+						log.error("Login iframe check FAILED", e);
 						process.reject("User not logged in");
 					}
 				}, 3000);
@@ -747,7 +736,7 @@
 					if (curi) {
 						return "g/" + curi;
 					} else if (c.state() != "Created") {
-						log(">> ERROR: group conversation state not 'Created' but without URI, state was: " + c.state());
+						log.error("Group conversation state not 'Created' but without URI, state was: " + c.state());
 					}
 					return null;
 				} else {
@@ -778,15 +767,15 @@
 				if (key) { 
 					if (logging[key]) {
 						// already tracked
-						log(">> Log (already) CONVERSATION " + getCallId(c) + " state:" + c.state() + (key ? " key:" + key : "") + (index ? " index:" + index : ""));
+						log.debug("Log (already) CONVERSATION " + getCallId(c) + " state:" + c.state() + (key ? " key:" + key : "") + (index ? " index:" + index : ""));
 						return;
 					} else {
 						logging[key] = true;
 					}
 				}
-				log(">> Log CONVERSATION " + getCallId(c) + (key ? " key:" + key : "") + (index ? " index:" + index : ""));
+				log.debug("Log CONVERSATION " + getCallId(c) + (key ? " key:" + key : "") + (index ? " index:" + index : ""));
 				c.state.changed(function(newValue, reason, oldValue) {
-					log(">>> CONVERSATION " + getCallId(c) + (key ? " (" + key + ")" : "") + " state: " + oldValue + "->" + newValue + " reason:" + reason);
+					log.debug("CONVERSATION " + getCallId(c) + (key ? " (" + key + ")" : "") + " state: " + oldValue + "->" + newValue + " reason:" + reason);
 				});					
 			};
 			this.logConversation = logConversation;
@@ -825,13 +814,14 @@
 					}
 					if (!handled) {
 						if (error.reason && error.reason.subcode && error.reason.message) {
-							log(">>> call " + callId + " ERROR: " + error.reason.subcode + ". " + error.reason.message);
+							log.error("Call " + callId + " ERROR: " + error.reason.subcode + ". " + error.reason.message);
 							webConferencing.showError(title, error.reason.message);
 						} else {
 							var errData = getSDKErrorData(error);
 							if (errData) {
 								handleErrorData(callId, title, errData);
 							} else {
+								log.error("Call " + callId + " ERROR: " + title + ". " + error);
 								webConferencing.showError(title, error);
 							}
 						}
@@ -882,7 +872,7 @@
 									var remoteParty = conversation.createParticipant(pid);
 									conversation.participants.add(remoteParty);
 								} catch(e) {
-									log(">>> Error creating group participant " + pid, e);
+									log.warn("Failed to create a group participant " + pid, e);
 									// TODO notify user
 								}
 							};
@@ -890,7 +880,7 @@
 								// reuse existing group convo: cut 'g/' from the call id - it's a SIP URI
 								var conversation = app.conversationsManager.getConversationByUri(target.callId.substring(2));
 								if (conversation) {
-									log("Reuse group conversation " + target.callId + " " + conversation.state());
+									log.trace("Reuse group conversation " + target.callId + " " + conversation.state());
 									options.conversation = conversation;
 									// We add new parts from given participants to the existing convo
 									// TODO Should we remove not existing locally?
@@ -911,7 +901,7 @@
 										}
 									}
 								} else {
-									log("Group conversation not found " + target.callId + " for call '" + target.title + "'");
+									log.warn("Group conversation not found " + target.callId + " for call '" + target.title + "'");
 									options.participants = participants;
 								}
 							} else {
@@ -928,7 +918,7 @@
 					}
 					api.renderConversation(container.element, options).then(function(conversation) {
 						var callId = getCallId(conversation);
-						log("Outgoing call '" + target.title + "' " + callId);
+						log.info("Outgoing call '" + target.title + "': " + callId);
 						logConversation(conversation);
 						// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
 						var beforeunloadListener = function(e) {
@@ -966,43 +956,43 @@
 						var added = false;
 						var addCall = function() {
 							if (!added && callId != "g/adhoc") {
-								log(">>> Adding " + callId + " > " + new Date().getTime());
+								log.trace(">>> Adding " + callId + " > " + new Date().getTime());
 								added = true;
 								var callInfo = {
 									owner : ownerId,
 									ownerType : ownerType,  
-									provider : provider.getType(),
+									provider : self.getType(),
 									title : conversation.topic(),
 									participants : userIds.join(";") // eXo user ids here
 								};
 								callStateUpdate("started");
 								return webConferencing.addCall(callId, callInfo).done(function(call) {
-									log(">>> Added " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+									log.info("Created call " + callId + " parts:" + conversation.participantsCount());
 								}).fail(function(err) {
 									added = false;
-									log(">>> ERROR adding " + callId + ": " + JSON.stringify(err));
+									log.error("Failed to create a call: " + callId, err);
 								});									
 							}
 						};
 						var startedCall = function() {
 							callStateUpdate("started");
 							return webConferencing.updateCall(callId, "started").done(function(call) {
-								log("<<< Started " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+								log.info("Call started: " + callId + " parts:" + conversation.participantsCount());
 							}).fail(function(err) {
-								log("<<< ERROR starting " + callId + ": " + JSON.stringify(err));
+								log.error("Failed to start a call: " + callId, err);
 							});
 						};
 						var deleted = false;
 						var deleteCall = function() {
 							if (!deleted) {
 								deleted = true;
-								log(">>> Deleting " + callId + " > " + new Date().getTime());
+								log.trace("Deleting call: " + callId);
 								callStateUpdate("stopped");
 								return webConferencing.deleteCall(callId).done(function() {
-									log("<<< Deleted " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+									log.info("Deleted call: " + callId + " parts:" + conversation.participantsCount());
 								}).fail(function(err) {
 									deleted = false;
-									log("<<< ERROR deleting " + callId + ": " + JSON.stringify(err));
+									log.error("Failed to delete a call: " + callId, err);
 								});								
 							}
 						};
@@ -1011,8 +1001,8 @@
 							if (!joined) {
 								joined = true;
 								callStateUpdate("joined");
-								webConferencing.updateUserCall(callId, "joined").fail(function(err, status) {
-									log("<<< Error joining user group call: " + callId + ". " + JSON.stringify(err) + " [" + status + "]");
+								webConferencing.updateUserCall(callId, "joined").fail(function(err) {
+									log.error("Failed to join group call: " + callId, err);
 								});
 							}
 						};
@@ -1020,7 +1010,7 @@
 							joined = false; // do this sooner
 							callStateUpdate("leaved");
 							webConferencing.updateUserCall(callId, "leaved").fail(function(err, status) {
-								log("<<< Error leaving user group call: " + callId + ". " + JSON.stringify(err) + " [" + status + "]");
+								log.error("Failed to leave group call: " + callId, err);
 							});
 						};
 						var started = false;
@@ -1028,7 +1018,7 @@
 							if (!started) {
 								started = true;
 								callId = getCallId(conversation);
-								log(">>> " + stateName + " outgoing " + callId);
+								log.debug(stateName + " outgoing " + callId);
 								container.setCallId(callId);
 								process.resolve(callId, conversation);
 								if (conversation.isGroupConversation()) {
@@ -1043,10 +1033,10 @@
 									}
 									// In group call, we want produce started/stopped status on audio/video start/stop
 									/*conversation.selfParticipant.audio.state.changed(function listener(newValue, reason, oldValue) {
-										log(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+										log.trace(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 													+ " CONVERSATION state: " + conversation.state());
 										if (newValue === "Disconnected") {
-											log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+											log.trace("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 											if (oldValue === "Connected" || oldValue === "Connecting") {
 												conversation.selfParticipant.audio.state.changed.off(listener);
 												if (conversation.participantsCount() <= 0) {
@@ -1056,10 +1046,10 @@
 										}
 									});
 									conversation.selfParticipant.video.state.changed(function listener(newValue, reason, oldValue) {
-										log(">>> VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+										log.trace(">>> VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 													+ " CONVERSATION state: " + conversation.state());
 										if (newValue === "Disconnected") {
-											log("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+											log.trace("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 											if (oldValue === "Connected" || oldValue === "Connecting") {
 												conversation.selfParticipant.video.state.changed.off(listener);
 												if (conversation.participantsCount() <= 0) {
@@ -1070,23 +1060,23 @@
 									});*/
 								} // P2P call will be saved before the start, see below
 								conversation.state.once("Disconnected", function() {
-									log("<<< Disconnected outgoing " + callId);
+									log.debug("Disconnected outgoing call: " + callId);
 									if (conversation.isGroupConversation()) {
 										leavedGroupCall();
 										/*activeParticipants(conversation).done(function(list) {
 											if (list.length <= 0) {
 												updateCall("stopped");
-												log("<<< Stopped outgoing conference " + callId);
+												log.trace("<<< Stopped outgoing conference " + callId);
 											} else  {
-												log("<<< Still active outgoing conference " + callId + " parts: " + list.length);
+												log.trace("<<< Still active outgoing conference " + callId + " parts: " + list.length);
 											}
 										});*/
 										/*conversation.participantsCount.get().then(function(res) {
 											if (res <= 0) {
 												updateCall("stopped");
-												log("<<< Stopped outgoing conference " + callId);
+												log.trace("<<< Stopped outgoing conference " + callId);
 											} else  {
-												log("<<< Still running outgoing conference " + callId + " parts: " + res);
+												log.trace("<<< Still running outgoing conference " + callId + " parts: " + res);
 											}
 										});*/
 									} else {
@@ -1107,12 +1097,12 @@
 							try {
 								conversation.topic(target.title);
 							} catch(e) {
-								log(">>> Error setting conversation topic: " + target.title, e);
+								log.warn("Failed to set conversation topic: " + target.title, e);
 							}
 						}
 						if (!localCall) {
 							conversation.participants.added(function(part) {
-								log(">>> Participant added " + part.person.displayName() + "(" + part.person.id() + ") to " + callId);
+								log.info("Participant added " + part.person.displayName() + "(" + part.person.id() + ") to call: " + callId);
 							});
 						}
 						container.setConversation(conversation, callId, target.id);
@@ -1130,7 +1120,7 @@
 							});*/
 							/*conversation.participants.added(function(person) {
 						    // Another participant has accepted an invitation and joined the conversation
-								log(">>> Added participant to outgoing Conference " + callId + " " + JSON.stringify(person));
+								log.trace(">>> Added participant to outgoing Conference " + callId + " " + JSON.stringify(person));
 							});*/
 						} else {
 							// XXX For P2P, save in eXo sooner, to let this info be ready when the convo will be fired as 'added' at the other side
@@ -1141,11 +1131,11 @@
 							});
 						}
 						conversation.videoService.start().then(function() {
-							log(">>> Outgoing video STARTED ");
+							log.debug("Outgoing video STARTED ");
 							startingCall("Started");
 						}, function(videoError) {
 							// error starting videoService, cancel (by this user) also will go here
-							log("<<< Error starting outgoing video: " + JSON.stringify(videoError));
+							log.warn("Failed to start outgoing video for: " + callId, videoError);
 							var finisWithError = function(error) {
 								handleError(callId, error, function(isError, isOutdated) {
 									// For a case when Disconnected will not happen
@@ -1180,16 +1170,16 @@
 							if (isModalityUnsupported(videoError)) {
 								// ok, try audio
 								conversation.audioService.start().then(function() {
-									log(">>> Outgoing audio STARTED ");
+									log.debug("Outgoing audio STARTED ");
 									startingCall("Started");
 								}, function(audioError) {
-									log("<<< Error starting outgoing audio: " + JSON.stringify(audioError));
+									log.warn("Failed to start outgoing audio for: " + callId, audioError);
 									if (isModalityUnsupported(audioError)) {
 										// well, it will be chat (it should work everywhere)
 										conversation.chatService.start().then(function() {
-											log(">>> Outgoing chat STARTED ");
+											log.debug("Outgoing chat STARTED ");
 										}, function(chatError) {
-											log("<<< Error starting outgoing chat: " + JSON.stringify(chatError));
+											log.warn("Failed to start a chat for outgoing call: " + callId, chatError);
 											// we deal with original error
 											finisWithError(videoError);
 										});
@@ -1208,15 +1198,15 @@
 						container.hide();
 						process.reject(err);
 						if (err.name && err.message) {
-							log("<<< conversation rendering error: " + err.name + " " + err.message, err);
+							log.error("Conversation rendering error: " + err.name + " " + err.message, err);
 							webConferencing.showError(err.name, err.message);
 						} else {
-							log("<<< conversation rendering error: " + JSON.stringify(err));
+							log.error("Conversation rendering error", err);
 						}
 					});					
 				}).fail(function() {
 					container.$element.append($("<div><div class='pluginError'>Please install Skype web plugin.</div></div>"));
-					process.reject("plugin error");
+					process.reject("plugin error"); // problem already logged in checkPlugin()
 				});
 				return process.promise();
 			};
@@ -1227,14 +1217,14 @@
 			
 			var makeCallPopover = function(title, message) {
 				// TODO show an info popover in bottom right corner of the screen as specified in CALLEE_01
-				log(">> makeCallPopover '" + title + "' message:" + message);
+				log.trace(">> makeCallPopover '" + title + "' message:" + message);
 				var process = $.Deferred();
 				var $call = $("div.uiOutgoingCall");
 				if ($call.length > 0) {
 					try {
 						$call.dialog("destroy");
 					} catch(e) {
-						log(">>> makeCallPopover: error destroing prev dialog ", e);
+						log.warn("makeCallPopover: error destroing previous dialog ", e);
 					}
 					$call.remove();
 				}
@@ -1263,14 +1253,14 @@
 			};
 			
 			var stopCallPopover = function(title, message) {
-				log(">> stopCallPopover '" + title + "' message:" + message);
+				log.trace(">> stopCallPopover '" + title + "' message:" + message);
 				var process = $.Deferred();
 				var $call = $("div.uiStopCall");
 				if ($call.length > 0) {
 					try {
 						$call.dialog("destroy");
 					} catch(e) {
-						log(">>> stopCallPopover: error destroing prev dialog ", e);
+						log.warn("stopCallPopover: error destroing previous dialog ", e);
 					}
 					$call.remove();
 				}
@@ -1321,7 +1311,7 @@
 					var title = "Wrong Skype account" + s;
 					var message = "Following user" + s + " " + have + " wrong business account: " + 
 						userNames + ". " + who + " not added to the call.";
-					log(title, message);
+					log.warn(title + ". " + message);
 					if (callWindow) {
 						// inform the caller in call window
 						$(callWindow).on("load", function() {
@@ -1383,10 +1373,10 @@
 					if (currentUserSFB) {
 						context.details().done(function(target) {
 							var details = targetDetails(currentUserSFB.id, target);
+							var targetId = webConferencing.contextId(context);
 							if (details.participants.length > 0) {
 								context.currentUserSFB = currentUserSFB;
 								var fullTitle = self.getTitle() + " " + self.getCallTitle();
-								var targetId = webConferencing.contextId(context);
 								var localCall = getLocalCall(targetId);
 								var title = localCall && canJoin(localCall) ? self.getJoinTitle() : self.getCallTitle();
 								var disabledClass = hasJoinedCall(targetId) ? "callDisabled" : "";
@@ -1437,47 +1427,49 @@
 																	+ (currentConvo.isGroupConversation() ? "leave '" + currentConvo.topic() + "' call" : "stop call with " + currentConvo.participants(0).person.displayName())
 																	+ " and start " 
 																	+ (target.group ? "'" + target.title + "' call" : " call to " + target.title) + "?";
-															stopCallPopover("Start a new " + provider.getTitle() + " call&#63;", message).done(function() {
+															stopCallPopover("Start a new " + self.getTitle() + " call&#63;", message).done(function() {
 																container.getConversation().leave().then(function() {
-																	log("<<< Current conversation leaved " + container.getCallId() + " for " + (localCall ? "saved" : "new") + " outgoing");
+																	log.trace("<<< Current conversation leaved " + container.getCallId() + " for " + (localCall ? "saved" : "new") + " outgoing");
 																});
 																outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
 																showWrongUsers(wrongUsers);
 															}).fail(function() {
-																log("User don't want stop existing call and call to " + target.title);
+																log.trace("User don't want stop existing call and call to " + target.title);
 															});
 														} else {
 															outgoingCallHandler(api, app, container, currentUser, target, users, participants, localCall);
 															showWrongUsers(wrongUsers);													
 														}
 													} else {
+														log.warn("Cannot start a call: no " + self.getTitle() + " users found for " + targetId);
 														webConferencing.showWarn("Cannot start a call", "No " + self.getTitle() + " users found.");
 													}										
 												});
 											};
 											if (token && uiApiInstance && uiAppInstance) {
-												log("Automatic login done.");
+												log.info("Automatic login done.");
 												embeddedCall(uiApiInstance, uiAppInstance);
 											} else {
 												// we need try SfB login window in hidden iframe (if user already logged in AD, then it will work)
 												// FYI this iframe will fail due to 'X-Frame-Options' to 'deny' set by MS
 												// TODO may be another URL found to do this? - see incoming call handler for code
 												// need login user explicitly (in a popup)
-												log("Automatic login failed: login token not found or expired");
+												log.warn("Automatic login failed: login token not found or expired");
 												var login = loginWindow();
-												provider.loginToken = function(token) {
+												self.loginToken = function(token) {
 													var callback = loginTokenHandler(token);
 													callback.done(function(api, app) {
-														log("User login done.");
+														log.info("User login done.");
 														embeddedCall(api, app);
 													});
 													callback.fail(function(err) {
-														webConferencing.showError(provider.getTitle() + " error", "Unable sign in your " + provider.getTitle() + " account. " + err);
+														log.error("User login failed", err);
+														webConferencing.showError(self.getTitle() + " error", "Unable sign in your " + self.getTitle() + " account. " + err);
 													});
 													return callback.promise();
 												};
 												if (!login) {
-													log("ERROR: User login failed due to blocked popup");
+													log.error("User login failed due to blocked call popup");
 												}
 											}
 										} else {
@@ -1491,7 +1483,7 @@
 											} else if (context.roomName && context.roomId) {
 												callId = "chat_room/" + context.roomName + "/" + context.roomId;
 											} else {
-												log("ERROR: Unsupported call context " + context);
+												log.error("Unsupported call context " + context);
 											}
 											if (callId) {
 												var callWindow = openCallWindow(callId, context);
@@ -1502,34 +1494,41 @@
 								});
 								button.resolve($button);
 							} else {
-								button.reject("No " + self.getTitle() + " users");
+								var msg = "No " + self.getTitle() + " users found for " + targetId;
+								log.debug(msg);
+								button.reject(msg);
 							}
 						}).fail(function(err) {
+							log.error("Error starting a call", err);
 							button.reject("Error starting a call: " + err.message);
 						});
 					} else {
-						button.reject("Not " + self.getTitle() + " user");
+						var msg = "Not " + self.getTitle() + " user " + context.currentUser.id;
+						log.debug(msg);
+						button.reject(msg);
 					}
 				} else {
-					button.reject("Not configured or empty context for " + self.getTitle());
+					var msg = "Not configured or empty context for " + self.getTitle();
+					log.error(msg);
+					button.reject(msg);
 				}
 				return button.promise();
 			};
 				
 			var acceptCallPopover = function(callerLink, callerAvatar, callerMessage, withRing) {
 				// TODO show an info popover in bottom right corner of the screen as specified in CALLEE_01
-				log(">> acceptCallPopover '" + callerMessage + "' caler:" + callerLink + " avatar:" + callerAvatar);
+				log.trace(">> acceptCallPopover '" + callerMessage + "' caler:" + callerLink + " avatar:" + callerAvatar);
 				var process = $.Deferred();
 				var $call = $("div.uiIncomingCall");
 				if ($call.length > 0) {
 					try {
 						$call.dialog("destroy");
 					} catch(e) {
-						log(">>> acceptCallPopover: error destroing prev dialog ", e);
+						log.warn("acceptCallPopover: error destroing previous dialog ", e);
 					}
 					$call.remove();
 				}
-				$call = $("<div class='uiIncomingCall' title='" + provider.getTitle() + " call'></div>");
+				$call = $("<div class='uiIncomingCall' title='" + self.getTitle() + " call'></div>");
 				//<span class='ui-icon messageIcon' style='float:left; margin:12px 12px 20px 0;'></span>
 				$call.append($("<div class='messageAuthor'><a target='_blank' href='" + callerLink + "' class='avatarMedium'>"
 					+ "<img src='" + callerAvatar + "'></a></div>"
@@ -1594,7 +1593,7 @@
 				// This function handles a single conversation object, added in SDK or notified via eXo user update
 				var handleIncoming = function(conversation, saved) {
 					var callId = getCallId(conversation);
-					log(conversation.state() + " call: " + callId);
+					log.info(conversation.state() + " call: " + callId);
 					var accept;
 					var callerMessage, callerLink, callerAvatar, callerId, callerType, callerRoom;
 					var callStateUpdate = function(state, modality, error) {
@@ -1651,49 +1650,49 @@
 							if (!joined) {
 								joined = true;
 								webConferencing.updateUserCall(callId, "joined").fail(function(err, status) {
-									log("<<< Error joining user group call: " + callId + ". " + JSON.stringify(err) + " [" + status + "]");
+									log.error("Failed to join group call: " + callId, err);
 								});
 							}
 						};
 						var leavedGroupCall = function() {
 							joined = false; // do this sooner
 							webConferencing.updateUserCall(callId, "leaved").fail(function(err, status) {
-								log("<<< Error leaving user group call: " + callId + ". " + JSON.stringify(err) + " [" + status + "]");
+								log.error("Failed to leave group call: " + callId, err);
 							});
 						};
 						// TODO add events after the start/join
 						if (conversation.isGroupConversation()) {
 							conversation.state.when("Conferencing", function() {
-								log(">>> Conferencing incoming " + callId);
+								log.debug("Conferencing incoming: " + callId);
 							});
 							conversation.state.when("Conferenced", function() {
-								log(">>> Conferenced incoming " + callId + " parts: " + conversation.participantsCount());
+								log.info("Conferenced incoming: " + callId + " parts: " + conversation.participantsCount());
 								window.addEventListener("beforeunload", beforeunloadListener);
 								window.addEventListener("unload", unloadListener);
 							});
 							/*conversation.participants.added(function(person) {
 						    // Another participant has accepted an invitation and joined the conversation
-								log(">>> Added participant to incoming Conference " + callId + " " + JSON.stringify(person));
+								log.trace(">>> Added participant to incoming Conference " + callId + " " + JSON.stringify(person));
 							});*/
 						} else {
 							conversation.state.when("Connecting", function() {
-								log(">>> Connecting incoming " + callId);
+								log.debug("Connecting incoming: " + callId);
 								window.addEventListener("beforeunload", beforeunloadListener);
 								window.addEventListener("unload", unloadListener);
 							});
 							conversation.state.when("Connected", function() {
-								log(">>> Connected incoming " + callId);
+								log.info(">>> Connected incoming: " + callId);
 							});
 							// If person added and it was a P2P, we have call escalation to a conference, need update callId
 							// This will happen if add user inside the SfB call UI, an external user etc.
 							conversation.participants.added(function(part) {
 								//var oldCallId = callId;
 								var callId = getCallId(conversation);
-								log(">>> Participant added " + part.person.id() + " to " + callId);
+								log.debug("Participant added " + part.person.id() + " to " + callId);
 							});
 						}
 						conversation.state.when("Disconnected", function() {
-							log("<<< Disconnected incoming " + callId);
+							log.info("Disconnected incoming: " + callId);
 							//accept = null; // TODO - see always/timeout below. Release the acceptor for a next call within this convo
 							if (conversation.isGroupConversation()) {
 								callStateUpdate("leaved");
@@ -1701,20 +1700,20 @@
 								/*activeParticipants(conversation).done(function(list) {
 									if (list.length <= 0) {
 										webConferencing.updateCall(callId, "stopped").done(function(call) {
-											log("<<< Stopped incoming conference " + callId);
+											log.trace("<<< Stopped incoming conference " + callId);
 										}).fail(function(err) {
-											log("<<< ERROR updating to stopped " + callId + ": " + JSON.stringify(err));
+											log.trace("<<< ERROR updating to stopped " + callId + ": " + JSON.stringify(err));
 										});
 									} else  {
-										log("<<< Still active incoming conference " + callId + " parts: " + list.length);
+										log.trace("<<< Still active incoming conference " + callId + " parts: " + list.length);
 									}
 								});*/
 								/*conversation.participantsCount.get().then(function(res) {
 									if (res <= 0) {
 										webConferencing.updateCall(callId, "stopped").done(function(call) {
-											log("<<< Stopped " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
+											log.trace("<<< Stopped " + callId + " parts:" + conversation.participantsCount() + " > " + new Date().getTime());
 										}).fail(function(err) {
-											log("<<< ERROR updating to stopped " + callId + ": " + JSON.stringify(err));
+											log.trace("<<< ERROR updating to stopped " + callId + ": " + JSON.stringify(err));
 										});
 									}
 								});*/
@@ -1759,13 +1758,13 @@
 									});
 								}); 
 								popover.done(function(msg) {
-									log(">>> user " + msg + " call " + callId);
+									log.info("User " + msg + " call: " + callId);
 									if (container) {
 										// TODO support several calls at the same time
 										// If call container already running a conversation, we leave it and start this one 
 										if (container.isVisible()) { // && callId != container.getCallId()
 											container.getConversation().leave().then(function() {
-												log("<<< Current conversation leaved " + container.getCallId() + " for accepted incoming");
+												log.info("Current conversation leaved " + container.getCallId() + " for accepted incoming");
 											});
 										}
 										callStateUpdate("accepted");
@@ -1775,6 +1774,7 @@
 											modalities : [ "Chat" ]
 										};
 										api.renderConversation(container.element, options).then(function(conversation) {
+											log.info("Incoming call '" + conversation.topic() + "': " + callId);
 											container.setConversation(conversation, callId, callerId);
 											container.show();
 											if (saved && conversation.isGroupConversation()) { // was saved
@@ -1782,10 +1782,10 @@
 												// P2P and new incoming conference will not work this way
 												// TODO two state.changed below for debug info only
 												conversation.selfParticipant.audio.state.changed(function listener(newValue, reason, oldValue) {
-													log(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+													log.debug("AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																+ " CONVERSATION state: " + conversation.state());
 													/*if (newValue === "Disconnected") {
-														log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+														log.trace("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 														if (oldValue === "Connected" || oldValue === "Connecting") {
 															conversation.selfParticipant.audio.state.changed.off(listener);
 															if (conversation.participantsCount() <= 0) {
@@ -1795,10 +1795,10 @@
 													}*/
 												});
 												conversation.selfParticipant.video.state.changed(function listener(newValue, reason, oldValue) {
-													log(">>> VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+													log.debug("VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																+ " CONVERSATION state: " + conversation.state());
 													/*if (newValue === "Disconnected") {
-														log("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+														log.trace("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 														if (oldValue === "Connected" || oldValue === "Connecting") {
 															conversation.selfParticipant.video.state.changed.off(listener);
 															if (conversation.participantsCount() <= 0) {
@@ -1809,25 +1809,25 @@
 												});
 												// When conversation was accepted previously, we just start modality on it
 												conversation.videoService.start().then(function() {
-													log(">>> Incoming (saved) VIDEO STARTED");
+													log.debug("Incoming (saved) VIDEO STARTED");
 													accept.resolve("video");
 												}, function(videoError) {
 													// error starting videoService, cancel (by this user) also will go here
-													log("<<< Error starting incoming (saved) VIDEO: " + JSON.stringify(videoError));
+													log.warn("Failed to start incoming (saved) VIDEO for: " + callId, videoError);
 													if (isModalityUnsupported(videoError)) {
 														// ok, try audio
 														conversation.audioService.start().then(function() {
-															log(">>> Incoming (saved) AUDIO STARTED");
+															log.debug("Incoming (saved) AUDIO STARTED");
 															accept.resolve("audio");
 														}, function(audioError) {
-															log("<<< Error starting incoming (saved) AUDIO: " + JSON.stringify(audioError));
+															log.warn("Failed to start incoming (saved) AUDIO for: " + callId, audioError);
 															if (isModalityUnsupported(audioError)) {
 																// well, it will be chat (it should work everywhere)
 																conversation.chatService.start().then(function() {
-																	log(">>> Incoming (saved) CHAT STARTED ");
+																	log.debug("Incoming (saved) CHAT STARTED ");
 																	accept.resolve("chat");
 																}, function(chatError) {
-																	log("<<< Error starting incoming (saved) CHAT: " + JSON.stringify(chatError));
+																	log.warn("Failed to start CHAT for incoming (saved): " + callId, chatError);
 																	// we deal with original error
 																	accept.reject(videoError);
 																});
@@ -1843,26 +1843,27 @@
 												// TODO check this working in FF where no video/audio supported
 												conversation.selfParticipant.video.state.changed(function listener(newValue, reason, oldValue) {
 													// 'Notified' indicates that there is an incoming call
-													log(">>> VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+													log.debug("VIDEO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																+ " CONVERSATION state: " + conversation.state());
 													if (newValue === "Notified") {
 														// TODO in case of video error, but audio or chat success - show a hint message to an user and auto-hide it
-														log(">>> Incoming VIDEO ACCEPTING Notified");
+														log.trace("Incoming VIDEO ACCEPTING Notified");
 														conversation.videoService.accept().then(function() {
-															log(">>> Incoming VIDEO ACCEPTED");
+															log.debug("Incoming VIDEO ACCEPTED");
 															accept.resolve("video");
 														}, function(videoError) {
 															// error starting videoService, cancel (by this user) also will go here
-															log("<<< Error accepting video: " + JSON.stringify(videoError));
+															log.warn("Failed to accept video for: " + callId, videoError);
 															if (!isModalityUnsupported(videoError)) {
 																accept.reject(videoError);
 															}
 														});
 													} else if (newValue === "Disconnected") {
-														log("<<< VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+														log.debug("VIDEO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 														if (oldValue === "Connected" || oldValue === "Connecting") {
 															conversation.selfParticipant.video.state.changed.off(listener);
 															if (reason && typeof reason === "string" && reason.indexOf("PluginUninited") >= 0) {
+																log.error("Skype plugin not initialized");
 																webConferencing.showError("Skype Plugin Not Initialized", 
 																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
 															}
@@ -1870,24 +1871,25 @@
 													}
 												});
 												conversation.selfParticipant.audio.state.changed(function listener(newValue, reason, oldValue) {
-													log(">>> AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+													log.debug("AUDIO state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																+ " CONVERSATION state: " + conversation.state());
 													if (newValue === "Notified") {
-														log(">>> Incoming AUDIO ACCEPTING Notified");
+														log.trace("Incoming AUDIO ACCEPTING Notified");
 														conversation.audioService.accept().then(function() {
-															log(">>> Incoming AUDIO ACCEPTED");
+															log.debug("Incoming AUDIO ACCEPTED");
 															accept.resolve("audio");
 														}, function(audioError) {
-															log("<<< Error accepting audio: " + JSON.stringify(audioError));
+															log.warb("Error accepting audio for: " + callId, audioError);
 															if (!isModalityUnsupported(audioError)) {
 																accept.reject(audioError);
 															}
 														});
 													} else if (newValue === "Disconnected") {
-														log("<<< AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+														log.debug("AUDIO disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 														if (oldValue === "Connected" || oldValue === "Connecting") {
 															conversation.selfParticipant.audio.state.changed.off(listener);
 															if (reason && typeof reason === "string" && reason.indexOf("PluginUninited") >= 0) {
+																log.error("Skype plugin not initialized");
 																webConferencing.showError("Skype Plugin Not Initialized", 
 																			"Please install <a href='https://support.skype.com/en/faq/FA12316/what-is-the-skype-web-plugin-and-how-do-i-install-it'>Skype web plugin</a> to make calls.");
 															}
@@ -1895,20 +1897,20 @@
 													}
 												});
 												conversation.selfParticipant.chat.state.changed(function listener(newValue, reason, oldValue) {
-													log(">>> CHAT state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
+													log.debug("CHAT state changed " + callId + ": " + oldValue + "->" + newValue + " reason:" + reason
 																+ " CONVERSATION state: " + conversation.state());
 													if (newValue === "Notified") {
 														conversation.chatService.accept().then(function() {
-															log(">>> Incoming CHAT ACCEPTED");
+															log.trace("Incoming CHAT ACCEPTED");
 															accept.resolve("chat");
 														}, function(chatError) {
-															log("<<< Error accepting chat: " + JSON.stringify(chatError));
+															log.warn("Error accepting chat for: " + callId, chatError);
 															if (!isModalityUnsupported(chatError)) {
 																accept.reject(chatError);
 															}
 														});
 													} else if (newValue === "Disconnected") {
-														log("<<< CHAT disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
+														log.debug("CHAT disconnected for call " + callId + " CONVERSATION state: " + conversation.state());
 														if (oldValue === "Connected" || oldValue === "Connecting") {
 															conversation.selfParticipant.chat.state.changed.off(listener);
 														}
@@ -1918,20 +1920,22 @@
 										}, function(err) {
 											// error rendering Conversation Control
 											if (err.name && err.message) {
-												log("<<< conversation rendering error: " + err.name + " " + err.message, err);
+												log.error("Conversation rendering error: " + err.name + " " + err.message, err);
 												webConferencing.showError(err.name, err.message);
 											} else {
-												log("<<< conversation rendering error: " + JSON.stringify(err));
+												log.error("Conversation rendering error", err);
 											}
 											container.hide();
 											accept.reject("conversation error");
 										});
 									} else {
-										accept.reject("UI container not found");
+										var msg = "UI container not found";
+										log.error(msg);
+										accept.reject(msg);
 									}
 								});
 								popover.fail(function(err) {
-									log("<<< user " + err + " call " + callId);
+									log.info("User " + err + " call: " + callId);
 									accept.reject(err);
 								});
 								popover.always(function() {
@@ -1939,7 +1943,7 @@
 										var thisAccept = accept;
 										setTimeout(function() {
 											if (thisAccept.state() == "pending") {
-												log(">>> accept STILL pending - reject it");
+												log.trace(">>> accept STILL pending - reject it");
 												// if in 15sec no one conversation service was accepted, we reject it
 												try {
 													thisAccept.reject("timeout");															
@@ -1955,9 +1959,9 @@
 								// User already running this call (this may happen if remote initiator leaved and joined again)
 								accept.resolve();
 							} else {
-								//log(">>> Get registered " + callId + " > " + new Date().getTime());
+								//log.trace(">>> Get registered " + callId + " > " + new Date().getTime());
 								webConferencing.getCall(callId).done(function(call) {
-									log(">>> Got registered " + callId + " > " + new Date().getTime());
+									log.trace(">>> Got registered " + callId);
 									callerId = call.owner.id;
 									callerLink = call.ownerLink;
 									callerAvatar = call.avatarLink;
@@ -1971,12 +1975,12 @@
 											if (room) {
 												callerRoom = room.user;
 											} else {
-												log("WARN Chat room not found for space " + callerId);
+												log.warn("Chat room not found for space " + callerId);
 												callerRoom = null;
 											}
 											callStateUpdate("incoming");
-										}).fail(function(err, status) {
-											log("Error requesting Chat's getRoom() [" + status + "] ", error);
+										}).fail(function(err) {
+											log.error("Failed to request Chat room: " + callerId + " for " + callId, err);
 										});
 									} else {
 										// we assume: else if (callerType == "chat_room" || callerType == "user") 
@@ -1984,8 +1988,8 @@
 										callStateUpdate("incoming");
 									}
 									showCallPopover();
-								}).fail(function(err, status) {
-									log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
+								}).fail(function(err) {
+									log.error("Failed to get call info for: " + callId, err);
 									if (err) {
 										if (err.code == "NOT_FOUND_ERROR" || (typeof status == "number" && status == 404)) {
 											// Call not registered, we treat it as a call started outside Video Calls
@@ -2025,21 +2029,21 @@
 						acceptCall();
 					} else {
 						conversation.videoService.accept.enabled.when(true, function() {
-							log(">> videoService ACCEPT: " + callId);
+							log.debug("videoService ACCEPT: " + callId);
 							acceptCall().fail(function(err) {
 								conversation.videoService.reject();
-								log("<< videoService REJECTED " + callId + ": " + err);
+								log.debug("videoService REJECTED " + callId + ": " + err);
 							});
 						});
 						conversation.audioService.accept.enabled.when(true, function() {
-							log(">> audioService ACCEPT: " + callId);
+							log.debug("audioService ACCEPT: " + callId);
 							acceptCall().fail(function(err) {
 								conversation.audioService.reject();
-								log("<< audioService REJECTED " + callId + ": " + err);
+								log.debug("audioService REJECTED " + callId + ": " + err);
 							});
 						});
 						conversation.chatService.accept.enabled.when(true, function() {
-							log(">> chatService ACCEPT: " + callId);
+							log.debug("chatService ACCEPT: " + callId);
 							// TODO chat needs specific handling
 						});
 						// TODO audioPhoneService accept?
@@ -2055,7 +2059,7 @@
 					});
 					app.conversationsManager.conversations.added(function(conversation, key, index) {
 						var state = conversation.state();
-						log(">>> " + state + " (added) " + getCallId(conversation));
+						log.debug(state + " (added) call: " + getCallId(conversation));
 						logConversation(conversation, key, index);
 						if (state == "Incoming") {
 							handleIncoming(conversation);
@@ -2065,14 +2069,14 @@
 								// Update call ID as it will change after first Connecting
 								var callId = getCallId(conversation);
 								if (!hasJoinedCall(callId)) { //  (container.isVisible() && callId != container.getCallId())
-									log(">>> Created (added) > Incoming " + callId);
+									log.debug("Created (added) incoming call: " + callId);
 									setTimeout(function() {
 										// We let some time to Incoming listener below in user updates polling
 										var localCall = getLocalCall(callId);
 										handleIncoming(conversation, localCall ? localCall.saved : false);										
 									}, 250);
 								} else {
-									log(">>> Created (added) < Incoming already handled " + callId);
+									log.debug("Created (added) incoming already handled: " + callId);
 								}
 							});
 						}
@@ -2087,7 +2091,7 @@
 										// Need leave this user from the call, if it's last user there the call will be stopped, 
 										// if not - then user still able to join it manually
 										webConferencing.updateUserCall(call.id, "leaved").fail(function(err, status) {
-											log("<<< Error leaving user group call: " + call.id + ". " + JSON.stringify(err) + " [" + status + "]");
+											log.error("Failed to leave group call: " + call.id, err);
 										});
 										return true;			
 									}
@@ -2124,8 +2128,8 @@
 												type : call.owner.type,
 												chatRoom : room ? room.user : null
 											});
-										}).fail(function(err, status) {
-											log("Error requesting Chat's getRoom() [" + status + "] ", error);
+										}).fail(function(err) {
+											log.error("Failed to request Chat room: " + call.owner.id + " for: " + callId, err);
 										});
 									} else {
 										// we assume: else if (callerType == "chat_room" || callerType == "user")
@@ -2135,19 +2139,20 @@
 											chatRoom : call.owner.id
 										});
 									}
-								}).fail(function(err, status) {
-									log(">>> Call info error: " + JSON.stringify(err) + " (" + status + ")");
+								}).fail(function(err) {
+									log.error("Failed to get call info: " + callId, err);
 								});
 							}
 						}
-						log(">>> User's registered group calls: " + JSON.stringify(list));
+						//log.trace(">>> User's registered group calls: " + JSON.stringify(list));
 						var userId = webConferencing.getUser().id;
-						webConferencing.onUserUpdate(userId, function(update, status) {
+						webConferencing.onUserUpdate(userId, function(update) {
 							if (update.providerType == self.getType()) {
 								if (update.eventType == "call_state") {
-									log(">>> User call state updated: " + JSON.stringify(update) + " [" + status + "]");
+									log.trace("User call state updated: " + JSON.stringify(update));
 									// Ignore remote P2P calls start, SDK will fire them via added conversation
 									if (update.callState == "started" && update.owner.type != "user") {
+										log.info("Incoming call: " + update.callId);
 										var conversation = app.conversationsManager.getConversationByUri(update.callId.substring(2));
 										if (conversation) {
 											logConversation(conversation);
@@ -2155,10 +2160,10 @@
 											// Created - for restored saved, Conferenced - not happens, but if will, it has the same meaning
 											// Disconnected - for previously conferenced on this page
 											if (state == "Disconnected" || state == "Conferenced") {
-												log(">>>> Incoming (saved) existing " + update.callId);
+												log.debug("Incoming (saved) existing: " + update.callId);
 												handleIncoming(conversation, true);
 											} else if (state == "Created") {
-												log(">>>> Incoming (saved) created " + update.callId);
+												log.debug("Incoming (saved) created: " + update.callId);
 												// Created (from above getConversationByUri()) may quickly become Incoming by SDK logic for new group calls,
 												// thus let the SDK work and if not yet incoming, proceed with it
 												var handle = setTimeout(function() {
@@ -2173,21 +2178,22 @@
 													clearTimeout(handle);
 												});
 											} else if (state == "Incoming") {
-												log("<<<< User call " + update.callId + " state Incoming skipped, will be handled in added listener");
+												log.debug("User call " + update.callId + " state Incoming skipped, will be handled in added listener");
 											} else {
-												log("<<<< User call " + update.callId + " not active (" + state + ")");
+												log.warn("User call " + update.callId + " not active (" + state + ")");
 											}
 										} else {
-											log("<<<< User call " + update.callId + " not found in conversation manager");
+											log.warn("User call " + update.callId + " not found in conversation manager");
 										}
 									} else if (update.callState == "stopped") {
+										log.info("Call stopped remotelly: " + update.callId);
 										// Hide accept popover for this call
 										closeCallPopup(update.callId);
 										var localCall = getLocalCall(update.callId);
 										if (localCall && canJoin(localCall) && localCall.conversation) {
 											// We leave if something running
 											localCall.conversation.leave().then(function() {
-												log("<<< Current conversation stopped and leaved " + container.getCallId());
+												log.info("Current conversation stopped and leaved " + container.getCallId());
 											});
 											// And save the call as stopped with firing UI updates
 											// Nov 28 2017, code below moved in this if-block from being after it
@@ -2208,8 +2214,8 @@
 												// Find room ID for space calls in Chat
 												webConferencing.getChat().getRoom(update.owner.id, "space-name").done(function(room) {
 													callStopped(room ? room.user : null);
-												}).fail(function(err, status) {
-													log("Error requesting Chat's getRoom() [" + status + "] ", error);
+												}).fail(function(err) {
+													log.error("Failed to request Chat room: " + update.owner.id + " for: " + update.callId, err);
 												});
 											} else {
 												// we assume: else if (callerType == "chat_room" || callerType == "user") 
@@ -2218,7 +2224,7 @@
 										}
 									}
 								} else if (update.eventType == "call_joined") {
-									log(">>> User call joined: " + JSON.stringify(update) + " [" + status + "]");
+									log.info("User call joined: " + update.callId);
 									if ($callPopup && $callPopup.callId && $callPopup.callId == update.callId && userId == update.part.id) {
 										if ($callPopup.is(":visible")) {
 											$callPopup.dialog("close");
@@ -2227,23 +2233,22 @@
 								} else if (update.eventType == "call_leaved") {
 									// TODO not used
 								} else if (update.eventType == "retry") {
-									log("<<< Retry for user updates [" + status + "]");
+									log.trace("<<< Retry for user updates");
 								} else {
-									log("<<< Unexpected user update: " + JSON.stringify(update) + " [" + status + "]");
+									log.warn("Unexpected user update: " + JSON.stringify(update));
 								}
 							} // it's other provider type
 						}, function(err) {
-							// Error handler
-							log(err);
+							log.error("Failed to listen on user updates", err);
 						});
-					}).fail(function(err, status) {
-						log("<<< Error getting user group calls: " + JSON.stringify(err) + " [" + status + "]");
+					}).fail(function(err) {
+						log.error("Failed to get user group calls", err);
 					});
 				}).fail(function() {
 					if (container) {
 						container.init();
 						container.$element.append($("<div><div class='pluginError'>Please install Skype web plugin.</div></div>"));
-					} // else, user already notified in pnotify warning
+					} // else, user already warned in checkPlugin()
 				});
 			};
 			
@@ -2307,10 +2312,10 @@
 				var process = $.Deferred();
 				var $settings = $("div.uiMssfbSettings");
 				$settings.remove();
-				$settings = $("<div class='uiMssfbSettings' title='" + provider.getTitle() + " settings'></div>");
+				$settings = $("<div class='uiMssfbSettings' title='" + self.getTitle() + " settings'></div>");
 				$(document.body).append($settings);
 				$settings.append($("<p><span class='ui-icon messageIcon ui-icon-gear' style='float:left; margin:12px 12px 20px 0;'></span>" +
-					"<div class='messageText'>Login in to your " + provider.getTitle() + " account.</div></p>"));
+					"<div class='messageText'>Login in to your " + self.getTitle() + " account.</div></p>"));
 				$settings.dialog({
 				  resizable: false,
 				  height: "auto",
@@ -2320,7 +2325,7 @@
 						"Login": function() {
 							loginWindow();
 							// this method will be available at eXo.webConferencing.mssfb on a call page
-							provider.loginToken = function(token) {
+							self.loginToken = function(token) {
 								var user;
 								if (mssfbId) {
 									user = webConferencing.getUser();
@@ -2373,10 +2378,10 @@
 				var process = $.Deferred();
 				var $settings = $("div.uiMssfbSettings");
 				$settings.remove();
-				$settings = $("<div class='uiMssfbSettings' title='" + provider.getTitle() + " settings'></div>");
+				$settings = $("<div class='uiMssfbSettings' title='" + self.getTitle() + " settings'></div>");
 				$(document.body).append($settings);
 				$settings.append($("<p><span class='ui-icon messageIcon ui-icon-gear' style='float:left; margin:12px 12px 20px 0;'></span>" +
-					"<div class='messageText'>Forget your " + provider.getTitle() 
+					"<div class='messageText'>Forget your " + self.getTitle() 
 					+ " access token. A new token can be aquired later by doing login in user profile or by making an outgoing call.</div></p>"));
 				$settings.dialog({
 					resizable: false,
@@ -2416,7 +2421,7 @@
 				var $popoverContainer = $("<div class='gotPosition' style='position: relative; display:block'></div>");
 				$popoverContainer.append("<div class='popover bottom popupOverContent' style='display: none;'>"
 							+ "<span class='arrow'></span>"
-							+ "<div class='popover-content'>" + provider.getTitle() 
+							+ "<div class='popover-content'>" + self.getTitle() 
 								+ " authorization required. Click this icon to open sign-in window.</div>"
 							+ "</div>");
 				$button.append($popoverContainer);
@@ -2465,7 +2470,7 @@
 					var $popoverContainer = $("<div class='gotPosition' style='position: relative; display:block'></div>");
 					$popoverContainer.append("<div class='popover bottom popupOverContent' style='display: none;'>"
 								+ "<span class='arrow'></span>"
-								+ "<div class='popover-content'>This account will be used for " + provider.getTitle() + " calls.</div>"
+								+ "<div class='popover-content'>This account will be used for " + self.getTitle() + " calls.</div>"
 								+ "</div>");
 					$button.append($popoverContainer);
 					var $popover = $popoverContainer.find(".popupOverContent:first");
@@ -2496,7 +2501,7 @@
 			};
 			
 			this.init = function(context) {
-				//log("Init at " + location.origin + location.pathname);
+				//log.trace("Init at " + location.origin + location.pathname);
 				var process = $.Deferred();
 				if (window.location.pathname.startsWith("/portal/") && window.location.pathname.indexOf("/edit-profile/") > 0) {
 					// in user profile edit page 
@@ -2631,7 +2636,7 @@
 									var m = mutations[i];
 									if (m.type == "childList") {
 										//var $node = $(m.target);
-										//log(">> observed: " + $node.attr("class"));
+										//log.trace(">> observed: " + $node.attr("class"));
 										for (var i = 0; i < m.addedNodes.length; i++) {
 										  var $node = $(m.addedNodes[i]);
 										  if ($node.hasClass("controls-row")) {
@@ -2653,7 +2658,7 @@
 							});
 						}, 1000);
 					} else {
-						log("WARN UIEditUserProfileForm not found");
+						log.warn("Cannot init IM settings: UIEditUserProfileForm not found");
 					}
 				} else if (webConferencing.getChat().isApplication()) {
 					// we are in the Chat, chatApplication is a global on chat app page
@@ -2680,16 +2685,16 @@
 											var cstate = c.state();
 											if (cstate == "Connecting" || cstate == "Connected") {
 												c.leave().then(function() {
-													log("<<< leaved call " + getCallId(c));
+													log.debug("Leaved call: " + getCallId(c));
 												}, function(err) {
-													log("<<< error leaving call " + getCallId(c) + " " + JSON.stringify(err));
+													log.error("Failed to leave call: " + getCallId(c), err);
 												});
 											} else if (cstate == "Conferencing" || cstate == "Conferenced") {
 												var pcount = c.participantsCount();
 												c.leave().then(function() {
-													log("<<< leaved conference call " + getCallId(c) + " parts: " + pcount + "->" + c.participantsCount());
+													log.debug("Leaved conference call: " + getCallId(c) + " parts: " + pcount + "->" + c.participantsCount());
 												}, function(err) {
-													log("<<< error leaving conference call " + getCallId(c) + " " + JSON.stringify(err));
+													log.error("Failed to leave conference call: " + getCallId(c), err);
 												});
 												// TODO it is a better way to close the call?
 												/*c.activeModalities.video.when(true, function() {
@@ -2725,7 +2730,6 @@
 									}
 									$container.show();
 									setTimeout(function() {
-										//log(">>> aligned call container in chats");
 										$(window).resize();
 									}, 1500);
 								});
@@ -2765,14 +2769,14 @@
 												if (container.isAttached()) {
 													if (forceDetach || roomId != joinedCall.peer.chatRoom) {
 														// move call container to the window top-center with smaller size
-														//log(">>> room not of the call < " + roomTitle);
+														//log.trace(">>> room not of the call < " + roomTitle);
 														alignWindowMiniCallContainer($container);
 														container.detached();
 													} // else, do nothing
 												} else {
 													if (roomId == joinedCall.peer.chatRoom) {
 														// move call container to the current room chats size
-														//log(">>> room of the call > " + roomTitle);
+														//log.trace(">>> room of the call > " + roomTitle);
 														alignChatsCallContainer($chats, $container);
 														container.attached();
 													} // else, do nothing
@@ -2853,7 +2857,7 @@
 									return joinedCall ? callRef == joinedCall.peer.id || callRef == joinedCall.peer.chatRoom : false;
 								};
 								callUpdate = function(info) {
-									log(">>> callUpdate: [" + info.state + "] " + (info.saved ? "[saved]" : "") + " " + info.callId + " peer: " + JSON.stringify(info.peer));
+									log.trace(">>> callUpdate: [" + info.state + "] " + (info.saved ? "[saved]" : "") + " " + info.callId + " peer: " + JSON.stringify(info.peer));
 									if (info.state) {
 										// 'started' and 'stopped' can be remote (saved) events for group calls, 
 										// when an one initiated and when last part leaved respectively 
@@ -2962,30 +2966,31 @@
 											}
 											markRoomActive(info.peer.chatRoom);
 										} else {
-											log("<<< Unexpected call update status: " + JSON.stringify(info));
+											log.warn("Unexpected call update status: " + JSON.stringify(info));
 										}
 									} else if (info.error) {
-										log("<<< Call update error: " + JSON.stringify(info));
+										log.error("Failed to update call: " + info.error);
 									}
 								};
 								initializer.done(function(api, app) {
-									log("Automatic login done.");
+									log.debug("Automatic login done.");
 									incomingCallHandler(api, app, container);
 								});
 								initializer.fail(function(err) {
 									// need login user explicitly (in a popup)
-									log("Automatic login failed: " + err);
+									log.warn("Automatic login failed", err);
 									var $roomDetail = $chat.find("#room-detail");
 									var userLogin = function() {
 										loginWindow();
-										provider.loginToken = function(token) {
+										self.loginToken = function(token) {
 											var callback = loginTokenHandler(token);
 											callback.done(function(api, app) {
-												log("User login done.");
+												log.info("User login done.");
 												incomingCallHandler(api, app, container);
 											});
 											callback.fail(function(err) {
-												webConferencing.showError(provider.getTitle() + " error", "Unable sign in your " + provider.getTitle() + " account. " + err);
+												log.error("User login failed", err);
+												webConferencing.showError(self.getTitle() + " error", "Unable sign in your " + self.getTitle() + " account. " + err);
 											});
 											return callback.promise();
 										}
@@ -3005,8 +3010,8 @@
 											} else {
 												// TODO this code never works (see wait flag above)
 												var loginLinkId = "SfB_login_" + Math.floor((Math.random() * 1000) + 1);
-												webConferencing.showWarn("Authorize in " + provider.getTitle(), "Please <a id='" + loginLinkId + "' href='#' class='pnotifyTextLink'>authorize</a> in your " +
-														provider.getTitle() + " account to make you available.", function(pnotify) {
+												webConferencing.showWarn("Authorize in " + self.getTitle(), "Please <a id='" + loginLinkId + "' href='#' class='pnotifyTextLink'>authorize</a> in your " +
+														self.getTitle() + " account to make you available.", function(pnotify) {
 													$(pnotify.container).find("#" + loginLinkId).click(function() {
 														userLogin();
 													});
@@ -3036,11 +3041,11 @@
 									addLoginWarn(true);
 								});
 							} else {
-								log("Cannot find #chats element for calls container");
+								log.warn("Cannot init Chat for calls container: #chats element not found");
 							} 
 						} // else, current user has not SfB - nothing to initialize
 					} else {
-						log("Chat application element not found.");
+						log.warn("Chat application element not found.");
 					}
 				} else if (false && window.location.pathname.startsWith("/portal/")) {
 					// TODO temporarily not used logic
@@ -3050,26 +3055,26 @@
 						if (savedToken) {
 							try {
 								var token = JSON.parse(savedToken);
-								var appInitializer = provider.application(loginUri, function(resource) {
+								var appInitializer = self.application(loginUri, function(resource) {
 									return token.token_type + " " + token.access_token;
 								});
 								appInitializer.done(function(api, app) {
 									// TODO re-save token?
-								  log("Login OK (saved), app created OK, token: " + location.hash);
+								  log.info("Login OK (saved), app created OK, token: " + location.hash);
 								});
 								appInitializer.fail(function(err) {
-									log("Login (saved) error: " + JSON.stringify(err));
+									log.error("Login (saved) error", err);
 									localStorage.removeItem(TOKEN_STORE);
 								});
 							} catch(e) {
-								log("Login (saved) parsing error: " + e, e);
+								log.error("Login (saved) parsing error: " + e, e);
 							}
 						} else {
-							log("Login (saved) not possible: access token not found in local storage.");
+							log.warn("Login (saved) not possible: access token not found in local storage.");
 						}
 					} else {
 					  // Sorry! No Web Storage support..
-						log("Error reading access token: local storage not supported.");
+						log.warn("Cannot read access token: local storage not supported.");
 					}
 				} // else, it's also may be a call page - do we need something here?
 				process.resolve();
@@ -3083,7 +3088,7 @@
 		if (globalWebConferencing) {
 			globalWebConferencing.mssfb = provider;
 		} else {
-			log("eXo.webConferencing not defined");
+			log.warn("eXo.webConferencing not defined");
 		}
 		
 		$(function() {
@@ -3095,11 +3100,11 @@
 					webConferencing.loadStyle("/skype/skin/skype-mssfb-enterprise.css");	
 				}
 			} catch(e) {
-				log("Error loading Skype Call styles (for SfB).", e);
+				log.error("Error loading styles (for SfB).", e);
 			}
 		});
 
-		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
+		log.trace("< Loaded at " + location.origin + location.pathname);
 		
 		return provider;
 	} else {

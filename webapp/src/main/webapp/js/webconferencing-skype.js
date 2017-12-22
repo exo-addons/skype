@@ -14,13 +14,10 @@
 
 	if (webConferencing) {
 
-		/** For debug logging. */
-		var objId = Math.floor((Math.random() * 1000) + 1);
-		var logPrefix = "[skype_" + objId + "] ";
-		var log = function(msg, e) {
-			webConferencing.log(msg, e, logPrefix);
-		};
-		//log("> Loading at " + location.origin + location.pathname);
+	// Start with default logger, later in configure() we'll get it for the provider.
+		// We know it's skype here, but mark with asterisk as not yet configured.
+		var log = webConferencing.getLog("skype");
+		//log.trace("> Loading at " + location.origin + location.pathname);
 
 		function SkypeProvider() {
 			var NON_WHITESPACE_PATTERN = /\s+/;
@@ -49,12 +46,6 @@
 				return "Call"; // TODO i18n
 			};
 			
-			this.getClientId = function() {
-				if (settings) {
-					return settings.clientId;
-				}
-			};
-
 			this.configure = function(skypeEnv) {
 				settings = skypeEnv;
 			};
@@ -138,22 +129,29 @@
 										var title = "Wrong Skype account" + s;
 										var message = "Following user " + s + " " + have + " wrong Skype account: " + 
 											userNames + ". " + who + " not added to the call.";
-										log(title, message);
+										log.warn(title, message);
 										webConferencing.noticeWarn(title, message);
 									}
 								});
 								button.resolve($button);
 							} else {
-								button.reject("No " + self.getTitle() + " users found");
+								var msg = "No " + self.getTitle() + " users found for " + target.id;
+								log.debug(msg);
+								button.reject(msg);
 							}
 						}).fail(function(err) {
+							log.error("Failed to get context details", err);
 							button.reject("Error getting context details for " + self.getTitle() + ": " + err);
 						});
 					} else {
-						button.reject("Not Skype user");
+						var msg = "Not Skype user " + context.currentUser.id;
+						log.debug(msg);
+						button.reject(msg);
 					}
 				} else {
-					button.reject("Not configured or empty context for " + self.getTitle());
+					var msg = "Not configured or empty context for " + self.getTitle();
+					log.error(msg);
+					button.reject(msg);
 				}
 				return button.promise();
 			}
@@ -165,7 +163,7 @@
 		if (globalWebConferencing) {
 			globalWebConferencing.skype = provider;
 		} else {
-			log("eXo.webConferencing not defined");
+			log.warn("eXo.webConferencing not defined");
 		}
 		
 		$(function() {
@@ -173,11 +171,11 @@
 				// XXX workaround to load CSS until gatein-resources.xml's portlet-skin will be able to load after the Enterprise skin
 				webConferencing.loadStyle("/skype/skin/skype.css");
 			} catch(e) {
-				log("Error loading Skype Call styles.", e);
+				log.error("Error loading Skype Call styles.", e);
 			}
 		});
 
-		log("< Loaded at " + location.origin + location.pathname + " -- " + new Date().toLocaleString());
+		log.trace("< Loaded at " + location.origin + location.pathname);
 		
 		return provider;
 	} else {
