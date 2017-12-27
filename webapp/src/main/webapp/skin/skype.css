@@ -1,10 +1,9 @@
 /* Styles for Skype provider */
-.uiIconSocSkype:before, .uiIconSkypeCall:before {
-	content: url("/skype/skin/icons/skypeicon_14px.png") !important;
-	/*font-family: "PLF-FONT-ICONS";
-	content: "\f23f";*/
+
+.uiIconSocSkype, .uiIconSocSkype:hover {
+	color: #12A5F4;
 }
 
-.uiIconSkypeCall {
-	vertical-align: text-bottom;
+.uiIconSocSkype:before, .uiIconSkypeCall:before {
+	content: "\ebaf";
 }

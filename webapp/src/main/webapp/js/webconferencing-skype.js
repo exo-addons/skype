@@ -106,7 +106,7 @@
 								}
 								var $button = $("<a id='" + linkId + "' title='" + target.title + "' href='" + link
 											+ "' class='skypeCallAction'>"
-											+ "<i class='uiIconSkypeCall uiIconForum uiIconLightGray'></i>"
+											+ "<i class='uiIconSkypeCall uiIconLightGray'></i>"
 											+ "<span class='callTitle'>" + self.getCallTitle() + "</span></a>");
 								setTimeout(function() {
 									if (!$button.hasClass("btn")) {
