@@ -1,12 +1,11 @@
 /* Styles for Skype/SfB provider */
-.uiIconSocMssfb:before, .uiIconMssfbCall:before {
-	content: url("/skype/skin/icons/sfbicon_14px.png") !important;
-	/*font-family: "PLF-FONT-ICONS";
-	content: "\f23e";*/
+
+.uiIconSocMssfb, .uiIconSocMssfb:hover {
+	color: #12A5F4;
 }
 
-.uiIconMssfbCall {
-	vertical-align: text-bottom;
+.uiIconSocMssfb:before, .uiIconMssfbCall:before {
+	content: "\ebb0";
 }
 
 .uiMssfbSettings, .uiMssfbSettings>p, .uiMssfbSettings .ui-icon, .uiMssfbSettings .messageText {

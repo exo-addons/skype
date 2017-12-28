@@ -1382,7 +1382,7 @@
 								var disabledClass = hasJoinedCall(targetId) ? "callDisabled" : "";
 								var $button = $("<a title='" + fullTitle + "' href='javascript:void(0);' class='mssfbCallAction "
 											+ disabledClass + "'>"
-											+ "<i class='uiIconMssfbCall uiIconForum uiIconLightGray'></i>"
+											+ "<i class='uiIconMssfbCall uiIconLightGray'></i>"
 											+ "<span class='callTitle'>" + title + "</span></a>");
 								setTimeout(function() {
 									if (!$button.hasClass("btn")) {
