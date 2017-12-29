@@ -60,7 +60,6 @@ public class SkypeProvider extends CallProvider {
      * Instantiates a new skype settings.
      *
      * @param redirectUri the redirect uri
-     * @param version the version
      */
     protected SkypeSettings(String redirectUri) {
       this.redirectUri = redirectUri;
