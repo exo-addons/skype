@@ -1464,7 +1464,7 @@
 													});
 													callback.fail(function(err) {
 														log.error("User login failed", err);
-														webConferencing.showError(self.getTitle() + " error", "Unable sign in your " + self.getTitle() + " account. " + err);
+														webConferencing.showError(self.getTitle() + " error", "Unable sign in your " + self.getTitle() + " account. " + webConferencing.errorText(err));
 													});
 													return callback.promise();
 												};
@@ -1499,8 +1499,8 @@
 								button.reject(msg);
 							}
 						}).fail(function(err) {
-							log.error("Error starting a call", err);
-							button.reject("Error starting a call: " + err.message);
+							log.error("Error getting call details", err);
+							button.reject("Error getting call details", err);
 						});
 					} else {
 						var msg = "Not " + self.getTitle() + " user " + context.currentUser.id;
@@ -1649,14 +1649,14 @@
 						var joinedGroupCall = function() {
 							if (!joined) {
 								joined = true;
-								webConferencing.updateUserCall(callId, "joined").fail(function(err, status) {
+								webConferencing.updateUserCall(callId, "joined").fail(function(err) {
 									log.error("Failed to join group call: " + callId, err);
 								});
 							}
 						};
 						var leavedGroupCall = function() {
 							joined = false; // do this sooner
-							webConferencing.updateUserCall(callId, "leaved").fail(function(err, status) {
+							webConferencing.updateUserCall(callId, "leaved").fail(function(err) {
 								log.error("Failed to leave group call: " + callId, err);
 							});
 						};
@@ -1995,7 +1995,7 @@
 											// Call not registered, we treat it as a call started outside Video Calls
 											showCallPopover();	
 										}	else {
-											accept.reject(err.message);
+											accept.reject(webConferencing.errorText(err));
 										}
 									} else {
 										accept.reject("call info error");
@@ -2032,14 +2032,14 @@
 							log.debug("videoService ACCEPT: " + callId);
 							acceptCall().fail(function(err) {
 								conversation.videoService.reject();
-								log.debug("videoService REJECTED " + callId + ": " + err);
+								log.debug("videoService REJECTED " + callId, err);
 							});
 						});
 						conversation.audioService.accept.enabled.when(true, function() {
 							log.debug("audioService ACCEPT: " + callId);
 							acceptCall().fail(function(err) {
 								conversation.audioService.reject();
-								log.debug("audioService REJECTED " + callId + ": " + err);
+								log.debug("audioService REJECTED " + callId, err);
 							});
 						});
 						conversation.chatService.accept.enabled.when(true, function() {
@@ -2090,7 +2090,7 @@
 									if (part.id == webConferencing.getUser().id && part.state == "joined") {
 										// Need leave this user from the call, if it's last user there the call will be stopped, 
 										// if not - then user still able to join it manually
-										webConferencing.updateUserCall(call.id, "leaved").fail(function(err, status) {
+										webConferencing.updateUserCall(call.id, "leaved").fail(function(err) {
 											log.error("Failed to leave group call: " + call.id, err);
 										});
 										return true;			

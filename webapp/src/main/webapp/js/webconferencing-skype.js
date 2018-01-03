@@ -141,7 +141,7 @@
 							}
 						}).fail(function(err) {
 							log.error("Failed to get context details", err);
-							button.reject("Error getting context details for " + self.getTitle() + ": " + err);
+							button.reject("Error getting context details for " + self.getTitle(), err);
 						});
 					} else {
 						var msg = "Not Skype user " + context.currentUser.id;

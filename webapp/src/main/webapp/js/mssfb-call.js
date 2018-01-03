@@ -237,24 +237,24 @@ if (eXo.webConferencing) {
 												webConferencing.getSpaceInfo(targetId).done(function(space) {
 													var details = mssfb.readTargetDetails(currentUserSip, space);
 													startOutgoingCall(details);
-												}).fail(function(err, status) {
-													log.error("Space info request failure for " + targetId + ": " + err.code + " " + err.message, err);
-													showError("Space error", err.message);
+												}).fail(function(err) {
+													log.error("Space info request failure for " + targetId + ": " + webConferencing.errorCode(err) + " " + webConferencing.errorText(err), err);
+													showError("Space error", webConferencing.errorText(err));
 												});
 											} else if (targetType == "chat_room") {
 												webConferencing.getRoomInfo(targetId).done(function(room) {
 													var details = mssfb.readTargetDetails(currentUserSip, room);
 													startOutgoingCall(details);
-												}).fail(function(err, status) {
-													log.error(" Room info request failure for " + targetId + ": " + err.code + " " + err.message, err);
+												}).fail(function(err) {
+													log.error(" Room info request failure for " + targetId + ": " + webConferencing.errorCode(err) + " " + webConferencing.errorText(err), err);
 													showError("Chat room error", err.message);
 												});
 											} else if (targetType == "user") {
 												webConferencing.getUserInfo(targetId).done(function(user) {
 													var details = mssfb.readTargetDetails(currentUserSip, user);
 													startOutgoingCall(details);
-												}).fail(function(err, status) {
-													log.error("User info request failure for " + targetId + ": " + err.code + " " + err.message, err);
+												}).fail(function(err) {
+													log.error("User info request failure for " + targetId + ": " + webConferencing.errorCode(err) + " " + webConferencing.errorText(err), err);
 													showError("User error", err.message);
 												});
 											} else {
@@ -271,7 +271,7 @@ if (eXo.webConferencing) {
 								uiInitializer.fail(function(err) {
 									// TODO we have an error, check if it's auth problem, then force to login
 									log.error("SkypeCC app error", err);
-									showError("Application Error", err);
+									showError("Application Error", webConferencing.errorText(err));
 								});
 							}
 							if (hasError) {
@@ -325,7 +325,7 @@ if (eXo.webConferencing) {
 				});
 			}
 		}).fail(function(err) {
-			log.error("MSSFB provider not available for mssfb-call.js", err);
+			log.error("MSSFB provider not available for mssfb-call.js", webConferencing.errorText(err));
 		});
 		log.trace("< Loaded at " + location.origin + location.pathname);
 	})(eXo.webConferencing);
