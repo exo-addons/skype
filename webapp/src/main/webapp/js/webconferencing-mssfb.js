@@ -1529,7 +1529,6 @@
 					$call.remove();
 				}
 				$call = $("<div class='uiIncomingCall' title='" + self.getTitle() + " call'></div>");
-				//<span class='ui-icon messageIcon' style='float:left; margin:12px 12px 20px 0;'></span>
 				$call.append($("<div class='messageAuthor'><a target='_blank' href='" + callerLink + "' class='avatarMedium'>"
 					+ "<img src='" + callerAvatar + "'></a></div>"
 					+ "<div class='messageBody'><div class='messageText'>" + callerMessage + "</div></div>"));
@@ -1963,8 +1962,8 @@
 								webConferencing.getCall(callId).done(function(call) {
 									log.trace(">>> Got registered " + callId);
 									callerId = call.owner.id;
-									callerLink = call.ownerLink;
-									callerAvatar = call.avatarLink;
+									callerLink = call.owner.profileLink;
+									callerAvatar = call.owner.avatarLink;
 									callerType = call.owner.type;
 									if (call.owner.group) {
 										callerMessage = call.title + " conference call.";
