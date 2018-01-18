@@ -19,9 +19,9 @@
 package org.exoplatform.webconferencing.skype.portlet;
 
 import static org.exoplatform.webconferencing.Utils.asJSON;
+import static org.exoplatform.webconferencing.Utils.buildUrl;
 
 import java.io.IOException;
-import java.net.URI;
 
 import javax.portlet.GenericPortlet;
 import javax.portlet.PortletException;
@@ -75,7 +75,8 @@ public class SkypeBusinessProviderPortlet extends GenericPortlet {
     try {
       this.provider = (SkypeBusinessProvider) webConferencing.getProvider(SkypeBusinessProvider.SFB_TYPE);
     } catch (ClassCastException e) {
-      LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of " + SkypeBusinessProvider.class.getName(), e);
+      LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of " + SkypeBusinessProvider.class.getName(),
+                e);
     }
   }
 
@@ -86,15 +87,21 @@ public class SkypeBusinessProviderPortlet extends GenericPortlet {
   protected void doView(final RenderRequest request, final RenderResponse response) throws PortletException, IOException {
     if (this.provider != null) {
       try {
-        URI redirectURI = new URI(request.getScheme(), null, request.getServerName(), request.getServerPort(), "/portal/skype/call", null, null);
-        SkypeSettings settings = provider.settings().redirectURI(redirectURI.toString()).build();
+        SkypeSettings settings = provider.settings()
+                                         .redirectURI(buildUrl(request.getScheme(),
+                                                               request.getServerName(),
+                                                               request.getServerPort(),
+                                                               "/portal/skype/call"))
+                                         .build();
         String settingsJson = asJSON(settings);
 
         JavascriptManager js = ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
         js.require("SHARED/webConferencing", "webConferencing")
-          .addScripts("\nwindow.require(['SHARED/webConferencing_mssfb'], function(mssfbProvider) {" + "if (mssfbProvider) { mssfbProvider.configure("
-              + settingsJson + "); webConferencing.addProvider(mssfbProvider); webConferencing.update(); }" + "}, function(err) {"
-              + "console.log('Error creating Skype For Business provider. Error loading module: ' + JSON.stringify(err));" + "});");
+          .addScripts("\nwindow.require(['SHARED/webConferencing_mssfb'], function(mssfbProvider) {"
+              + "if (mssfbProvider) { mssfbProvider.configure(" + settingsJson
+              + "); webConferencing.addProvider(mssfbProvider); webConferencing.update(); }" + "}, function(err) {"
+              + "console.log('Error creating Skype For Business provider. Error loading module: ' + JSON.stringify(err));"
+              + "});");
       } catch (Exception e) {
         LOG.error("Error processing Skype Calls portlet for user " + request.getRemoteUser(), e);
       }

@@ -4,11 +4,11 @@
 package org.exoplatform.webconferencing.skype.server;
 
 import static org.exoplatform.webconferencing.Utils.asJSON;
+import static org.exoplatform.webconferencing.Utils.buildUrl;
 import static org.exoplatform.webconferencing.Utils.getCurrentContext;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -58,20 +58,17 @@ public class SkypeCallServlet extends AbstractHttpServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-    HttpServletRequest httpReq = (HttpServletRequest) req;
-    HttpServletResponse httpRes = (HttpServletResponse) resp;
-
-    Object redirectUri = httpReq.getAttribute(SkypeCallFilter.SKYPE_CALL_REDIRECT);
+    Object redirectUri = req.getAttribute(SkypeCallFilter.SKYPE_CALL_REDIRECT);
     if (redirectUri != null) {
       // Home page registered per app in Active Directory - redirect it to the portal default page
       String ruri = (String) redirectUri;
       if (ruri.length() > 0) {
-        httpRes.sendRedirect(ruri);
+        resp.sendRedirect(ruri);
       }
     } else {
-      httpRes.setContentType("text/html; charset=UTF-8");
+      resp.setContentType("text/html; charset=UTF-8");
 
-      String remoteUser = httpReq.getRemoteUser();
+      String remoteUser = req.getRemoteUser();
 
       ExoContainer container = getContainer();
       WebConferencingService webConferencing = container.getComponentInstanceOfType(WebConferencingService.class);
@@ -80,7 +77,8 @@ public class SkypeCallServlet extends AbstractHttpServlet {
         try {
           provider = (SkypeBusinessProvider) webConferencing.getProvider(SkypeBusinessProvider.SFB_TYPE);
         } catch (ClassCastException e) {
-          LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of " + SkypeBusinessProvider.class.getName(), e);
+          LOG.error("Provider " + SkypeBusinessProvider.SFB_TYPE + " isn't an instance of "
+              + SkypeBusinessProvider.class.getName(), e);
           provider = null;
         }
 
@@ -96,34 +94,31 @@ public class SkypeCallServlet extends AbstractHttpServlet {
             try {
               UserInfo exoUser = webConferencing.getUserInfo(remoteUser);
               if (exoUser != null) {
-                httpReq.setAttribute("userInfo", asJSON(exoUser));
+                req.setAttribute("userInfo", asJSON(exoUser));
 
-                String spaceId = httpReq.getParameter("space");
+                String spaceId = req.getParameter("space");
                 if (spaceId == null) {
                   spaceId = EMPTY_STRING;
                 }
-                String roomTitle = httpReq.getParameter("room");
+                String roomTitle = req.getParameter("room");
                 if (roomTitle == null) {
                   roomTitle = EMPTY_STRING;
                 }
                 ContextInfo context = getCurrentContext(remoteUser, req.getLocale());
-                httpReq.setAttribute("contextInfo", asJSON(context));
-
-                URI redirectURI = new URI(httpReq.getScheme(),
-                                          null,
-                                          httpReq.getServerName(),
-                                          httpReq.getServerPort(),
-                                          "/portal/skype/call",
-                                          null,
-                                          null);
-                SkypeSettings settings = provider.settings().redirectURI(redirectURI.toString()).build();
-                httpReq.setAttribute("settings", asJSON(settings));
+                req.setAttribute("contextInfo", asJSON(context));
+                SkypeSettings settings = provider.settings()
+                                                 .redirectURI(buildUrl(req.getScheme(),
+                                                                       req.getServerName(),
+                                                                       req.getServerPort(),
+                                                                       "/portal/skype/call"))
+                                                 .build();
+                req.setAttribute("settings", asJSON(settings));
 
                 // XXX nasty-nasty-nasty include of CometD script
-                httpReq.getRequestDispatcher("/WEB-INF/pages/call_part1.jsp").include(httpReq, httpRes);
-                ServletContext cometdContext = httpReq.getSession().getServletContext().getContext("/cometd");
-                cometdContext.getRequestDispatcher("/javascript/eXo/commons/commons-cometd3.js").include(httpReq, httpRes);
-                httpReq.getRequestDispatcher("/WEB-INF/pages/call_part2.jsp").include(httpReq, httpRes);
+                req.getRequestDispatcher("/WEB-INF/pages/call_part1.jsp").include(req, resp);
+                ServletContext cometdContext = req.getSession().getServletContext().getContext("/cometd");
+                cometdContext.getRequestDispatcher("/javascript/eXo/commons/commons-cometd3.js").include(req, resp);
+                req.getRequestDispatcher("/WEB-INF/pages/call_part2.jsp").include(req, resp);
 
                 // NOT USED: single JSP page
                 // httpReq.getRequestDispatcher(CALL_PAGE).include(httpReq, httpRes);
@@ -132,22 +127,22 @@ public class SkypeCallServlet extends AbstractHttpServlet {
               }
             } catch (Exception e) {
               LOG.error("Error processing Skype call page", e);
-              httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-              httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
+              resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+              req.getRequestDispatcher(SERVER_ERROR_PAGE).include(req, resp);
             }
           } else {
-            httpRes.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            httpReq.getRequestDispatcher(UNAUTHORIZED_PAGE).include(httpReq, httpRes);
+            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            req.getRequestDispatcher(UNAUTHORIZED_PAGE).include(req, resp);
           }
         } else {
           LOG.error("Skype provider not found for call page and user " + remoteUser);
-          httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-          httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
+          resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+          req.getRequestDispatcher(SERVER_ERROR_PAGE).include(req, resp);
         }
       } else {
         LOG.error("Video Calls service not found for call page and user " + remoteUser);
-        httpRes.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        httpReq.getRequestDispatcher(SERVER_ERROR_PAGE).include(httpReq, httpRes);
+        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        req.getRequestDispatcher(SERVER_ERROR_PAGE).include(req, resp);
       }
     }
   }
