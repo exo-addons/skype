@@ -50,10 +50,7 @@ public class SkypeBusinessProviderPortlet extends GenericPortlet {
   /** The Constant LOG. */
   private static final Log       LOG = ExoLogger.getLogger(SkypeBusinessProviderPortlet.class);
 
-  /** The space service. */
-  private SpaceService           spaceService;
-
-  /** The video calls. */
+  /** The web conferencing. */
   private WebConferencingService webConferencing;
 
   /** The provider. */
@@ -66,12 +63,9 @@ public class SkypeBusinessProviderPortlet extends GenericPortlet {
   public void init() throws PortletException {
     super.init();
 
-    //
     ExoContainer container = ExoContainerContext.getCurrentContainer();
 
-    this.spaceService = container.getComponentInstanceOfType(SpaceService.class);
     this.webConferencing = container.getComponentInstanceOfType(WebConferencingService.class);
-
     try {
       this.provider = (SkypeBusinessProvider) webConferencing.getProvider(SkypeBusinessProvider.SFB_TYPE);
     } catch (ClassCastException e) {

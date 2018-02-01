@@ -48,7 +48,7 @@ public class SkypeProviderPortlet extends GenericPortlet {
   /** The Constant LOG. */
   private static final Log       LOG = ExoLogger.getLogger(SkypeProviderPortlet.class);
 
-  /** The video calls. */
+  /** The web conferencing. */
   private WebConferencingService webConferencing;
 
   /** The provider. */

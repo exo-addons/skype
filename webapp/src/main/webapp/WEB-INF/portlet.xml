@@ -20,7 +20,7 @@
   </portlet>
   <portlet>
     <portlet-name>SkypeBusinessProviderPortlet</portlet-name>
-    <display-name xml:lang="EN">Skype for Business Provider for Video Calls</display-name>
+    <display-name xml:lang="EN">Skype for Business Provider for Web Conferencing</display-name>
     <portlet-class>org.exoplatform.webconferencing.skype.portlet.SkypeBusinessProviderPortlet</portlet-class>
     <supports>
       <mime-type>text/html</mime-type>

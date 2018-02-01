@@ -1991,7 +1991,7 @@
 									log.error("Failed to get call info for: " + callId, err);
 									if (err) {
 										if (err.code == "NOT_FOUND_ERROR" || (typeof status == "number" && status == 404)) {
-											// Call not registered, we treat it as a call started outside Video Calls
+											// Call not registered, we treat it as a call started outside web conferencing
 											showCallPopover();	
 										}	else {
 											accept.reject(webConferencing.errorText(err));

@@ -140,7 +140,7 @@ public class SkypeCallServlet extends AbstractHttpServlet {
           req.getRequestDispatcher(SERVER_ERROR_PAGE).include(req, resp);
         }
       } else {
-        LOG.error("Video Calls service not found for call page and user " + remoteUser);
+        LOG.error("Web Conferencing service not found for call page and user " + remoteUser);
         resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         req.getRequestDispatcher(SERVER_ERROR_PAGE).include(req, resp);
       }
