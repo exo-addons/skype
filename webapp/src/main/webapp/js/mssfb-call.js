@@ -9,6 +9,10 @@ if (eXo.webConferencing) {
 		var log = webConferencing.getLog("mssfb").prefix("call");
 		//log.trace("> Loading at " + location.origin + location.pathname);
 		
+		var errorCode = function(err) {
+			return err && err.code ? err.code : "";
+		};
+		
 		webConferencing.getProvider("mssfb").done(function(mssfb) {
 			var hashLine = location.hash;
 			var hasToken = /#access_token=/.test(hashLine);
@@ -238,7 +242,7 @@ if (eXo.webConferencing) {
 													var details = mssfb.readTargetDetails(currentUserSip, space);
 													startOutgoingCall(details);
 												}).fail(function(err) {
-													log.error("Space info request failure for " + targetId + ": " + webConferencing.errorCode(err) + " " + webConferencing.errorText(err), err);
+													log.error("Space info request failure for " + targetId + ": " + errorCode(err), err);
 													showError("Space error", webConferencing.errorText(err));
 												});
 											} else if (targetType == "chat_room") {
@@ -246,7 +250,7 @@ if (eXo.webConferencing) {
 													var details = mssfb.readTargetDetails(currentUserSip, room);
 													startOutgoingCall(details);
 												}).fail(function(err) {
-													log.error(" Room info request failure for " + targetId + ": " + webConferencing.errorCode(err) + " " + webConferencing.errorText(err), err);
+													log.error(" Room info request failure for " + targetId + ": " + errorCode(err), err);
 													showError("Chat room error", err.message);
 												});
 											} else if (targetType == "user") {
@@ -254,7 +258,7 @@ if (eXo.webConferencing) {
 													var details = mssfb.readTargetDetails(currentUserSip, user);
 													startOutgoingCall(details);
 												}).fail(function(err) {
-													log.error("User info request failure for " + targetId + ": " + webConferencing.errorCode(err) + " " + webConferencing.errorText(err), err);
+													log.error("User info request failure for " + targetId + ": " + errorCode(err), err);
 													showError("User error", err.message);
 												});
 											} else {
@@ -325,7 +329,7 @@ if (eXo.webConferencing) {
 				});
 			}
 		}).fail(function(err) {
-			log.error("MSSFB provider not available for mssfb-call.js", webConferencing.errorText(err));
+			log.error("MSSFB provider not available for mssfb-call.js", err);
 		});
 		log.trace("< Loaded at " + location.origin + location.pathname);
 	})(eXo.webConferencing);

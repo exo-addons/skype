@@ -1990,7 +1990,7 @@
 								}).fail(function(err) {
 									log.error("Failed to get call info for: " + callId, err);
 									if (err) {
-										if (err.code == "NOT_FOUND_ERROR" || (typeof status == "number" && status == 404)) {
+										if (err.code == "NOT_FOUND_ERROR") {
 											// Call not registered, we treat it as a call started outside web conferencing
 											showCallPopover();	
 										}	else {
