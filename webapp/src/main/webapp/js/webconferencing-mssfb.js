@@ -233,7 +233,11 @@
 				log.trace("Using new login token");
 				if (typeof Storage != "undefined") {
 			    // Code for localStorage/sessionStorage.
-			  	localStorage.setItem(TOKEN_STORE, JSON.stringify(token));
+					try {
+						localStorage.setItem(TOKEN_STORE, JSON.stringify(token));
+					} catch(err) {
+						log.error("Error saving access token", err);
+					}
 				} else {
 				  // Sorry! No Web Storage support.
 					// TODO save it in session storage or server-side?
@@ -1480,8 +1484,8 @@
 												callId = "user/" + context.userId;
 											} else if (context.spaceId) {
 												callId = "space/" + context.spaceId;
-											} else if (context.roomName && context.roomId) {
-												callId = "chat_room/" + context.roomName + "/" + context.roomId;
+											} else if (context.roomId) {
+												callId = "chat_room/" + context.roomId;
 											} else {
 												log.error("Unsupported call context " + context);
 											}
