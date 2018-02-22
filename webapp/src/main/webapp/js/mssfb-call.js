@@ -201,7 +201,7 @@ if (eXo.webConferencing) {
 								// we don't need this, but do to connect CometD prior using addCall() in mssfb.startOutgoingCall()
 								// See also https://jira.exoplatform.org/browse/PLF-7481
 								var currentUserId = webConferencing.getUser().id;
-								webConferencing.onUserUpdate(currentUserId, function(update, status) {
+								webConferencing.onUserUpdate(currentUserId, function(update) {
 									if (update.eventType == "call_state") {
 										if (update.callState == "stopped" && update.callId == pageCallId) {
 											log.info("Call stopped remotelly: " + update.callId);

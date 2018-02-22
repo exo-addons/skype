@@ -69,7 +69,7 @@
 				return callId;
 			};
 			
-			this.setConversation = function(convoInstance, caller, id) {
+			this.setConversation = function(convoInstance, id, caller) {
 				conversation = convoInstance;
 				callId = id;
 				callerId = caller;
@@ -966,9 +966,12 @@
 									owner : ownerId,
 									ownerType : ownerType,  
 									provider : self.getType(),
-									title : conversation.topic(),
 									participants : userIds.join(";") // eXo user ids here
 								};
+								var topic = conversation.topic();
+								if (topic) {
+									callInfo.title = topic; 
+								}
 								callStateUpdate("started");
 								return webConferencing.addCall(callId, callInfo).done(function(call) {
 									log.info("Created call " + callId + " parts:" + conversation.participantsCount());
@@ -1013,7 +1016,7 @@
 						var leavedGroupCall = function() {
 							joined = false; // do this sooner
 							callStateUpdate("leaved");
-							webConferencing.updateUserCall(callId, "leaved").fail(function(err, status) {
+							webConferencing.updateUserCall(callId, "leaved").fail(function(err) {
 								log.error("Failed to leave group call: " + callId, err);
 							});
 						};
@@ -1021,6 +1024,7 @@
 						var startingCall = function(stateName) {
 							if (!started) {
 								started = true;
+								// Get call ID again from the conversation to keep it fresh (as may change from adhoc to real ID)
 								callId = getCallId(conversation);
 								log.debug(stateName + " outgoing " + callId);
 								container.setCallId(callId);
@@ -1477,8 +1481,8 @@
 												}
 											}
 										} else {
-											// Call will run in a new page using call ID and call title,
-											// Call ID format here: 'target_type'/'target_id', the call page will request the target details in REST service
+											// Call will run in a new page using call reference and call title,
+											// Call reference format here: 'target_type'/'target_id', the call page will request the target details in REST service
 											var callId;
 											if (context.userId) {
 												callId = "user/" + context.userId;
