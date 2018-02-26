@@ -68,7 +68,7 @@ if (eXo.webConferencing) {
 				return dmsg.replace(/\+/g, " ");
 			}
 
-			function handleError() {
+			function handleError(ref) {
 				$("#mssfb-call-conversation").hide();
 				var $error = $("#mssfb-call-error");
 				if ($error.length == 0) {
@@ -92,9 +92,15 @@ if (eXo.webConferencing) {
 						$error.append($extrainfo);
 					}
 				}, this);
+
+				if (ref) {
+					var $ref = $("<div class='error-ref'></div>");
+					$ref.text(webConferencing.message("errorReference") + ref);
+					$error.append($ref);
+				}
 			}
 
-			function showError(title, message) {
+			function showError(title, message, ref) {
 				$("#mssfb-call-conversation, #mssfb-call-starting").hide();
 				var $error = $("#mssfb-call-error");
 				if ($error.length == 0) {
@@ -107,6 +113,11 @@ if (eXo.webConferencing) {
 				var $description = $("<div class='error-description'></div>");
 				$description.text(message);
 				$error.append($description);
+				if (ref) {
+					var $ref = $("<div class='error-ref'></div>");
+					$ref.text(webConferencing.message("errorReference") + ref);
+					$error.append($ref);
+				}
 			}
 			
 			function showStarted(message) {
@@ -183,8 +194,9 @@ if (eXo.webConferencing) {
 					}
 				}
 				if (hasError) {
-					log.error("MSSFB login error: " + location.hash);
-					handleError();
+					log.error("MSSFB login error: " + location.hash, function(ref) {
+						handleError(ref);
+					});
 				}
 			} else {
 				$(function() {
@@ -242,24 +254,27 @@ if (eXo.webConferencing) {
 													var details = mssfb.readTargetDetails(currentUserSip, space);
 													startOutgoingCall(details);
 												}).fail(function(err) {
-													log.error("Space info request failure for " + targetId + ": " + errorCode(err), err);
-													showError("Space error", webConferencing.errorText(err));
+													log.error("Space info request failure for " + targetId + ": " + errorCode(err), err, function(ref) {
+														showError("Space error", webConferencing.errorText(err), ref);
+													});
 												});
 											} else if (targetType == "chat_room") {
 												webConferencing.getRoomInfo(targetId).done(function(room) {
 													var details = mssfb.readTargetDetails(currentUserSip, room);
 													startOutgoingCall(details);
 												}).fail(function(err) {
-													log.error(" Room info request failure for " + targetId + ": " + errorCode(err), err);
-													showError("Chat room error", err.message);
+													log.error(" Room info request failure for " + targetId + ": " + errorCode(err), err, function(ref) {
+														showError("Chat room error", err.message, ref);
+													});
 												});
 											} else if (targetType == "user") {
 												webConferencing.getUserInfo(targetId).done(function(user) {
 													var details = mssfb.readTargetDetails(currentUserSip, user);
 													startOutgoingCall(details);
 												}).fail(function(err) {
-													log.error("User info request failure for " + targetId + ": " + errorCode(err), err);
-													showError("User error", err.message);
+													log.error("User info request failure for " + targetId + ": " + errorCode(err), err, function(ref) {
+														showError("User error", err.message, ref);
+													});
 												});
 											} else {
 												log.error("Unsupported target type in call ID: " + pageCallId);
@@ -268,23 +283,27 @@ if (eXo.webConferencing) {
 											log.error("Wrong call ID: " + pageCallId);
 										}
 									} catch (err) {
-										log.error("Call error", err);
-										showError("Call Error", err);
+										log.error("Call error", err, function(ref) {
+											showError("Call Error", webConferencing.errorText(err), ref);
+										});
 									}
 								});
 								uiInitializer.fail(function(err) {
 									// TODO we have an error, check if it's auth problem, then force to login
-									log.error("SkypeCC app error", err);
-									showError("Application Error", webConferencing.errorText(err));
+									log.error("SkypeCC app error", err, function(ref) {
+										showError("Application Error", webConferencing.errorText(err), ref);
+									});
 								});
 							}
 							if (hasError) {
-								log.error("Call error: " + location.hash); // show fill hash, it contains an error
-								handleError();
+								log.error("Call error: " + location.hash, function(ref) {
+									handleError(ref);
+								}); // show fill hash, it contains an error
 							}
 						} else {
-							log.error("Cannot find call ID in the page URL: " + location.pathname);
-							showError("Application Error", "Cannot find call ID. Close the page and try again.");
+							log.error("Cannot find call ID in the page URL: " + location.pathname, function(ref) {
+								showError("Application Error", "Cannot find call ID. Close the page and try again.", ref);
+							});
 						}
 					} else {
 						log.debug("Default page " + location.origin + location.pathname);
