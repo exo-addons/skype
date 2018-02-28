@@ -1507,8 +1507,13 @@
 								button.reject(msg);
 							}
 						}).fail(function(err) {
-							log.error("Error getting call details", err);
-							button.reject("Error getting call details", err);
+							if (err && err.code == "NOT_FOUND_ERROR") {
+								button.reject(err.message);
+							} else {
+								var msg = "Error getting context details";
+								log.error(msg, err);
+								button.reject(msg, err);
+							}
 						});
 					} else {
 						var msg = "Not " + self.getTitle() + " user " + context.currentUser.id;
@@ -1996,15 +2001,17 @@
 									}
 									showCallPopover();
 								}).fail(function(err) {
-									log.error("Failed to get call info for: " + callId, err);
 									if (err) {
 										if (err.code == "NOT_FOUND_ERROR") {
 											// Call not registered, we treat it as a call started outside web conferencing
-											showCallPopover();	
+											log.warn("Incoming call not found: " + callId + ", treat it as an external one", err);
+											showCallPopover();
 										}	else {
+											log.error("Failed to get call info for: " + callId, err);
 											accept.reject(webConferencing.errorText(err));
 										}
 									} else {
+										log.error("Error getting call info for: " + callId);
 										accept.reject("call info error");
 									}
 								});								
