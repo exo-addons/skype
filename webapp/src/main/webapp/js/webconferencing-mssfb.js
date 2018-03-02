@@ -328,12 +328,15 @@
 			};
 			
 			var handleErrorData = function(callId, title, errData) {
-				log.error("Call failure: " + callId + ". Error: " + errData.code + " " + (errData.subcode ? errData.subcode + " " : "") + errData.message);
+				var errMsg;
 				if (errData.code == "Gone" && errData.subcode == "TooManyApplications") {
-					webConferencing.showError(title, "Too many applications. " + errData.message);	
+					errMsg = "Too many applications. " + errData.message;	
 				} else {
-					webConferencing.showError(title, "[" + errData.code + "] " + errData.message);
+					errMsg = "[" + errData.code + "] " + errData.message;
 				}
+				log.showError("Call failure: " + callId, 
+							"[" + errData.code + " " + (errData.subcode ? "(" + errData.subcode + ")] " : "] ") + errData.message, 
+							title, errMsg);		
 			};
 			
 			var callUpdate = function() {
@@ -818,15 +821,13 @@
 					}
 					if (!handled) {
 						if (error.reason && error.reason.subcode && error.reason.message) {
-							log.error("Call " + callId + " ERROR: " + error.reason.subcode + ". " + error.reason.message);
-							webConferencing.showError(title, error.reason.message);
+							log.showError("Call failure: " + callId, "[" + error.reason.subcode + "] " + error.reason.message, title, error.reason.message);
 						} else {
 							var errData = getSDKErrorData(error);
 							if (errData) {
 								handleErrorData(callId, title, errData);
 							} else {
-								log.error("Call " + callId + " ERROR: " + title + ". " + error);
-								webConferencing.showError(title, error);
+								log.showError("Call failure: " + callId, title + ". " + error, title, error);
 							}
 						}
 					}
@@ -1205,12 +1206,14 @@
 						// error rendering Conversation Control
 						container.hide();
 						process.reject(err);
+						var title = "Conversation rendering error";
+						var msg = "";
 						if (err.name && err.message) {
-							log.error("Conversation rendering error: " + err.name + " " + err.message, err);
-							webConferencing.showError(err.name, err.message);
+							msg = err.name + " " + err.message;
 						} else {
-							log.error("Conversation rendering error", err);
+							msg = webConferencing.errorText(err);
 						}
+						log.showError(title, err, title, msg);
 					});					
 				}).fail(function() {
 					container.$element.append($("<div><div class='pluginError'>Please install Skype web plugin.</div></div>"));
@@ -1471,8 +1474,8 @@
 														embeddedCall(api, app);
 													});
 													callback.fail(function(err) {
-														log.error("User login failed", err);
-														webConferencing.showError(self.getTitle() + " error", "Unable sign in your " + self.getTitle() + " account. " + webConferencing.errorText(err));
+														log.showError("User login failed", err, self.getTitle() + " error", "Unable sign in your " 
+																	+ self.getTitle() + " account. " + webConferencing.errorText(err));
 													});
 													return callback.promise();
 												};
@@ -1931,12 +1934,14 @@
 											}
 										}, function(err) {
 											// error rendering Conversation Control
+											var title = "Conversation rendering error";
+											var msg = "";
 											if (err.name && err.message) {
-												log.error("Conversation rendering error: " + err.name + " " + err.message, err);
-												webConferencing.showError(err.name, err.message);
+												msg = err.name + " " + err.message;
 											} else {
-												log.error("Conversation rendering error", err);
+												msg = webConferencing.errorText(err);
 											}
+											log.showError(title, err, title, msg);
 											container.hide();
 											accept.reject("conversation error");
 										});
@@ -3003,8 +3008,8 @@
 												incomingCallHandler(api, app, container);
 											});
 											callback.fail(function(err) {
-												log.error("User login failed", err);
-												webConferencing.showError(self.getTitle() + " error", "Unable sign in your " + self.getTitle() + " account. " + err);
+												log.showError("User login failed", err, self.getTitle() + " error", "Unable sign in your " + self.getTitle() 
+															+ " account. " + webConferencing.errorText(err));
 											});
 											return callback.promise();
 										}
