@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.exoplatform.addons.skype</groupId>
     <artifactId>skype-connector</artifactId>
-    <version>1.0.x-SNAPSHOT</version>
+    <version>1.0.0-RC13</version>
   </parent>
   
   <artifactId>web-conferencing-skype-packaging</artifactId>
