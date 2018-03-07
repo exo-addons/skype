@@ -1027,7 +1027,7 @@
 								started = true;
 								// Get call ID again from the conversation to keep it fresh (as may change from adhoc to real ID)
 								callId = getCallId(conversation);
-								log.debug(stateName + " outgoing " + callId);
+								log.trace(stateName + " outgoing " + callId);
 								container.setCallId(callId);
 								process.resolve(callId, conversation);
 								if (conversation.isGroupConversation()) {
@@ -1976,7 +1976,6 @@
 								// User already running this call (this may happen if remote initiator leaved and joined again)
 								accept.resolve();
 							} else {
-								//log.trace(">>> Get registered " + callId + " > " + new Date().getTime());
 								webConferencing.getCall(callId).done(function(call) {
 									log.trace(">>> Got registered " + callId);
 									callerId = call.owner.id;
@@ -2139,25 +2138,27 @@
 							if (callState.state == "started") {
 								// Mark it started in Chat
 								webConferencing.getCall(callState.id).done(function(call) {
-									if (call.owner.type == "space") {
-										// Find room ID for space calls in Chat
-										webConferencing.getChat().getRoom(call.owner.id, "space-name").done(function(room) {
+									if (call.providerType == self.getType()) {
+										if (call.owner.type == "space") {
+											// Find room ID for space calls in Chat
+											webConferencing.getChat().getRoom(call.owner.id, "space-name").done(function(room) {
+												callStarted(call, {
+													id : call.owner.id,
+													type : call.owner.type,
+													chatRoom : room ? room.user : null
+												});
+											}).fail(function(err) {
+												log.error("Failed to request Chat room: " + call.owner.id + " for: " + callId, err);
+											});
+										} else {
+											// we assume: else if (callerType == "chat_room" || callerType == "user")
 											callStarted(call, {
 												id : call.owner.id,
 												type : call.owner.type,
-												chatRoom : room ? room.user : null
+												chatRoom : call.owner.id
 											});
-										}).fail(function(err) {
-											log.error("Failed to request Chat room: " + call.owner.id + " for: " + callId, err);
-										});
-									} else {
-										// we assume: else if (callerType == "chat_room" || callerType == "user")
-										callStarted(call, {
-											id : call.owner.id,
-											type : call.owner.type,
-											chatRoom : call.owner.id
-										});
-									}
+										}
+									} // don't care about calls of other providers
 								}).fail(function(err) {
 									log.error("Failed to get call info: " + callId, err);
 								});
@@ -2171,35 +2172,42 @@
 									log.trace("User call state updated: " + JSON.stringify(update));
 									// Ignore remote P2P calls start, SDK will fire them via added conversation
 									if (update.callState == "started" && update.owner.type != "user") {
-										log.info("Incoming call: " + update.callId);
+										log.trace("Incoming call: " + update.callId);
 										var conversation = app.conversationsManager.getConversationByUri(update.callId.substring(2));
 										if (conversation) {
 											logConversation(conversation);
 											var state = conversation.state();
-											// Created - for restored saved, Conferenced - not happens, but if will, it has the same meaning
-											// Disconnected - for previously conferenced on this page
-											if (state == "Disconnected" || state == "Conferenced") {
-												log.debug("Incoming (saved) existing: " + update.callId);
-												handleIncoming(conversation, true);
-											} else if (state == "Created") {
-												log.debug("Incoming (saved) created: " + update.callId);
-												// Created (from above getConversationByUri()) may quickly become Incoming by SDK logic for new group calls,
-												// thus let the SDK work and if not yet incoming, proceed with it
-												var handle = setTimeout(function() {
-													var local = getLocalCall(update.callId); 
-													if (!local) {
-														handleIncoming(conversation, true);
-													}
-												}, 5000);
-												conversation.state.once("Incoming", function() {
-													// This listener should work before Incoming handled in added handler above
-													// if it become Incoming - cancel the delayed handler, it will be worked in 'added' logic there
-													clearTimeout(handle);
-												});
-											} else if (state == "Incoming") {
-												log.debug("User call " + update.callId + " state Incoming skipped, will be handled in added listener");
-											} else {
-												log.warn("User call " + update.callId + " not active (" + state + ")");
+											var needHandle = true;
+											var localCall = getLocalCall(update.callId); 
+											if (localCall && localCall.state == "started") {
+												needHandle = false;
+											}
+											if (needHandle) {
+												// Handle incoming call
+												// Created - for restored saved, Conferenced - not happens, but if will, it has the same meaning
+												// Disconnected - for previously conferenced on this page
+												if (state == "Disconnected" || state == "Conferenced") {
+													log.debug("Incoming (saved) existing: " + update.callId);
+													handleIncoming(conversation, true);
+												} else if (state == "Created") {
+													log.debug("Incoming (saved) created: " + update.callId);
+													// Created (from above getConversationByUri()) may quickly become Incoming by SDK logic for new group calls,
+													// thus let the SDK work and if not yet incoming, proceed with it
+													var handle = setTimeout(function() {
+														if (!localCall || localCall.state != "started") {
+															handleIncoming(conversation, true);
+														}
+													}, 5000);
+													conversation.state.once("Incoming", function() {
+														// This listener should work before Incoming handled in added handler above
+														// if it become Incoming - cancel the delayed handler, it will be worked in 'added' logic there
+														clearTimeout(handle);
+													});
+												} else if (state == "Incoming") {
+													log.debug("User call " + update.callId + " state Incoming skipped, will be handled in added listener");
+												} else {
+													log.warn("User call " + update.callId + " not active (" + state + ")");
+												}
 											}
 										} else {
 											log.warn("User call " + update.callId + " not found in conversation manager");
@@ -2209,11 +2217,13 @@
 										// Hide accept popover for this call
 										closeCallPopup(update.callId);
 										var localCall = getLocalCall(update.callId);
-										if (localCall && canJoin(localCall) && localCall.conversation) {
+										if (localCall && canJoin(localCall)) {
 											// We leave if something running
-											localCall.conversation.leave().then(function() {
-												log.info("Current conversation stopped and leaved " + container.getCallId());
-											});
+											if (localCall.conversation) {
+												localCall.conversation.leave().then(function() {
+													log.info("Current conversation stopped and leaved " + container.getCallId());
+												});
+											}
 											// And save the call as stopped with firing UI updates
 											// Nov 28 2017, code below moved in this if-block from being after it
 											// thus it will work only for calls not yet stopped locally
